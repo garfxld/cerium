@@ -1,14 +1,11 @@
-#![allow(unused)] // todo: remove
-
 pub mod packet;
 
-pub mod decoder;
-pub mod encoder;
+pub mod buffer;
+pub mod decode;
+pub mod encode;
 pub mod types;
 
-
-
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProtcolState {
     Handshake,
     Status,
@@ -19,6 +16,7 @@ pub enum ProtcolState {
 }
 
 impl ProtcolState {
+    #[allow(unused)] // todo: remove
     pub fn from_id(id: i32) -> Self {
         match id {
             0 => Self::Handshake,

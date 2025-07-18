@@ -1,37 +1,60 @@
-use std::sync::Arc;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+};
 
-use tokio::net::{TcpListener, TcpStream};
+use tokio::{net::TcpListener, sync::Mutex};
 
-use crate::network::client::ClientConnection;
-
-mod protocol;
+use crate::network::{auth::KeyStore, client::ClientConnection};
 
 mod network;
+mod protocol;
+mod registry;
+mod world;
 
-pub struct Server {}
+mod identifier;
+
+pub struct Server {
+    running: AtomicBool,
+}
 
 impl Server {
-    pub async fn bind(addr: &'static str) -> Self {
-        let listener = TcpListener::bind(addr).await.unwrap();
-
-        loop {
-            let (stream, _) = listener.accept().await.unwrap();
-            tokio::spawn(async move {
-                Self::handle_connection(stream).await.unwrap();
-            });
+    pub fn new() -> Self {
+        Self {
+            running: AtomicBool::new(true),
         }
-
-        // Self {  }
     }
 
-    async fn handle_connection(stream: TcpStream) -> anyhow::Result<()> {
-        stream.set_nodelay(true)?;
+    pub async fn bind(self, addr: &'static str) {
+        let listener = TcpListener::bind(addr).await.unwrap();
 
-        let stream = Arc::new(stream);
-        let mut conn = ClientConnection::new(Arc::clone(&stream));
+        let key_store = Arc::new(KeyStore::new());
 
-        conn.read().await?;
+        while self.running.load(Ordering::Relaxed) {
+            let (stream, _) = listener.accept().await.unwrap();
 
-        Ok(())
+            let connection = Arc::new(Mutex::new(ClientConnection::new(
+                Arc::new(stream),
+                Arc::clone(&key_store),
+            )));
+
+            // todo: configure socket (e.g. nodelay, ...)
+
+            let read_handle = tokio::spawn({
+                let connection = Arc::clone(&connection);
+                async move {
+                    connection.lock().await.read_loop().await;
+                }
+            });
+
+            let write_handle = tokio::spawn({
+                let _connection = Arc::clone(&connection);
+                async move {
+                    // connection.lock().await.write_loop().await;
+                }
+            });
+
+            tokio::try_join!(read_handle, write_handle).unwrap();
+        }
     }
 }

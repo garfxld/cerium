@@ -1,0 +1,253 @@
+use simdnbt::owned::Nbt;
+
+use crate::{
+    identifier::Identifier,
+    network::client::ClientConnection,
+    protocol::{
+        buffer::ByteBuffer,
+        decode::Decode as _,
+        packet::{
+            AcknowledgeFinishConfigPacket, ChunkDataAndUpdateLightPacket, ClientInfoPacket,
+            ClientKnownPacksPacket, ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket,
+            LoginPacket, PlayerAction, PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket,
+            RegistryDataPacket, RegistryEntry, ServerKnownPacksPacket, SetCenterChunkPacket,
+            SyncPlayerPositionPacket,
+        },
+        ProtcolState,
+    },
+    registry::registry::{Registry, REGISTRIES},
+    world::world::World,
+};
+
+pub(crate) fn handle_packet(client: &mut ClientConnection, id: i32, data: &mut ByteBuffer) {
+    match id {
+        0x00 => handle_client_info(client, ClientInfoPacket::decode(data).unwrap()),
+        0x01 => handle_cookie_response(client),
+        0x02 => handle_plugin_message(client, ClientPluginMessagePacket::decode(data).unwrap()),
+        0x03 => handle_acknowledge_finish_config(
+            client,
+            AcknowledgeFinishConfigPacket::decode(data).unwrap(),
+        ),
+        0x04 => handle_keep_alive(client),
+        0x05 => handle_pong(client),
+        0x06 => handle_resource_pack_response(client),
+        0x07 => handle_client_known_packs(client, ClientKnownPacksPacket::decode(data).unwrap()),
+        0x08 => handle_custom_click_action(client),
+        _ => panic!("Unknown packet! ({})", id),
+    }
+}
+
+fn handle_client_info(client: &mut ClientConnection, packet: ClientInfoPacket) {
+    log::trace!("{:?}", &packet);
+
+    client.send_packet(
+        0x0E,
+        ServerKnownPacksPacket {
+            known_packs: Vec::new(),
+        },
+    );
+
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.cat_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.chicken_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.cow_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.frog_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.painting_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.pig_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.wolf_sound_variant.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.wolf_variant.clone()),
+    );
+
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.damage_type.clone()),
+    );
+    client.send_packet(
+        0x07,
+        RegistryDataPacket::from(REGISTRIES.dimension_type.clone()),
+    );
+    client.send_packet(0x07, RegistryDataPacket::from(REGISTRIES.biome.clone()));
+
+    client.send_packet(0x03, FinishConfigPacket {});
+}
+
+fn handle_cookie_response(client: &mut ClientConnection) {
+    let _ = client;
+    todo!()
+}
+
+fn handle_plugin_message(client: &mut ClientConnection, packet: ClientPluginMessagePacket) {
+    log::trace!("{:?}", &packet);
+    let _ = client;
+    let _ = packet;
+}
+
+fn handle_acknowledge_finish_config(
+    client: &mut ClientConnection,
+    packet: AcknowledgeFinishConfigPacket,
+) {
+    log::trace!("{:?}", &packet);
+    client.state = ProtcolState::Play;
+
+    client.send_packet(
+        0x2B,
+        LoginPacket {
+            entity_id: 0,
+            is_hardcore: false,
+            dimension_names: vec!["minecraft:overworld".to_owned()],
+            max_players: 20,
+            view_distance: 16,
+            simulation_distance: 16,
+            reduced_debug_info: false,
+            enable_respawn_screen: true,
+            do_limited_crafting: false,
+            dimension_type: REGISTRIES
+                .dimension_type
+                .get_id("minecraft:overworld".to_owned())
+                .unwrap_or(0) as i32,
+            dimension_name: "minecraft:overworld".to_owned(),
+            hashed_seed: 93522819,
+            game_mode: 1,
+            previous_game_mode: -1,
+            is_debug: false,
+            is_flat: false,
+            death_location: None,
+            portal_cooldown: 4,
+            sea_level: 64,
+            enforces_secure_chat: false,
+        },
+    );
+
+    client.send_packet(
+        0x41,
+        SyncPlayerPositionPacket {
+            teleport_id: 0.into(),
+            x: 0.5,
+            y: 330.,
+            z: 0.5,
+            velocity_x: 0.,
+            velocity_y: 0.,
+            velocity_z: 0.,
+            yaw: 0.,
+            pitch: 0.,
+            flags: 0,
+        },
+    );
+
+    let game_profile = &client.game_profile;
+
+    client.send_packet(
+        0x3F,
+        PlayerInfoUpdatePacket {
+            actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),
+            players: vec![PlayerEntry {
+                uuid: game_profile.uuid,
+                player_actions: vec![
+                    PlayerAction::AddPlayer {
+                        name: game_profile.name.clone(),
+                        properties: game_profile.properties.clone(),
+                    },
+                    PlayerAction::UpdateListed { listed: true },
+                ],
+            }],
+        },
+    );
+
+    client.send_packet(
+        0x22,
+        GameEventPacket {
+            event: 13,
+            value: 0.,
+        },
+    );
+
+    client.send_packet(
+        0x57,
+        SetCenterChunkPacket {
+            chunk_x: 0.into(),
+            chunk_z: 0.into(),
+        },
+    );
+
+    let overworld = REGISTRIES
+        .dimension_type
+        .get("minecraft:overworld".to_owned())
+        .expect("failed to get dimension_type");
+
+    let mut world = World::new(overworld.clone());
+
+    for x in -5..5 {
+        for z in -5..5 {
+            world.load_chunk(x, z);
+            let chunk = world.get_chunk(x, z).unwrap();
+
+            client.send_packet::<ChunkDataAndUpdateLightPacket>(0x27, chunk.clone().into());
+        }
+    }
+}
+
+fn handle_keep_alive(client: &mut ClientConnection) {
+    let _ = client;
+    todo!()
+}
+
+fn handle_pong(client: &mut ClientConnection) {
+    let _ = client;
+    todo!()
+}
+
+fn handle_resource_pack_response(client: &mut ClientConnection) {
+    let _ = client;
+    todo!()
+}
+
+fn handle_client_known_packs(client: &mut ClientConnection, packet: ClientKnownPacksPacket) {
+    let _ = client;
+    let _ = packet;
+}
+
+fn handle_custom_click_action(client: &mut ClientConnection) {
+    let _ = client;
+    todo!()
+}
+
+impl<T> From<Registry<T>> for RegistryDataPacket
+where
+    T: serde::de::DeserializeOwned + simdnbt::Serialize + Clone,
+{
+    fn from(value: Registry<T>) -> Self {
+        RegistryDataPacket {
+            registry_id: Identifier::try_from(value.name()).unwrap(),
+            entries: value
+                .entries
+                .iter()
+                .map(|e| RegistryEntry {
+                    entry_id: Identifier::try_from(e.0.to_string()).unwrap(),
+                    data: Some(Nbt::Some(e.1.clone().to_nbt())),
+                })
+                .collect(),
+        }
+    }
+}
