@@ -4,7 +4,7 @@ use macros::packet;
 use crate::{
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeException},
+        encode::{Encode, EncodeError},
     },
     world::{heightmap::Heightmap, light::LightData},
 };
@@ -19,7 +19,7 @@ pub struct ChunkDataAndUpdateLightPacket {
 }
 
 impl Encode for ChunkDataAndUpdateLightPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_i32(this.chunk_x)?;
         buffer.write_i32(this.chunk_z)?;
         ChunkData::encode(buffer, this.data)?;
@@ -36,7 +36,7 @@ pub struct ChunkData {
 }
 
 impl Encode for ChunkData {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_array(this.heightmaps, |buffer, value| {
             Heightmap::encode(buffer, value)
         })?;

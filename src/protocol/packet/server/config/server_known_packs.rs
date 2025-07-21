@@ -1,6 +1,6 @@
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -9,7 +9,7 @@ pub struct ServerKnownPacksPacket {
 }
 
 impl Encode for ServerKnownPacksPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_array(this.known_packs, |buffer, value| {
             KnownPacks::encode(buffer, value)
         })?;
@@ -25,7 +25,7 @@ pub struct KnownPacks {
 }
 
 impl Encode for KnownPacks {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_string(this.namespace)?;
         buffer.write_string(this.id)?;
         buffer.write_string(this.version)?;

@@ -2,7 +2,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct SetCenterChunkPacket {
 }
 
 impl Encode for SetCenterChunkPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_varint(this.chunk_x)?;
         buffer.write_varint(this.chunk_z)?;
         Ok(())

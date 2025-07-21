@@ -1,6 +1,6 @@
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
     encode::Encode,
 };
 
@@ -10,7 +10,7 @@ pub struct ClientKnownPacksPacket {
 }
 
 impl Decode for ClientKnownPacksPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             known_packs: buffer.read_list(|buffer| KnownPacks::decode(buffer))?,
         })
@@ -25,7 +25,7 @@ pub struct KnownPacks {
 }
 
 impl Decode for KnownPacks {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             namespace: buffer.read_string()?,
             id: buffer.read_string()?,

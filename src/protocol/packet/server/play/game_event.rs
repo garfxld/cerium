@@ -2,7 +2,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct GameEventPacket {
 }
 
 impl Encode for GameEventPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_u8(this.event)?;
         buffer.write_f32(this.value)?;
         Ok(())

@@ -2,7 +2,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -31,7 +31,7 @@ pub struct LoginPacket {
 }
 
 impl Encode for LoginPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_i32(this.entity_id)?;
         buffer.write_bool(this.is_hardcore)?;
 
@@ -71,7 +71,7 @@ pub struct DeathLocation {
 }
 
 impl Encode for DeathLocation {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_string(this.dimension_name)?;
         buffer.write_i64(this.location)?;
         Ok(())

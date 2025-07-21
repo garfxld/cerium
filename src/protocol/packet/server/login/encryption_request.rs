@@ -3,7 +3,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub struct EncryptionRequestPacket {
 }
 
 impl Encode for EncryptionRequestPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_string(this.server_id)?;
         buffer.write_array(this.public_key.to_vec(), |buffer, value| {
             buffer.write_u8(value)

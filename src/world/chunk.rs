@@ -1,7 +1,7 @@
 use crate::{
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeException},
+        encode::{Encode, EncodeError},
         packet::{ChunkData, ChunkDataAndUpdateLightPacket},
     },
     world::{light::LightData, palette::Palette},
@@ -89,7 +89,7 @@ impl ChunkSection {
 }
 
 impl Encode for ChunkSection {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_i16(this.block_count)?;
         Palette::encode(buffer, this.block_states)?;
         Palette::encode(buffer, this.biomes)?;

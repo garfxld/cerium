@@ -5,7 +5,7 @@ use crate::{
     network::auth::{GameProfile, Property},
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeException},
+        encode::{Encode, EncodeError},
     },
 };
 
@@ -18,7 +18,7 @@ pub struct LoginSuccessPacket {
 }
 
 impl Encode for LoginSuccessPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_uuid(this.uuid)?;
         buffer.write_string(this.username)?;
 

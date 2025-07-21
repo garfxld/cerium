@@ -1,21 +1,33 @@
+use std::sync::Arc;
+
 use crate::{
     network::client::ClientConnection,
-    protocol::{buffer::ByteBuffer, decode::Decode, packet::HandshakePacket, ProtcolState},
+    protocol::{
+        buffer::ByteBuffer,
+        decode::{Decode, DecodeError},
+        packet::HandshakePacket,
+        ProtocolState,
+    },
 };
 
-pub(crate) fn handle_packet(client: &mut ClientConnection, id: i32, data: &mut ByteBuffer) {
+pub async fn handle_packet(
+    client: Arc<ClientConnection>,
+    id: i32,
+    data: &mut ByteBuffer,
+) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_handshake(client, HandshakePacket::decode(data).unwrap()),
+        0x00 => handle_handshake(client, HandshakePacket::decode(data)?).await,
         _ => panic!("Unknown packet! ({})", id),
-    }
+    };
+    Ok(())
 }
 
-fn handle_handshake(client: &mut ClientConnection, packet: HandshakePacket) {
+async fn handle_handshake(client: Arc<ClientConnection>, packet: HandshakePacket) {
     log::trace!("{:?}", &packet);
-
-    client.state = match packet.intent {
-        1 => ProtcolState::Status,
-        2 => ProtcolState::Login,
+    let mut state = client.state.lock().await;
+    *state = match packet.intent {
+        1 => ProtocolState::Status,
+        2 => ProtocolState::Login,
         3 => unimplemented!("Not yet implemented."),
         _ => panic!("Invalid next intent"),
     };

@@ -6,7 +6,7 @@ pub mod encode;
 pub mod types;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ProtcolState {
+pub enum ProtocolState {
     Handshake,
     Status,
     Login,
@@ -15,7 +15,7 @@ pub enum ProtcolState {
     Play,
 }
 
-impl ProtcolState {
+impl ProtocolState {
     #[allow(unused)] // todo: remove
     pub fn from_id(id: i32) -> Self {
         match id {

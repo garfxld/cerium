@@ -2,7 +2,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug)]
@@ -12,7 +12,7 @@ pub struct SwingArmPacket {
 }
 
 impl Decode for SwingArmPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             hand: buffer.read_varint()?,
         })

@@ -3,8 +3,8 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
-    encode::{Encode, EncodeException},
+    decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct KeepAlivePacket {
 }
 
 impl Decode for KeepAlivePacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             keep_alive_id: buffer.read_i64()?,
         })
@@ -22,7 +22,7 @@ impl Decode for KeepAlivePacket {
 }
 
 impl Encode for KeepAlivePacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_i64(this.keep_alive_id)?;
         Ok(())
     }

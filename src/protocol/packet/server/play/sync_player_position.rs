@@ -2,7 +2,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug)]
@@ -21,7 +21,7 @@ pub struct SyncPlayerPositionPacket {
 }
 
 impl Encode for SyncPlayerPositionPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_varint(this.teleport_id)?;
         buffer.write_f64(this.x)?;
         buffer.write_f64(this.y)?;

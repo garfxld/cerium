@@ -3,7 +3,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct PlayerRotationPacket {
 }
 
 impl Decode for PlayerRotationPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             yaw: buffer.read_f32()?,
             pitch: buffer.read_f32()?,

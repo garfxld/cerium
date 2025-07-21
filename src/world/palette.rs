@@ -1,6 +1,6 @@
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug, Clone)]
@@ -61,7 +61,7 @@ impl Palette {
 }
 
 impl Encode for Palette {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_u8(this.bpe)?;
 
         match this.format {

@@ -3,7 +3,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug)]
@@ -13,7 +13,7 @@ pub struct StatusRequestPacket {
 }
 
 impl Decode for StatusRequestPacket {
-    fn decode(_: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(_: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

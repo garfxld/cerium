@@ -1,6 +1,7 @@
+use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct GameProfile {
     #[serde(alias = "id")]
     pub uuid: Uuid,
@@ -8,7 +9,7 @@ pub struct GameProfile {
     pub properties: Vec<Property>,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Property {
     pub name: String,
     pub value: String,
@@ -25,6 +26,7 @@ pub enum AuthError {
     MalformedJson,
 }
 
+#[derive(Debug)]
 pub struct KeyStore {
     pub private_key: rsa::RsaPrivateKey,
     pub public_key_der: Box<[u8]>,
@@ -69,6 +71,7 @@ impl KeyStore {
 pub type Decryptor = cfb8::Decryptor<aes::Aes128>;
 pub type Encryptor = cfb8::Encryptor<aes::Aes128>;
 
+#[derive(Debug)]
 pub struct CryptContext {
     pub decryptor: Decryptor,
     pub encryptor: Encryptor,

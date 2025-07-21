@@ -1,23 +1,30 @@
+use std::sync::Arc;
+
 use crate::{
     network::client::ClientConnection,
     protocol::{
         buffer::ByteBuffer,
-        decode::Decode as _,
+        decode::{Decode as _, DecodeError},
         packet::{
             PingRequestPacket, PongResponsePacket, StatusRequestPacket, StatusResponsePacket,
         },
     },
 };
 
-pub(crate) fn handle_packet(client: &mut ClientConnection, id: i32, data: &mut ByteBuffer) {
+pub async fn handle_packet(
+    client: Arc<ClientConnection>,
+    id: i32,
+    data: &mut ByteBuffer,
+) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_status_request(client, StatusRequestPacket::decode(data).unwrap()),
-        0x01 => handle_ping_request(client, PingRequestPacket::decode(data).unwrap()),
+        0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?).await,
+        0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?).await,
         _ => panic!("Unknown packet! ({})", id),
-    }
+    };
+    Ok(())
 }
 
-fn handle_status_request(client: &mut ClientConnection, packet: StatusRequestPacket) {
+async fn handle_status_request(client: Arc<ClientConnection>, packet: StatusRequestPacket) {
     log::trace!("{:?}", &packet);
     let _ = packet;
 
@@ -48,15 +55,17 @@ fn handle_status_request(client: &mut ClientConnection, packet: StatusRequestPac
         .to_string(),
     };
 
-    client.send_packet(0x00, response);
+    client.send_packet(0x00, response).await;
 }
 
-fn handle_ping_request(client: &mut ClientConnection, packet: PingRequestPacket) {
+async fn handle_ping_request(client: Arc<ClientConnection>, packet: PingRequestPacket) {
     log::trace!("{:?}", &packet);
-    client.send_packet(
-        0x01,
-        PongResponsePacket {
-            timestamp: packet.timestamp,
-        },
-    );
+    client
+        .send_packet(
+            0x01,
+            PongResponsePacket {
+                timestamp: packet.timestamp,
+            },
+        )
+        .await;
 }

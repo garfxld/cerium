@@ -1,4 +1,4 @@
-use crate::protocol::{buffer::ByteBuffer, decode::{Decode, DecodeException}};
+use crate::protocol::{buffer::ByteBuffer, decode::{Decode, DecodeError}};
 
 #[derive(Debug)]
 pub struct AcknowledgeFinishConfigPacket {
@@ -6,7 +6,7 @@ pub struct AcknowledgeFinishConfigPacket {
 }
 
 impl Decode for AcknowledgeFinishConfigPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

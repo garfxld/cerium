@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     network::{
         auth::{self, CryptContext, GameProfile},
@@ -5,29 +7,34 @@ use crate::{
     },
     protocol::{
         buffer::ByteBuffer,
-        decode::Decode as _,
+        decode::{Decode as _, DecodeError},
         packet::{
             EncryptionRequestPacket, EncryptionResponsePacket, LoginAcknowledgePacket,
             LoginStartPacket, LoginSuccessPacket,
         },
-        ProtcolState,
+        ProtocolState,
     },
 };
 
-pub(crate) fn handle_packet(client: &mut ClientConnection, id: i32, data: &mut ByteBuffer) {
+pub async fn handle_packet(
+    client: Arc<ClientConnection>,
+    id: i32,
+    data: &mut ByteBuffer,
+) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_login_start(client, LoginStartPacket::decode(data).unwrap()),
-        0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data).unwrap()),
-        0x02 => handle_plugin_response(client),
-        0x03 => handle_login_acknowledged(client, LoginAcknowledgePacket::decode(data).unwrap()),
-        0x04 => handle_cookie_response(client),
+        0x00 => handle_login_start(client, LoginStartPacket::decode(data)?).await,
+        0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data)?).await,
+        0x02 => handle_plugin_response(client).await,
+        0x03 => handle_login_acknowledged(client, LoginAcknowledgePacket::decode(data)?).await,
+        0x04 => handle_cookie_response(client).await,
         _ => panic!("Unknown packet! ({})", id),
-    }
+    };
+    Ok(())
 }
 
-fn handle_login_start(client: &mut ClientConnection, packet: LoginStartPacket) {
+async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPacket) {
     log::trace!("{:?}", &packet);
-    client.game_profile = GameProfile {
+    *client.game_profile.lock().await = GameProfile {
         uuid: packet.uuid,
         name: packet.name,
         properties: vec![],
@@ -35,48 +42,63 @@ fn handle_login_start(client: &mut ClientConnection, packet: LoginStartPacket) {
 
     // todo: check for online mode
     if true {
-        client.verify_token = rand::random();
+        let verify_token: [u8; 4] = rand::random();
+        *client.verify_token.lock().await = verify_token;
 
-        client.send_packet(
-            0x01,
-            EncryptionRequestPacket {
-                server_id: "".to_owned(),
-                public_key: client.key_store.public_key_der.clone(),
-                verify_token: Box::new(client.verify_token),
-                should_authenticate: true,
-            },
-        );
+        client
+            .send_packet(
+                0x01,
+                EncryptionRequestPacket {
+                    server_id: "".to_owned(),
+                    public_key: client.key_store.public_key_der.clone(),
+                    verify_token: Box::new(verify_token),
+                    should_authenticate: true,
+                },
+            )
+            .await;
 
         return;
     }
 
     // ofline mode
-    client.send_packet(0x02, LoginSuccessPacket::from(client.game_profile.clone()));
+    client
+        .send_packet(
+            0x02,
+            LoginSuccessPacket::from(client.game_profile.lock().await.clone()),
+        )
+        .await;
 }
 
-fn handle_encryption_response(client: &mut ClientConnection, packet: EncryptionResponsePacket) {
+async fn handle_encryption_response(client: Arc<ClientConnection>, packet: EncryptionResponsePacket) {
     log::trace!("{:?}", &packet);
     let shared_secret = client.key_store.decrypt(&packet.shared_secret).unwrap();
 
     // enable encryption
-    client.crypt_context = Some(CryptContext::new(&shared_secret));
+    *client.crypt_context.lock().await = Some(CryptContext::new(&shared_secret));
 
-    let username = &client.game_profile.name;
+    let mut client_game_profile = client.game_profile.lock().await;
+
+    let username = &client_game_profile.name;
     let hash = &client.key_store.digest_secret(&shared_secret);
 
-    client.game_profile = auth::authenthicate(username, hash, None).unwrap();
-    client.send_packet(0x02, LoginSuccessPacket::from(client.game_profile.clone()));
+    let game_profile = auth::authenthicate(username, hash, None).unwrap();
+
+    *client_game_profile = game_profile.clone();
+
+    client
+        .send_packet(0x02, LoginSuccessPacket::from(game_profile.clone()))
+        .await;
 }
 
-fn handle_plugin_response(_client: &mut ClientConnection) {
+async fn handle_plugin_response(_client: Arc<ClientConnection>) {
     todo!()
 }
 
-fn handle_login_acknowledged(client: &mut ClientConnection, packet: LoginAcknowledgePacket) {
+async fn handle_login_acknowledged(client: Arc<ClientConnection>, packet: LoginAcknowledgePacket) {
     log::trace!("{:?}", &packet);
-    client.state = ProtcolState::Config;
+    *client.state.lock().await = ProtocolState::Config;
 }
 
-fn handle_cookie_response(_client: &mut ClientConnection) {
+async fn handle_cookie_response(_client: Arc<ClientConnection>) {
     todo!()
 }

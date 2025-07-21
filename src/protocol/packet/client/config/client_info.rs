@@ -2,7 +2,7 @@ use bytes::{buf, Buf};
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug)]
@@ -18,7 +18,7 @@ pub struct ClientInfoPacket {
 }
 
 impl Decode for ClientInfoPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<ClientInfoPacket, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<ClientInfoPacket, DecodeError> {
         Ok(Self {
             locale: buffer.read_string()?,
             view_distance: buffer.read_u8()?,

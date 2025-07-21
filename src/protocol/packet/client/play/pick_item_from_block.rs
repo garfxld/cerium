@@ -1,7 +1,10 @@
 use bytes::Buf;
 use macros::packet;
 
-use crate::protocol::{buffer::ByteBuffer, decode::{Decode, DecodeException}};
+use crate::protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
+};
 
 #[derive(Debug, Clone)]
 #[packet("pick_item_from_block")]
@@ -11,7 +14,7 @@ pub struct PickItemFromBlockPacket {
 }
 
 impl Decode for PickItemFromBlockPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             position: buffer.read_i64()?,
             include_data: buffer.read_bool()?,

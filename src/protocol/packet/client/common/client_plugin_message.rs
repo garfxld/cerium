@@ -5,7 +5,7 @@ use crate::{
     identifier::Identifier,
     protocol::{
         buffer::ByteBuffer,
-        decode::{Decode, DecodeException},
+        decode::{Decode, DecodeError},
     },
 };
 
@@ -17,7 +17,7 @@ pub struct ClientPluginMessagePacket {
 }
 
 impl Decode for ClientPluginMessagePacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         let identifier = buffer.read_identifier()?;
 
         let length = buffer.read_varint()?;

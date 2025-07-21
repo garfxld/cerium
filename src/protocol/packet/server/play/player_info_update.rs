@@ -5,7 +5,7 @@ use crate::{
     network::auth::Property,
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeException},
+        encode::{Encode, EncodeError},
     },
 };
 
@@ -30,7 +30,7 @@ pub struct PlayerInfoUpdatePacket {
 }
 
 impl Encode for PlayerInfoUpdatePacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_u8(this.actions)?;
         buffer.write_array(this.players, |buffer, value| {
             PlayerEntry::encode(buffer, value)
@@ -46,7 +46,7 @@ pub struct PlayerEntry {
 }
 
 impl Encode for PlayerEntry {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_uuid(this.uuid)?;
         buffer.write_unprefixed_array(this.player_actions, |buffer, value| match value {
             PlayerAction::AddPlayer { name, properties } => {

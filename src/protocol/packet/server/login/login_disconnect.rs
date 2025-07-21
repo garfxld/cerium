@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    encode::{Encode, EncodeException},
+    encode::{Encode, EncodeError},
 };
 
 #[derive(Debug, Clone)]
@@ -13,7 +13,7 @@ pub struct LoginDisconnectPacket {
 }
 
 impl Encode for LoginDisconnectPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_string(this.reason)?;
         Ok(())
     }

@@ -6,7 +6,7 @@ use crate::{
     identifier::Identifier,
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeException},
+        encode::{Encode, EncodeError},
     },
 };
 
@@ -18,7 +18,7 @@ pub struct RegistryDataPacket {
 }
 
 impl Encode for RegistryDataPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_identifier(this.registry_id)?;
         buffer.write_array(this.entries, |buffer, value| {
             RegistryEntry::encode(buffer, value)
@@ -34,7 +34,7 @@ pub struct RegistryEntry {
 }
 
 impl Encode for RegistryEntry {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException> {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
         buffer.write_identifier(this.entry_id)?;
         buffer.write_optional(this.data, |buffer, value| {
             let mut data: Vec<u8> = Vec::new();

@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ pub struct LoginStartPacket {
 }
 
 impl Decode for LoginStartPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             name: buffer.read_string()?,
             uuid: buffer.read_uuid()?,

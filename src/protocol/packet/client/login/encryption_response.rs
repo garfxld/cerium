@@ -3,7 +3,7 @@ use macros::packet;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug, Clone)]
@@ -14,7 +14,7 @@ pub struct EncryptionResponsePacket {
 }
 
 impl Decode for EncryptionResponsePacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             shared_secret: buffer
                 .read_list(|buffer| buffer.read_u8())?

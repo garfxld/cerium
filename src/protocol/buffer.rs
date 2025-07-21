@@ -4,8 +4,8 @@ use uuid::Uuid;
 use crate::{
     identifier::Identifier,
     protocol::{
-        decode::{Decode, DecodeException},
-        encode::EncodeException,
+        decode::{Decode, DecodeError},
+        encode::EncodeError,
     },
 };
 
@@ -28,7 +28,7 @@ impl Into<BytesMut> for ByteBuffer {
 macro_rules! read_impl {
     ($type:ty) => {
         paste::paste! {
-            pub fn [<read_ $type>](&mut self) -> Result<$type, DecodeException> {
+            pub fn [<read_ $type>](&mut self) -> Result<$type, DecodeError> {
                 Ok(self.inner.[<get_ $type>]())
             }
         }
@@ -38,13 +38,12 @@ macro_rules! read_impl {
 macro_rules! write_impl {
     ($type:ty) => {
         paste::paste! {
-            pub fn [<write_ $type>](&mut self, value: $type) -> Result<(), EncodeException> {
+            pub fn [<write_ $type>](&mut self, value: $type) -> Result<(), EncodeError> {
                 Ok(self.inner.[<put_ $type>](value))
             }
         }
     };
 }
-
 
 #[allow(unused)]
 impl ByteBuffer {
@@ -72,11 +71,11 @@ impl ByteBuffer {
     read_impl!(f32);
     read_impl!(f64);
 
-    pub fn read_bool(&mut self) -> Result<bool, DecodeException> {
+    pub fn read_bool(&mut self) -> Result<bool, DecodeError> {
         Ok(self.read_u8()? == 1)
     }
 
-    pub fn read_option<T>(&mut self) -> Result<Option<T>, DecodeException>
+    pub fn read_option<T>(&mut self) -> Result<Option<T>, DecodeError>
     where
         T: Decode,
     {
@@ -88,18 +87,18 @@ impl ByteBuffer {
         Ok(value)
     }
 
-    pub fn read_string(&mut self) -> Result<String, DecodeException> {
+    pub fn read_string(&mut self) -> Result<String, DecodeError> {
         let length = self.read_varint()? as usize;
         let bytes = self.split_to(length);
 
-        String::from_utf8(bytes.to_vec()).map_err(|_| DecodeException)
+        String::from_utf8(bytes.to_vec()).map_err(|_| DecodeError)
     }
 
-    pub fn read_uuid(&mut self) -> Result<Uuid, DecodeException> {
+    pub fn read_uuid(&mut self) -> Result<Uuid, DecodeError> {
         Ok(Uuid::from_u128(self.read_u128()?))
     }
 
-    pub fn read_varint(&mut self) -> Result<i32, DecodeException> {
+    pub fn read_varint(&mut self) -> Result<i32, DecodeError> {
         let mut value = 0;
         for i in 0..5 {
             let byte = self.read_u8()?;
@@ -108,12 +107,12 @@ impl ByteBuffer {
                 return Ok(value);
             }
         }
-        return Err(DecodeException); // VarInt is too large.
+        return Err(DecodeError); // VarInt is too large.
     }
 
-    pub fn read_list<T, F>(&mut self, mut read: F) -> Result<Vec<T>, DecodeException>
+    pub fn read_list<T, F>(&mut self, mut read: F) -> Result<Vec<T>, DecodeError>
     where
-        F: FnMut(&mut Self) -> Result<T, DecodeException>,
+        F: FnMut(&mut Self) -> Result<T, DecodeError>,
     {
         let length = self.read_varint()? as usize;
         let mut list = Vec::with_capacity(length);
@@ -123,12 +122,12 @@ impl ByteBuffer {
         Ok(list)
     }
 
-    pub fn read_identifier(&mut self) -> Result<Identifier, DecodeException> {
+    pub fn read_identifier(&mut self) -> Result<Identifier, DecodeError> {
         let identifier = self.read_string()?;
 
         match identifier.split_once(":") {
             Some((namespace, path)) => Ok(Identifier::new(namespace, path)),
-            None => Err(DecodeException),
+            None => Err(DecodeError),
         }
     }
 
@@ -150,12 +149,12 @@ impl ByteBuffer {
     write_impl!(f32);
     write_impl!(f64);
 
-    pub fn write_bool(&mut self, value: bool) -> Result<(), EncodeException> {
+    pub fn write_bool(&mut self, value: bool) -> Result<(), EncodeError> {
         self.write_u8(value as u8)?;
         Ok(())
     }
 
-    pub fn write_varint(&mut self, value: i32) -> Result<(), EncodeException> {
+    pub fn write_varint(&mut self, value: i32) -> Result<(), EncodeError> {
         let x = value as u64;
         let stage1 = (x & 0x000000000000007f)
             | ((x & 0x0000000000003f80) << 1)
@@ -179,18 +178,18 @@ impl ByteBuffer {
         Ok(())
     }
 
-    pub fn write_string(&mut self, value: String) -> Result<(), EncodeException> {
+    pub fn write_string(&mut self, value: String) -> Result<(), EncodeError> {
         self.write_varint(value.len() as i32)?;
         self.put(value.as_bytes());
         Ok(())
     }
 
-    pub fn write_identifier(&mut self, value: Identifier) -> Result<(), EncodeException> {
+    pub fn write_identifier(&mut self, value: Identifier) -> Result<(), EncodeError> {
         self.write_string(value.to_string())?;
         Ok(())
     }
 
-    pub fn write_uuid(&mut self, value: Uuid) -> Result<(), EncodeException> {
+    pub fn write_uuid(&mut self, value: Uuid) -> Result<(), EncodeError> {
         self.write_u128(value.as_u128())?;
         Ok(())
     }
@@ -199,9 +198,9 @@ impl ByteBuffer {
         &mut self,
         value: Option<T>,
         mut write: F,
-    ) -> Result<(), EncodeException>
+    ) -> Result<(), EncodeError>
     where
-        F: FnMut(&mut Self, T) -> Result<(), EncodeException>,
+        F: FnMut(&mut Self, T) -> Result<(), EncodeError>,
     {
         self.write_bool(value.is_some())?;
         if let Some(value) = value {
@@ -210,9 +209,9 @@ impl ByteBuffer {
         Ok(())
     }
 
-    pub fn write_array<T, F>(&mut self, value: Vec<T>, mut write: F) -> Result<(), EncodeException>
+    pub fn write_array<T, F>(&mut self, value: Vec<T>, mut write: F) -> Result<(), EncodeError>
     where
-        F: FnMut(&mut Self, T) -> Result<(), EncodeException>,
+        F: FnMut(&mut Self, T) -> Result<(), EncodeError>,
     {
         self.write_varint(value.len() as i32)?;
         for element in value {
@@ -225,9 +224,9 @@ impl ByteBuffer {
         &mut self,
         value: Vec<T>,
         mut write: F,
-    ) -> Result<(), EncodeException>
+    ) -> Result<(), EncodeError>
     where
-        F: FnMut(&mut Self, T) -> Result<(), EncodeException>,
+        F: FnMut(&mut Self, T) -> Result<(), EncodeError>,
     {
         for element in value {
             write(self, element)?;
@@ -237,10 +236,6 @@ impl ByteBuffer {
 
     pub fn put<T: Buf>(&mut self, src: T) {
         self.inner.put(src);
-    }
-
-    pub fn put_self(&mut self, other: Self) {
-        self.inner.put(other.inner);
     }
 
     pub fn split_to(&mut self, at: usize) -> Self {

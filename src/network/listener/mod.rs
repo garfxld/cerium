@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use crate::{
     network::client::ClientConnection,
-    protocol::{buffer::ByteBuffer, ProtcolState},
+    protocol::{buffer::ByteBuffer, decode::DecodeError, ProtocolState},
 };
 
 mod config;
@@ -9,18 +11,19 @@ mod login;
 mod play;
 mod status;
 
-pub trait PacketHandler {
-    fn handle_packet(&mut self, id: i32, data: &mut ByteBuffer);
-}
-
-impl PacketHandler for ClientConnection {
-    fn handle_packet(&mut self, id: i32, data: &mut ByteBuffer) {
-        match self.state {
-            ProtcolState::Handshake => handshake::handle_packet(self, id, data),
-            ProtcolState::Status => status::handle_packet(self, id, data),
-            ProtcolState::Login => login::handle_packet(self, id, data),
-            ProtcolState::Config => config::handle_packet(self, id, data),
-            ProtcolState::Play => play::handle_packet(self, id, data),
+impl ClientConnection {
+    pub async fn handle_packet(
+        self: Arc<Self>,
+        id: i32,
+        data: &mut ByteBuffer,
+    ) -> Result<(), DecodeError> {
+        let state = *self.state.lock().await;
+        match state {
+            ProtocolState::Handshake => handshake::handle_packet(self, id, data).await,
+            ProtocolState::Status => status::handle_packet(self, id, data).await,
+            ProtocolState::Login => login::handle_packet(self, id, data).await,
+            ProtocolState::Config => config::handle_packet(self, id, data).await,
+            ProtocolState::Play => play::handle_packet(self, id, data).await,
         }
     }
 }

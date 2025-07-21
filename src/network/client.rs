@@ -1,9 +1,7 @@
 use crate::{
-    network::{
-        auth::{CryptContext, Decryptor, Encryptor, GameProfile, KeyStore},
-        listener::PacketHandler,
-    },
-    protocol::{buffer::ByteBuffer, encode::Encode, ProtcolState},
+    network::auth::{CryptContext, Decryptor, Encryptor, GameProfile, KeyStore},
+    protocol::{buffer::ByteBuffer, encode::Encode, ProtocolState},
+    Server,
 };
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, BlockSizeUser as _};
 use bytes::BytesMut;
@@ -11,44 +9,56 @@ use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc,
 };
-use tokio::net::TcpStream;
+use tokio::net::{
+    tcp::{OwnedReadHalf, OwnedWriteHalf},
+    TcpStream,
+};
+use tokio::sync::Mutex;
 use uuid::Uuid;
 
 // mutable
+#[derive(Debug)]
 pub struct ClientConnection {
-    stream: Arc<TcpStream>,
-    pub state: ProtcolState,
-    pub game_profile: GameProfile,
+    rstream: Mutex<OwnedReadHalf>,
+    wstream: Mutex<OwnedWriteHalf>,
+    pub state: Mutex<ProtocolState>,
+    pub game_profile: Mutex<GameProfile>,
     pub key_store: Arc<KeyStore>,
-    pub verify_token: [u8; 4],
-    pub crypt_context: Option<CryptContext>,
+    pub verify_token: Mutex<[u8; 4]>,
+    pub crypt_context: Mutex<Option<CryptContext>>,
     pub closed: AtomicBool,
+    pub server: Arc<Server>,
 }
 
 impl ClientConnection {
-    pub fn new(stream: Arc<TcpStream>, key_store: Arc<KeyStore>) -> Self {
+    pub fn new(stream: TcpStream, server: Arc<Server>, key_store: Arc<KeyStore>) -> Self {
+        let (rstream, wstream) = stream.into_split();
         Self {
-            stream,
-            state: ProtcolState::Handshake,
-            game_profile: GameProfile {
+            rstream: Mutex::new(rstream),
+            wstream: Mutex::new(wstream),
+            state: Mutex::new(ProtocolState::Handshake),
+            game_profile: Mutex::new(GameProfile {
                 uuid: Uuid::new_v4(),
                 name: String::new(),
                 properties: vec![],
-            },
+            }),
             key_store,
-            verify_token: [0; 4],
-            crypt_context: None,
+            verify_token: Mutex::new([0; 4]),
+            crypt_context: Mutex::new(None),
             closed: AtomicBool::new(false),
+            server,
         }
     }
 
-    pub async fn read_loop(&mut self) {
-        while !self.closed.load(Ordering::Relaxed) {
-            self.stream.readable().await.unwrap();
+    pub async fn read_loop(self: Arc<Self>) {
+        let this = self.clone();
+        while !this.closed.load(Ordering::Relaxed) {
+            let rstream = this.rstream.lock().await;
+            rstream.readable().await.unwrap();
 
             let mut buffer = vec![0; 32_767];
 
-            match self.stream.try_read(&mut buffer) {
+            match rstream.try_read(&mut buffer) {
                 Ok(0) => break,
                 Ok(n) => buffer.truncate(n),
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => continue,
@@ -62,7 +72,7 @@ impl ClientConnection {
                 println!("received {} bytes", length);
             }
 
-            if let Some(crypt_context) = &mut self.crypt_context {
+            if let Some(crypt_context) = &mut *this.crypt_context.lock().await {
                 for block in buffer.chunks_mut(Decryptor::block_size()) {
                     crypt_context.decryptor.decrypt_block_mut(block.into());
                 }
@@ -79,14 +89,15 @@ impl ClientConnection {
                 }
                 let packet_id = buffer.read_varint().unwrap();
 
-                self.handle_packet(packet_id, buffer);
+                let this = this.clone();
+                this.handle_packet(packet_id, buffer).await.unwrap();
 
                 read_bytes += packet_length + 1;
             }
         }
     }
 
-    pub fn send_packet<P>(&mut self, packet_id: i32, packet: P)
+    pub async fn send_packet<P>(&self, packet_id: i32, packet: P)
     where
         P: Encode + std::fmt::Debug,
     {
@@ -98,16 +109,17 @@ impl ClientConnection {
 
         let mut buffer = ByteBuffer::new();
         buffer.write_varint(data.len() as i32).unwrap();
-        buffer.put_self(data);
+        buffer.put(&*data.to_vec());
 
         let mut buffer: BytesMut = buffer.into();
 
-        if let Some(crypt_context) = &mut self.crypt_context {
+        if let Some(crypt_context) = &mut *self.crypt_context.lock().await {
             for chunk in buffer.chunks_mut(Encryptor::block_size()) {
                 crypt_context.encryptor.encrypt_block_mut(chunk.into());
             }
         }
 
-        self.stream.try_write(&mut buffer).unwrap();
+        let wstream = self.wstream.lock().await;
+        wstream.try_write(&mut buffer).unwrap();
     }
 }

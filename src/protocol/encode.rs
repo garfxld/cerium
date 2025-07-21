@@ -1,8 +1,8 @@
 use crate::protocol::buffer::ByteBuffer;
 
 #[derive(Debug, Clone)]
-pub struct EncodeException;
+pub struct EncodeError;
 
 pub trait Encode {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeException>;
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError>;
 }

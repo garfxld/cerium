@@ -1,11 +1,14 @@
+use std::sync::Arc;
+
 use simdnbt::owned::Nbt;
 
 use crate::{
+    entity::player::Player,
     identifier::Identifier,
     network::client::ClientConnection,
     protocol::{
         buffer::ByteBuffer,
-        decode::Decode as _,
+        decode::{Decode as _, DecodeError},
         packet::{
             AcknowledgeFinishConfigPacket, ChunkDataAndUpdateLightPacket, ClientInfoPacket,
             ClientKnownPacksPacket, ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket,
@@ -13,183 +16,226 @@ use crate::{
             RegistryDataPacket, RegistryEntry, ServerKnownPacksPacket, SetCenterChunkPacket,
             SyncPlayerPositionPacket,
         },
-        ProtcolState,
+        ProtocolState,
     },
     registry::registry::{Registry, REGISTRIES},
     world::world::World,
 };
 
-pub(crate) fn handle_packet(client: &mut ClientConnection, id: i32, data: &mut ByteBuffer) {
+pub async fn handle_packet(
+    client: Arc<ClientConnection>,
+    id: i32,
+    data: &mut ByteBuffer,
+) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_client_info(client, ClientInfoPacket::decode(data).unwrap()),
-        0x01 => handle_cookie_response(client),
-        0x02 => handle_plugin_message(client, ClientPluginMessagePacket::decode(data).unwrap()),
-        0x03 => handle_acknowledge_finish_config(
-            client,
-            AcknowledgeFinishConfigPacket::decode(data).unwrap(),
-        ),
-        0x04 => handle_keep_alive(client),
-        0x05 => handle_pong(client),
-        0x06 => handle_resource_pack_response(client),
-        0x07 => handle_client_known_packs(client, ClientKnownPacksPacket::decode(data).unwrap()),
-        0x08 => handle_custom_click_action(client),
+        0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?).await,
+        0x01 => handle_cookie_response(client).await,
+        0x02 => handle_plugin_message(client, ClientPluginMessagePacket::decode(data)?).await,
+        0x03 => {
+            handle_acknowledge_finish_config(client, AcknowledgeFinishConfigPacket::decode(data)?)
+                .await
+        }
+        0x04 => handle_keep_alive(client).await,
+        0x05 => handle_pong(client).await,
+        0x06 => handle_resource_pack_response(client).await,
+        0x07 => handle_client_known_packs(client, ClientKnownPacksPacket::decode(data)?).await,
+        0x08 => handle_custom_click_action(client).await,
         _ => panic!("Unknown packet! ({})", id),
-    }
+    };
+    Ok(())
 }
 
-fn handle_client_info(client: &mut ClientConnection, packet: ClientInfoPacket) {
+async fn handle_client_info(client: Arc<ClientConnection>, packet: ClientInfoPacket) {
     log::trace!("{:?}", &packet);
 
-    client.send_packet(
-        0x0E,
-        ServerKnownPacksPacket {
-            known_packs: Vec::new(),
-        },
-    );
+    client
+        .send_packet(
+            0x0E,
+            ServerKnownPacksPacket {
+                known_packs: Vec::new(),
+            },
+        )
+        .await;
 
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.cat_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.chicken_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.cow_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.frog_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.painting_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.pig_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.wolf_sound_variant.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.wolf_variant.clone()),
-    );
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.cat_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.chicken_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.cow_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.frog_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.painting_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.pig_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.wolf_sound_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.wolf_variant.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.damage_type.clone()),
+        )
+        .await;
+    client
+        .send_packet(
+            0x07,
+            RegistryDataPacket::from(REGISTRIES.dimension_type.clone()),
+        )
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(REGISTRIES.biome.clone()))
+        .await;
 
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.damage_type.clone()),
-    );
-    client.send_packet(
-        0x07,
-        RegistryDataPacket::from(REGISTRIES.dimension_type.clone()),
-    );
-    client.send_packet(0x07, RegistryDataPacket::from(REGISTRIES.biome.clone()));
-
-    client.send_packet(0x03, FinishConfigPacket {});
+    client.send_packet(0x03, FinishConfigPacket {}).await;
 }
 
-fn handle_cookie_response(client: &mut ClientConnection) {
+async fn handle_cookie_response(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
 }
 
-fn handle_plugin_message(client: &mut ClientConnection, packet: ClientPluginMessagePacket) {
+async fn handle_plugin_message(client: Arc<ClientConnection>, packet: ClientPluginMessagePacket) {
     log::trace!("{:?}", &packet);
     let _ = client;
     let _ = packet;
 }
 
-fn handle_acknowledge_finish_config(
-    client: &mut ClientConnection,
+async fn handle_acknowledge_finish_config(
+    client: Arc<ClientConnection>,
     packet: AcknowledgeFinishConfigPacket,
 ) {
     log::trace!("{:?}", &packet);
-    client.state = ProtcolState::Play;
+    *client.state.lock().await = ProtocolState::Play;
 
-    client.send_packet(
-        0x2B,
-        LoginPacket {
-            entity_id: 0,
-            is_hardcore: false,
-            dimension_names: vec!["minecraft:overworld".to_owned()],
-            max_players: 20,
-            view_distance: 16,
-            simulation_distance: 16,
-            reduced_debug_info: false,
-            enable_respawn_screen: true,
-            do_limited_crafting: false,
-            dimension_type: REGISTRIES
-                .dimension_type
-                .get_id("minecraft:overworld".to_owned())
-                .unwrap_or(0) as i32,
-            dimension_name: "minecraft:overworld".to_owned(),
-            hashed_seed: 93522819,
-            game_mode: 1,
-            previous_game_mode: -1,
-            is_debug: false,
-            is_flat: false,
-            death_location: None,
-            portal_cooldown: 4,
-            sea_level: 64,
-            enforces_secure_chat: false,
-        },
-    );
+    {
+        let mut players = client.server.players.lock().await;
+        players.push(Arc::new(Player::new(client.clone())));
+    }
 
-    client.send_packet(
-        0x41,
-        SyncPlayerPositionPacket {
-            teleport_id: 0.into(),
-            x: 0.5,
-            y: 330.,
-            z: 0.5,
-            velocity_x: 0.,
-            velocity_y: 0.,
-            velocity_z: 0.,
-            yaw: 0.,
-            pitch: 0.,
-            flags: 0,
-        },
-    );
+    client
+        .send_packet(
+            0x2B,
+            LoginPacket {
+                entity_id: 0,
+                is_hardcore: false,
+                dimension_names: vec!["minecraft:overworld".to_owned()],
+                max_players: 20,
+                view_distance: 16,
+                simulation_distance: 16,
+                reduced_debug_info: false,
+                enable_respawn_screen: true,
+                do_limited_crafting: false,
+                dimension_type: REGISTRIES
+                    .dimension_type
+                    .get_id("minecraft:overworld".to_owned())
+                    .unwrap_or(0) as i32,
+                dimension_name: "minecraft:overworld".to_owned(),
+                hashed_seed: 93522819,
+                game_mode: 1,
+                previous_game_mode: -1,
+                is_debug: false,
+                is_flat: false,
+                death_location: None,
+                portal_cooldown: 4,
+                sea_level: 64,
+                enforces_secure_chat: false,
+            },
+        )
+        .await;
 
-    let game_profile = &client.game_profile;
+    client
+        .send_packet(
+            0x41,
+            SyncPlayerPositionPacket {
+                teleport_id: 0.into(),
+                x: 0.5,
+                y: 330.,
+                z: 0.5,
+                velocity_x: 0.,
+                velocity_y: 0.,
+                velocity_z: 0.,
+                yaw: 0.,
+                pitch: 0.,
+                flags: 0,
+            },
+        )
+        .await;
 
-    client.send_packet(
-        0x3F,
-        PlayerInfoUpdatePacket {
-            actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),
-            players: vec![PlayerEntry {
-                uuid: game_profile.uuid,
-                player_actions: vec![
-                    PlayerAction::AddPlayer {
-                        name: game_profile.name.clone(),
-                        properties: game_profile.properties.clone(),
-                    },
-                    PlayerAction::UpdateListed { listed: true },
-                ],
-            }],
-        },
-    );
+    let game_profile = client.game_profile.lock().await.clone();
 
-    client.send_packet(
-        0x22,
-        GameEventPacket {
-            event: 13,
-            value: 0.,
-        },
-    );
+    client
+        .send_packet(
+            0x3F,
+            PlayerInfoUpdatePacket {
+                actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),
+                players: vec![PlayerEntry {
+                    uuid: game_profile.uuid,
+                    player_actions: vec![
+                        PlayerAction::AddPlayer {
+                            name: game_profile.name.clone(),
+                            properties: game_profile.properties.clone(),
+                        },
+                        PlayerAction::UpdateListed { listed: true },
+                    ],
+                }],
+            },
+        )
+        .await;
 
-    client.send_packet(
-        0x57,
-        SetCenterChunkPacket {
-            chunk_x: 0.into(),
-            chunk_z: 0.into(),
-        },
-    );
+    client
+        .send_packet(
+            0x22,
+            GameEventPacket {
+                event: 13,
+                value: 0.,
+            },
+        )
+        .await;
+
+    client
+        .send_packet(
+            0x57,
+            SetCenterChunkPacket {
+                chunk_x: 0.into(),
+                chunk_z: 0.into(),
+            },
+        )
+        .await;
 
     let overworld = REGISTRIES
         .dimension_type
@@ -203,32 +249,34 @@ fn handle_acknowledge_finish_config(
             world.load_chunk(x, z);
             let chunk = world.get_chunk(x, z).unwrap();
 
-            client.send_packet::<ChunkDataAndUpdateLightPacket>(0x27, chunk.clone().into());
+            client
+                .send_packet::<ChunkDataAndUpdateLightPacket>(0x27, chunk.clone().into())
+                .await;
         }
     }
 }
 
-fn handle_keep_alive(client: &mut ClientConnection) {
+async fn handle_keep_alive(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
 }
 
-fn handle_pong(client: &mut ClientConnection) {
+async fn handle_pong(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
 }
 
-fn handle_resource_pack_response(client: &mut ClientConnection) {
+async fn handle_resource_pack_response(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
 }
 
-fn handle_client_known_packs(client: &mut ClientConnection, packet: ClientKnownPacksPacket) {
+async fn handle_client_known_packs(client: Arc<ClientConnection>, packet: ClientKnownPacksPacket) {
     let _ = client;
     let _ = packet;
 }
 
-fn handle_custom_click_action(client: &mut ClientConnection) {
+async fn handle_custom_click_action(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
 }

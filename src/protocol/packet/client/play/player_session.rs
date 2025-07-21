@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::protocol::{
     buffer::ByteBuffer,
-    decode::{Decode, DecodeException},
+    decode::{Decode, DecodeError},
 };
 
 #[derive(Debug, Clone)]
@@ -19,7 +19,7 @@ pub struct PlayerSessionPacket {
 }
 
 impl Decode for PlayerSessionPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeException> {
+    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
         Ok(Self {
             session_id: buffer.read_uuid()?,
 
