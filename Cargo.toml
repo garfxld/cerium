@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
-anyhow = "1.0.98"
 thiserror = "2.0.12"
 bytes = "1.10.1"
 
@@ -16,9 +14,14 @@ simdnbt = "0.7.1"
 serde_json = "1.0.140"
 serde = { version = "1.0.219", features = ["derive"] }
 bitflags = "2.9.1"
+paste = "1.0.15"
 
 rand = "0.9.1"
 ureq = { version = "3.0.12", features = ["json"] }
+
+# Logging
+log = "0.4.27"
+env_logger = "0.11.8"
 
 # Encryption
 aes = "0.8.4"
@@ -28,5 +31,6 @@ pkcs1 = "0.8.0-rc.2" # needed?
 rsa = "=0.10.0-rc.1"
 rsa-der = "0.3.0"
 sha1 = "0.10.6"
-paste = "1.0.15"
-log = "0.4.27"
+
+
+

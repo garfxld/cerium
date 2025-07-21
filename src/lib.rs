@@ -56,10 +56,18 @@ impl Server {
     where
         T: ToString,
     {
+        #[cfg(debug_assertions)]
+        env_logger::try_init().unwrap();
+
         let address = addr.to_string();
         let listener = TcpListener::bind(address)
             .await
             .map_err(|e| ServerError::IoError(e))?;
+
+        log::debug!(
+            "Listening on {}",
+            listener.local_addr().map_err(|e| ServerError::IoError(e))?
+        );
 
         let key_store = Arc::new(KeyStore::new());
 
