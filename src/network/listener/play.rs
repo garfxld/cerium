@@ -9,7 +9,7 @@ use crate::{
             ChatCommandPacket, ClientInfoPacket, ClientPluginMessagePacket, ClientTickEndPacket,
             CloseContainerPacket, ConfirmTeleportationPacket, KeepAlivePacket,
             PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket,
-            PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket,
+            PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
             PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
             PlayerSessionPacket, SetHeldItemPacket, SwingArmPacket, UseItemOnPacket,
         },
@@ -42,6 +42,9 @@ pub async fn handle_packet(
             .await
         }
         0x1F => handle_player_rotation(client, PlayerRotationPacket::decode(data)?).await,
+        0x20 => {
+            handle_player_movement_flags(client, PlayerMovementFlagsPacket::decode(data)?).await
+        }
         0x23 => handle_pick_item_from_block(client, PickItemFromBlockPacket::decode(data)?).await,
         0x27 => handle_player_abilities(client, PlayerAbilitiesPacket::decode(data)?).await,
         0x28 => handle_player_action(client, PlayerActionPacket::decode(data)?).await,
@@ -119,6 +122,14 @@ async fn handle_player_position_and_rotation(
 }
 
 async fn handle_player_rotation(client: Arc<ClientConnection>, packet: PlayerRotationPacket) {
+    let _ = client;
+    let _ = packet;
+}
+
+async fn handle_player_movement_flags(
+    client: Arc<ClientConnection>,
+    packet: PlayerMovementFlagsPacket,
+) {
     let _ = client;
     let _ = packet;
 }

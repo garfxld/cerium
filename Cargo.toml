@@ -15,7 +15,7 @@ serde_json = "1.0.140"
 serde = { version = "1.0.219", features = ["derive"] }
 bitflags = "2.9.1"
 paste = "1.0.15"
-
+indexmap = { version = "2.10.0", features = ["serde"] }
 rand = "0.9.1"
 ureq = { version = "3.0.12", features = ["json"] }
 
@@ -31,6 +31,3 @@ pkcs1 = "0.8.0-rc.2" # needed?
 rsa = "=0.10.0-rc.1"
 rsa-der = "0.3.0"
 sha1 = "0.10.6"
-
-
-

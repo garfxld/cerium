@@ -56,6 +56,7 @@ pub mod client {
         mod player_command;
         mod chat_command;
         mod player_session;
+        mod player_movement_flags;
 
         pub use client_tick_end::ClientTickEndPacket;
         pub use confirm_teleportation::ConfirmTeleportationPacket;
@@ -75,6 +76,7 @@ pub mod client {
         pub use player_command::PlayerCommandPacket;
         pub use chat_command::ChatCommandPacket;
         pub use player_session::PlayerSessionPacket;
+        pub use player_movement_flags::PlayerMovementFlagsPacket;
     }
 
     pub mod common {

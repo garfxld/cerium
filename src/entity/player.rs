@@ -25,6 +25,10 @@ impl Player {
         }
     }
 
+    pub fn addr(&self) -> std::net::SocketAddr {
+        self.connection.addr()
+    }
+
     pub async fn send_packet<P>(&self, packet_id: i32, packet: P)
     where
         P: Encode + std::fmt::Debug,

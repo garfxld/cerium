@@ -1,10 +1,10 @@
 use crate::{
     protocol::{
         buffer::ByteBuffer,
-        encode::{Encode, EncodeError},
+        encode::Encode,
         packet::{ChunkData, ChunkDataAndUpdateLightPacket},
     },
-    world::{light::LightData, palette::Palette},
+    world::{chunk_section::ChunkSection, light::LightData},
 };
 
 #[derive(Debug, Clone)]
@@ -30,13 +30,76 @@ impl Chunk {
         }
     }
 
-    // x, z are relative
-    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: i32) {
-        let section_y = (y - self.min_y) / 16;
-        let section = self.sections.get_mut(section_y as usize);
+    #[inline]
+    fn to_relative(value: i32) -> usize {
+        (value & 0x0F) as usize
+    }
+
+    #[inline]
+    fn section_at(&self, y: i32) -> Option<&ChunkSection> {
+        self.sections.get(((y - self.min_y) / 16) as usize)
+    }
+
+    #[inline]
+    fn section_at_mut(&mut self, y: i32) -> Option<&mut ChunkSection> {
+        self.sections.get_mut(((y - self.min_y) / 16) as usize)
+    }
+
+    pub fn get_block(&self, x: i32, y: i32, z: i32) -> u16 {
+        let section = self.section_at(y);
 
         if let Some(section) = section {
-            section.set_block(x, y, z, block);
+            section.get_block(
+                Self::to_relative(x),
+                Self::to_relative(y),
+                Self::to_relative(z),
+            )
+        } else {
+            panic!("Chunk section out of bounds for y: {}", y);
+        }
+    }
+
+    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: i32) {
+        let section = self.section_at_mut(y);
+
+        if let Some(section) = section {
+            section.set_block(
+                Self::to_relative(x),
+                Self::to_relative(y),
+                Self::to_relative(z),
+                block,
+            );
+        } else {
+            panic!("Chunk section out of bounds for y: {}", y);
+        }
+    }
+
+    pub fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
+        let section = self.section_at(y);
+
+        if let Some(section) = section {
+            section.get_biome(
+                Self::to_relative(x) / 4,
+                Self::to_relative(y) / 4,
+                Self::to_relative(z) / 4,
+            )
+        } else {
+            panic!("Chunk section out of bounds for y: {}", y);
+        }
+    }
+
+    pub fn set_biome(&mut self, x: i32, y: i32, z: i32, biome: i32) {
+        let section = self.section_at_mut(y);
+
+        if let Some(section) = section {
+            section.set_biome(
+                Self::to_relative(x) / 4,
+                Self::to_relative(y) / 4,
+                Self::to_relative(z) / 4,
+                biome,
+            );
+        } else {
+            panic!("Chunk section out of bounds for y: {}", y);
         }
     }
 }
@@ -62,37 +125,5 @@ impl Into<ChunkDataAndUpdateLightPacket> for Chunk {
             data,
             light,
         }
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct ChunkSection {
-    block_count: i16,
-    block_states: Palette,
-    biomes: Palette,
-}
-
-impl ChunkSection {
-    fn new() -> Self {
-        Self {
-            block_count: 4096,
-            block_states: Palette::blocks(),
-            biomes: Palette::biomes(),
-        }
-    }
-
-    // xyz are relative
-    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: i32) {
-        self.block_states.set(x, y, z, block);
-        self.block_count = self.block_states.count() as i16;
-    }
-}
-
-impl Encode for ChunkSection {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_i16(this.block_count)?;
-        Palette::encode(buffer, this.block_states)?;
-        Palette::encode(buffer, this.biomes)?;
-        Ok(())
     }
 }

@@ -5,9 +5,12 @@ use crate::{
 };
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, BlockSizeUser as _};
 use bytes::BytesMut;
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    net::SocketAddr,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 use tokio::net::{
     tcp::{OwnedReadHalf, OwnedWriteHalf},
@@ -21,6 +24,7 @@ use uuid::Uuid;
 pub struct ClientConnection {
     rstream: Mutex<OwnedReadHalf>,
     wstream: Mutex<OwnedWriteHalf>,
+    addr: std::net::SocketAddr,
     pub state: Mutex<ProtocolState>,
     pub game_profile: Mutex<GameProfile>,
     pub key_store: Arc<KeyStore>,
@@ -31,11 +35,17 @@ pub struct ClientConnection {
 }
 
 impl ClientConnection {
-    pub fn new(stream: TcpStream, server: Arc<Server>, key_store: Arc<KeyStore>) -> Self {
+    pub fn new(
+        stream: TcpStream,
+        addr: SocketAddr,
+        server: Arc<Server>,
+        key_store: Arc<KeyStore>,
+    ) -> Self {
         let (rstream, wstream) = stream.into_split();
         Self {
             rstream: Mutex::new(rstream),
             wstream: Mutex::new(wstream),
+            addr,
             state: Mutex::new(ProtocolState::Handshake),
             game_profile: Mutex::new(GameProfile {
                 uuid: Uuid::new_v4(),
@@ -48,6 +58,10 @@ impl ClientConnection {
             closed: AtomicBool::new(false),
             server,
         }
+    }
+
+    pub fn addr(&self) -> std::net::SocketAddr {
+        self.addr
     }
 
     pub async fn read_loop(self: Arc<Self>) {

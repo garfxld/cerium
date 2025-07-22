@@ -91,6 +91,7 @@ impl Server {
 
             let connection = Arc::new(ClientConnection::new(
                 stream,
+                addr,
                 this.clone(),
                 key_store.clone(),
             ));
@@ -105,10 +106,14 @@ impl Server {
             tokio::spawn({
                 let connection = connection.clone();
                 let connections = this.connections.clone();
+                let players = this.players.clone();
 
                 async move {
                     connection.read_loop().await;
+
+                    // todo: move to connection close
                     connections.write().await.remove(&addr);
+                    players.lock().await.retain(|p| p.addr() != addr);
                 }
             });
         }

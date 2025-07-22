@@ -1,4 +1,6 @@
-use std::{collections::HashMap, sync::LazyLock};
+use std::sync::LazyLock;
+
+use indexmap::IndexMap;
 
 use crate::registry::{
     biome::Biome, cat_variant::CatVariant, chicken_variant::ChickenVariant,
@@ -13,7 +15,7 @@ where
     T: serde::de::DeserializeOwned,
 {
     name: String,
-    pub entries: HashMap<String, T>,
+    pub entries: IndexMap<String, T>,
 }
 
 impl<T> Registry<T>
@@ -21,7 +23,16 @@ where
     T: serde::de::DeserializeOwned,
 {
     pub fn new(name: String, data: String) -> Self {
-        let entries: HashMap<String, T> = serde_json::from_str(&data).unwrap();
+        let mut entries: IndexMap<String, T> = serde_json::from_str(&data).unwrap();
+
+        // Temporary solution to ensure all chunks have "plains" as their default biome.
+        let key = "plains";
+        if let Some(value) = entries.swap_remove(key) {
+            let old_entries = std::mem::take(&mut entries);
+            entries.insert(key.to_string(), value);
+            entries.extend(old_entries);
+        }
+
         Self { name, entries }
     }
 
@@ -29,14 +40,20 @@ where
         self.name.clone()
     }
 
-    pub fn get(&self, key: String) -> Option<&T> {
-        self.entries.get(&key)
+    pub fn get<S>(&self, key: S) -> Option<&T>
+    where
+        S: ToString,
+    {
+        self.entries.get(&key.to_string())
     }
 
-    pub fn get_id(&self, key: String) -> Option<usize> {
+    pub fn get_id<S>(&self, key: S) -> Option<usize>
+    where
+        S: ToString,
+    {
+        let key = key.to_string();
         self.entries.keys().position(|k| *k == key)
     }
-
 }
 
 pub struct Registries {
@@ -53,13 +70,9 @@ pub struct Registries {
     pub wolf_variant: Registry<WolfVariant>,
 }
 
-pub static REGISTRIES: LazyLock<Registries> = LazyLock::new(|| {
-    Registries::new()
-});
-
+pub static REGISTRIES: LazyLock<Registries> = LazyLock::new(|| Registries::new());
 
 impl Registries {
-
     pub fn new() -> Self {
         Self {
             biome: Registry::new(

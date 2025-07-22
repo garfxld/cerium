@@ -19,7 +19,7 @@ use crate::{
         ProtocolState,
     },
     registry::registry::{Registry, REGISTRIES},
-    world::world::World,
+    world::World,
 };
 
 pub async fn handle_packet(
@@ -247,6 +247,19 @@ async fn handle_acknowledge_finish_config(
     for x in -5..5 {
         for z in -5..5 {
             world.load_chunk(x, z);
+        }
+    }
+
+    for x in 0..16 {
+        for y in 0..320 {
+            for z in 0..16 {
+                world.set_block(x, y, z, rand::random_range(0..=27945));
+            }
+        }
+    }
+
+    for x in -5..5 {
+        for z in -5..5 {
             let chunk = world.get_chunk(x, z).unwrap();
 
             client
