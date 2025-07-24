@@ -6,16 +6,11 @@ Yet another high-performance Minecraft server library written in Rust.
 > This repository is still in a very, very, very early stage of development.
 
 
-<p align="center">
-    <img src="thumbnail.png" width="480">
-</p>
-
 ## Goals
 
 - High-performance
 - Lightweight
 - Easy to use
-
 
 
 ## Roadmap
@@ -34,7 +29,6 @@ Yet another high-performance Minecraft server library written in Rust.
 - [ ] Event system
 
 Of course, more features are planned for the future.
-
 
 
 ## Running
