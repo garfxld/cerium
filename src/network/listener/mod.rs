@@ -1,9 +1,6 @@
+use crate::network::client::ClientConnection;
+use cerium_protocol::{buffer::ByteBuffer, decode::DecodeError, ProtocolState};
 use std::sync::Arc;
-
-use crate::{
-    network::client::ClientConnection,
-    protocol::{buffer::ByteBuffer, decode::DecodeError, ProtocolState},
-};
 
 mod config;
 mod handshake;

@@ -1,26 +1,19 @@
 use std::sync::Arc;
 
-use simdnbt::owned::Nbt;
-
-use crate::{
-    entity::player::Player,
-    identifier::Identifier,
-    network::client::ClientConnection,
-    protocol::{
-        buffer::ByteBuffer,
-        decode::{Decode as _, DecodeError},
-        packet::{
-            AcknowledgeFinishConfigPacket, ChunkDataAndUpdateLightPacket, ClientInfoPacket,
-            ClientKnownPacksPacket, ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket,
-            LoginPacket, PlayerAction, PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket,
-            RegistryDataPacket, RegistryEntry, ServerKnownPacksPacket, SetCenterChunkPacket,
-            SyncPlayerPositionPacket,
-        },
-        ProtocolState,
+use crate::{entity::player::Player, network::client::ClientConnection};
+use cerium_protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode as _, DecodeError},
+    packet::{
+        AcknowledgeFinishConfigPacket, ChunkDataAndUpdateLightPacket, ClientInfoPacket,
+        ClientKnownPacksPacket, ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket,
+        LoginPacket, PlayerAction, PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket,
+        RegistryDataPacket, ServerKnownPacksPacket, SetCenterChunkPacket, SyncPlayerPositionPacket,
     },
-    registry::registry::{Registry, REGISTRIES},
-    world::World,
+    ProtocolState,
 };
+use cerium_registry::registry::REGISTRIES;
+use cerium_world::World;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,
@@ -292,23 +285,4 @@ async fn handle_client_known_packs(client: Arc<ClientConnection>, packet: Client
 async fn handle_custom_click_action(client: Arc<ClientConnection>) {
     let _ = client;
     todo!()
-}
-
-impl<T> From<Registry<T>> for RegistryDataPacket
-where
-    T: serde::de::DeserializeOwned + simdnbt::Serialize + Clone,
-{
-    fn from(value: Registry<T>) -> Self {
-        RegistryDataPacket {
-            registry_id: Identifier::try_from(value.name()).unwrap(),
-            entries: value
-                .entries
-                .iter()
-                .map(|e| RegistryEntry {
-                    entry_id: Identifier::try_from(e.0.to_string()).unwrap(),
-                    data: Some(Nbt::Some(e.1.clone().to_nbt())),
-                })
-                .collect(),
-        }
-    }
 }

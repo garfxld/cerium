@@ -1,0 +1,10 @@
+[package]
+name = "cerium-registry"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+simdnbt = { workspace = true }
+indexmap = { workspace = true }

@@ -3,13 +3,10 @@ use std::{
     time::{Duration, Instant},
 };
 
+use cerium_protocol::{encode::Encode, packet::KeepAlivePacket};
 use tokio::sync::Mutex;
 
-use crate::{
-    network::client::ClientConnection,
-    protocol::{encode::Encode, packet::KeepAlivePacket},
-    Tickable,
-};
+use crate::{network::client::ClientConnection, Tickable};
 
 #[derive(Debug)]
 pub struct Player {

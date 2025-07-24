@@ -1,15 +1,10 @@
-use std::sync::Arc;
-
-use crate::{
-    network::client::ClientConnection,
-    protocol::{
-        buffer::ByteBuffer,
-        decode::{Decode as _, DecodeError},
-        packet::{
-            PingRequestPacket, PongResponsePacket, StatusRequestPacket, StatusResponsePacket,
-        },
-    },
+use crate::network::client::ClientConnection;
+use cerium_protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode as _, DecodeError},
+    packet::{PingRequestPacket, PongResponsePacket, StatusRequestPacket, StatusResponsePacket},
 };
+use std::sync::Arc;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,

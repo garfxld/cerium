@@ -1,10 +1,11 @@
 use crate::{
-    network::auth::{CryptContext, Decryptor, Encryptor, GameProfile, KeyStore},
-    protocol::{buffer::ByteBuffer, encode::Encode, ProtocolState},
+    network::auth::{CryptContext, Decryptor, Encryptor, KeyStore},
     Server,
 };
 use aes::cipher::{BlockDecryptMut, BlockEncryptMut, BlockSizeUser as _};
 use bytes::BytesMut;
+use cerium_protocol::{buffer::ByteBuffer, encode::Encode, ProtocolState};
+use cerium_util::auth::GameProfile;
 use std::{
     net::SocketAddr,
     sync::{

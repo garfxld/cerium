@@ -1,20 +1,18 @@
-use std::sync::Arc;
-
-use crate::{
-    network::{
-        auth::{self, CryptContext, GameProfile},
-        client::ClientConnection,
-    },
-    protocol::{
-        buffer::ByteBuffer,
-        decode::{Decode as _, DecodeError},
-        packet::{
-            EncryptionRequestPacket, EncryptionResponsePacket, LoginAcknowledgePacket,
-            LoginStartPacket, LoginSuccessPacket,
-        },
-        ProtocolState,
-    },
+use crate::network::{
+    auth::{self, CryptContext},
+    client::ClientConnection,
 };
+use cerium_protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode as _, DecodeError},
+    packet::{
+        EncryptionRequestPacket, EncryptionResponsePacket, LoginAcknowledgePacket,
+        LoginStartPacket, LoginSuccessPacket,
+    },
+    ProtocolState,
+};
+use cerium_util::auth::GameProfile;
+use std::sync::Arc;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,
@@ -69,7 +67,10 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
         .await;
 }
 
-async fn handle_encryption_response(client: Arc<ClientConnection>, packet: EncryptionResponsePacket) {
+async fn handle_encryption_response(
+    client: Arc<ClientConnection>,
+    packet: EncryptionResponsePacket,
+) {
     log::trace!("{:?}", &packet);
     let shared_secret = client.key_store.decrypt(&packet.shared_secret).unwrap();
 

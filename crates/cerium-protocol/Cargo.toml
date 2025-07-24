@@ -1,0 +1,17 @@
+[package]
+name = "cerium-protocol"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cerium-protocol-macros = { workspace = true }
+cerium-world = { workspace = true }
+cerium-util = { workspace = true }
+cerium-registry = { workspace = true }
+
+bytes = { workspace = true }
+uuid = { workspace = true }
+paste = { workspace = true }
+simdnbt = { workspace = true }
+bitflags = { workspace = true }
+serde = { workspace = true }

@@ -1,20 +1,19 @@
 use std::sync::Arc;
 
-use crate::{
-    network::client::ClientConnection,
-    protocol::{
-        buffer::ByteBuffer,
-        decode::{Decode as _, DecodeError},
-        packet::{
-            ChatCommandPacket, ClientInfoPacket, ClientPluginMessagePacket, ClientTickEndPacket,
-            CloseContainerPacket, ConfirmTeleportationPacket, KeepAlivePacket,
-            PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket,
-            PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
-            PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
-            PlayerSessionPacket, SetHeldItemPacket, SwingArmPacket, UseItemOnPacket,
-        },
+use cerium_protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode as _, DecodeError},
+    packet::{
+        ChatCommandPacket, ClientInfoPacket, ClientPluginMessagePacket, ClientTickEndPacket,
+        CloseContainerPacket, ConfirmTeleportationPacket, KeepAlivePacket, PickItemFromBlockPacket,
+        PlayerAbilitiesPacket, PlayerActionPacket, PlayerCommandPacket, PlayerInputPacket,
+        PlayerLoadedPacket, PlayerMovementFlagsPacket, PlayerPositionAndRotationPacket,
+        PlayerPositionPacket, PlayerRotationPacket, PlayerSessionPacket, SetHeldItemPacket,
+        SwingArmPacket, UseItemOnPacket,
     },
 };
+
+use crate::network::client::ClientConnection;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,

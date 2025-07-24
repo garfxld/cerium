@@ -1,14 +1,12 @@
+use cerium_protocol::{
+    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
+    packet::HandshakePacket,
+    ProtocolState,
+};
 use std::sync::Arc;
 
-use crate::{
-    network::client::ClientConnection,
-    protocol::{
-        buffer::ByteBuffer,
-        decode::{Decode, DecodeError},
-        packet::HandshakePacket,
-        ProtocolState,
-    },
-};
+use crate::network::client::ClientConnection;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,

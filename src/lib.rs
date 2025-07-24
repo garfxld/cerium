@@ -19,11 +19,7 @@ use crate::{
 
 mod entity;
 mod network;
-mod protocol;
-mod registry;
-mod world;
 
-mod identifier;
 mod tickable;
 
 pub use tickable::{Tickable, Ticker};
