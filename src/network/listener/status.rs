@@ -1,4 +1,4 @@
-use crate::network::client::ClientConnection;
+use crate::{event::ServerListPingEvent, network::client::ClientConnection};
 use cerium_protocol::{
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
@@ -23,31 +23,11 @@ async fn handle_status_request(client: Arc<ClientConnection>, packet: StatusRequ
     log::trace!("{:?}", &packet);
     let _ = packet;
 
+    let mut event = ServerListPingEvent::new(SERVER_LIST_PING.to_owned());
+    client.server.events().fire(&mut event).await;
+
     let response = StatusResponsePacket {
-        json_response: r#"
-                    {
-                        "version": {
-                            "name": "1.21.7",
-                            "protocol": 772
-                        },
-                        "players": {
-                            "max": 100,
-                            "online": 5,
-                            "sample": [
-                                {
-                                    "name": "thinkofdeath",
-                                    "id": "4566e69f-c907-48ee-8d71-d7ba5aa00d20"
-                                }
-                            ]
-                        },
-                        "description": {
-                            "text": "Hello, world!"
-                        },
-                        "favicon": "data:image/png;base64,<data>",
-                        "enforcesSecureChat": false
-                    }
-                    "#
-        .to_string(),
+        json_response: event.response,
     };
 
     client.send_packet(0x00, response).await;
@@ -64,3 +44,26 @@ async fn handle_ping_request(client: Arc<ClientConnection>, packet: PingRequestP
         )
         .await;
 }
+
+const SERVER_LIST_PING: &'static str = r#"
+{
+    "version": {
+        "name": "1.21.7",
+        "protocol": 772
+    },
+    "players": {
+        "max": 100,
+        "online": 5,
+        "sample": [
+            {
+                "name": "thinkofdeath",
+                "id": "4566e69f-c907-48ee-8d71-d7ba5aa00d20"
+            }
+        ]
+    },
+    "description": {
+        "text": "Hello, world!"
+    },
+    "enforcesSecureChat": false
+}
+"#;

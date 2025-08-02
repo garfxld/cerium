@@ -1,4 +1,5 @@
 use cerium::event::player::{PlayerConfigEvent, PlayerEvent as _};
+use cerium::event::ServerListPingEvent;
 use cerium::registry::registry::REGISTRIES;
 use cerium::world::World;
 use cerium::Server;
@@ -33,6 +34,38 @@ pub async fn main() {
         .subscribe(move |event: &mut PlayerConfigEvent| {
             println!("PlayerConfigEvent ({})", event.get_player().name());
             event.set_world(world.clone());
+        })
+        .await;
+
+    server
+        .events()
+        .subscribe(|event: &mut ServerListPingEvent| {
+            event.set_response(
+                r#"
+                {
+                    "version": {
+                        "name": "1.21.7",
+                        "protocol": 772
+                    },
+                    "players": {
+                        "max": 100,
+                        "online": 5,
+                        "sample": [
+                            {
+                                "name": "thinkofdeath",
+                                "id": "4566e69f-c907-48ee-8d71-d7ba5aa00d20"
+                            }
+                        ]
+                    },
+                    "description": {
+                        "text": "CUSTOM SERVER LIST PING EVENT!!! LESSGOO"
+                    },
+                    "favicon": "data:image/png;base64,<data>",
+                    "enforcesSecureChat": false
+                }
+            "#
+                .to_owned(),
+            );
         })
         .await;
 

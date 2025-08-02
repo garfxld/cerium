@@ -22,9 +22,10 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Joining a world (WIP)
     - [x] Registries
 - World
+    - [ ] Blocks
+    - [ ] Items
     - [ ] Entities
     - [ ] Block Interactions
-- [ ] Items
 - [ ] Inventories
 - [ ] Event system (WIP)
 
