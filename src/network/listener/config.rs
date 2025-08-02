@@ -177,7 +177,7 @@ async fn handle_acknowledge_finish_config(
             SyncPlayerPositionPacket {
                 teleport_id: 0.into(),
                 x: 0.5,
-                y: 330.,
+                y: 71.,
                 z: 0.5,
                 velocity_x: 0.,
                 velocity_y: 0.,
@@ -189,7 +189,7 @@ async fn handle_acknowledge_finish_config(
         )
         .await;
 
-    let game_profile = client.game_profile.lock().await.clone();
+    let game_profile = client.game_profile.lock().await.clone().unwrap();
 
     client
         .send_packet(
@@ -237,24 +237,23 @@ async fn handle_acknowledge_finish_config(
 
     let mut world = World::new(overworld.clone());
 
-    for x in -5..5 {
-        for z in -5..5 {
-            world.load_chunk(x, z);
+    for cx in -16..40 {
+        for cz in -16..40 {
+            world.load_chunk(cx, cz);
         }
     }
 
-    for x in 0..16 {
-        for y in 0..320 {
-            for z in 0..16 {
-                world.set_block(x, y, z, rand::random_range(0..=27945));
-            }
+    let mut idx = 0;
+    for bz in 1..168 {
+        for bx in 1..168 {
+            world.set_block((bx * 2) - 1, 70, (bz * 2) - 1, idx);
+            idx += 1;
         }
     }
 
-    for x in -5..5 {
-        for z in -5..5 {
-            let chunk = world.get_chunk(x, z).unwrap();
-
+    for cx in -16..16 {
+        for cz in -16..16 {
+            let chunk = world.get_chunk(cx, cz).unwrap();
             client
                 .send_packet::<ChunkDataAndUpdateLightPacket>(0x27, chunk.clone().into())
                 .await;

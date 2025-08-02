@@ -111,10 +111,12 @@ pub mod server {
         mod login_disconnect;
         mod login_success;
         mod encryption_request;
+        mod set_compression;
 
         pub use login_disconnect::LoginDisconnectPacket;
         pub use login_success::*;
         pub use encryption_request::*;
+        pub use set_compression::SetCompressionPacket;
     }
 
     pub mod config {
@@ -161,4 +163,24 @@ pub use keep_alive::KeepAlivePacket;
 
 
 pub trait Packet {
+}
+
+#[derive(Debug, Clone)]
+pub struct RawPacket {
+    id: i32,
+    data: Vec<u8>
+}
+
+impl RawPacket {
+    pub fn new(id: i32, data: Vec<u8>) -> Self {
+        Self { id, data }
+    }
+
+    pub fn id(&self) -> i32 {
+        self.id
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
 }

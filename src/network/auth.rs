@@ -3,7 +3,7 @@ use cerium_util::auth::GameProfile;
 #[derive(thiserror::Error, Debug)]
 pub enum AuthError {
     #[error("Failed to decrypt secret")]
-    DecryptError,
+    DecryptionError,
     #[error("Failed to connect to Mojang session server")]
     FailedRequest,
     #[error("Failed to parse profile json")]
@@ -18,9 +18,10 @@ pub struct KeyStore {
 
 impl KeyStore {
     pub fn new() -> Self {
-        let private_key = rsa::RsaPrivateKey::new(&mut rand::rng(), 1024).unwrap();
+        use rsa::{traits::PublicKeyParts as _, RsaPrivateKey};
 
-        use rsa::traits::PublicKeyParts as _;
+        let private_key = RsaPrivateKey::new(&mut rand::rng(), 1024).unwrap();
+
         let public_key_der = rsa_der::public_key_to_der(
             &private_key.n().to_be_bytes(),
             &private_key.e().to_be_bytes(),
@@ -36,7 +37,7 @@ impl KeyStore {
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>, AuthError> {
         self.private_key
             .decrypt(rsa::Pkcs1v15Encrypt, data)
-            .map_err(|_| AuthError::DecryptError)
+            .map_err(|_| AuthError::DecryptionError)
     }
 
     pub fn digest_secret(&self, secret: &[u8]) -> String {
@@ -54,22 +55,6 @@ impl KeyStore {
 
 pub type Decryptor = cfb8::Decryptor<aes::Aes128>;
 pub type Encryptor = cfb8::Encryptor<aes::Aes128>;
-
-#[derive(Debug)]
-pub struct CryptContext {
-    pub decryptor: Decryptor,
-    pub encryptor: Encryptor,
-}
-
-impl CryptContext {
-    pub fn new(key: &[u8]) -> Self {
-        use aes::cipher::KeyIvInit as _;
-        Self {
-            decryptor: Decryptor::new_from_slices(key, key).unwrap(),
-            encryptor: Encryptor::new_from_slices(key, key).unwrap(),
-        }
-    }
-}
 
 const MOJANG_AUTH_URL: &'static str = "https://sessionserver.mojang.com/session/minecraft/hasJoined?username={username}&serverId={hash}";
 

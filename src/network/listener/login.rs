@@ -1,5 +1,5 @@
 use crate::network::{
-    auth::{self, CryptContext},
+    auth::{self},
     client::ClientConnection,
 };
 use cerium_protocol::{
@@ -7,7 +7,7 @@ use cerium_protocol::{
     decode::{Decode as _, DecodeError},
     packet::{
         EncryptionRequestPacket, EncryptionResponsePacket, LoginAcknowledgePacket,
-        LoginStartPacket, LoginSuccessPacket,
+        LoginStartPacket, LoginSuccessPacket, SetCompressionPacket,
     },
     ProtocolState,
 };
@@ -32,14 +32,22 @@ pub async fn handle_packet(
 
 async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPacket) {
     log::trace!("{:?}", &packet);
-    *client.game_profile.lock().await = GameProfile {
+    *client.game_profile.lock().await = Some(GameProfile {
         uuid: packet.uuid,
         name: packet.name,
         properties: vec![],
-    };
+    });
+
+    let threshold = 256;
+
+    client
+        .send_packet(0x03, SetCompressionPacket { threshold })
+        .await;
+    client.set_compression(threshold).await;
 
     // todo: check for online mode
     if true {
+        // online mode
         let verify_token: [u8; 4] = rand::random();
         *client.verify_token.lock().await = verify_token;
 
@@ -54,17 +62,15 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
                 },
             )
             .await;
-
-        return;
+    } else {
+        // offline mode
+        client
+            .send_packet(
+                0x02,
+                LoginSuccessPacket::from(client.game_profile.lock().await.clone().unwrap()),
+            )
+            .await;
     }
-
-    // ofline mode
-    client
-        .send_packet(
-            0x02,
-            LoginSuccessPacket::from(client.game_profile.lock().await.clone()),
-        )
-        .await;
 }
 
 async fn handle_encryption_response(
@@ -75,16 +81,16 @@ async fn handle_encryption_response(
     let shared_secret = client.key_store.decrypt(&packet.shared_secret).unwrap();
 
     // enable encryption
-    *client.crypt_context.lock().await = Some(CryptContext::new(&shared_secret));
+    client.set_encryption(&shared_secret).await;
 
     let mut client_game_profile = client.game_profile.lock().await;
 
-    let username = &client_game_profile.name;
+    let username = &client_game_profile.clone().unwrap().name;
     let hash = &client.key_store.digest_secret(&shared_secret);
 
     let game_profile = auth::authenthicate(username, hash, None).unwrap();
 
-    *client_game_profile = game_profile.clone();
+    *client_game_profile = Some(game_profile.clone());
 
     client
         .send_packet(0x02, LoginSuccessPacket::from(game_profile.clone()))

@@ -1,4 +1,4 @@
-use bytes::{Buf, BufMut as _, BytesMut};
+use bytes::{Buf, BufMut as _, BytesMut, buf::Take};
 use uuid::Uuid;
 
 use crate::{
@@ -7,6 +7,7 @@ use crate::{
 };
 use cerium_util::identifier::Identifier;
 
+#[derive(Clone)]
 pub struct ByteBuffer {
     inner: bytes::BytesMut,
 }
@@ -48,6 +49,12 @@ impl ByteBuffer {
     pub fn new() -> Self {
         Self {
             inner: bytes::BytesMut::new(),
+        }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            inner: bytes::BytesMut::with_capacity(capacity),
         }
     }
 
@@ -176,6 +183,13 @@ impl ByteBuffer {
         Ok(())
     }
 
+    pub fn write_varint3(&mut self, value: i32) -> Result<(), EncodeError> {
+        self.write_u8((value & 0x7F | 0x80) as u8)?;
+        self.write_u8((((value >> 7) & 0x7F) | 0x80) as u8)?;
+        self.write_u8((value >> 14) as u8)?;
+        Ok(())
+    }
+
     pub fn write_string(&mut self, value: String) -> Result<(), EncodeError> {
         self.write_varint(value.len() as i32)?;
         self.put(value.as_bytes());
@@ -207,6 +221,12 @@ impl ByteBuffer {
         Ok(())
     }
 
+    pub fn write_byte_array(&mut self, value: &Vec<u8>) -> Result<(), EncodeError> {
+        self.write_varint(value.len() as i32);
+        self.inner.put_slice(value.as_slice());
+        Ok(())
+    }
+
     pub fn write_array<T, F>(&mut self, value: Vec<T>, mut write: F) -> Result<(), EncodeError>
     where
         F: FnMut(&mut Self, T) -> Result<(), EncodeError>,
@@ -215,6 +235,11 @@ impl ByteBuffer {
         for element in value {
             write(self, element)?;
         }
+        Ok(())
+    }
+
+    pub fn write_slice(&mut self, slice: &[u8]) -> Result<(), EncodeError> {
+        self.inner.put_slice(slice);
         Ok(())
     }
 
@@ -232,6 +257,10 @@ impl ByteBuffer {
         Ok(())
     }
 
+    pub fn freeze(&mut self) {
+        self.inner = self.inner.clone();
+    }
+
     pub fn put<T: Buf>(&mut self, src: T) {
         self.inner.put(src);
     }
@@ -239,6 +268,12 @@ impl ByteBuffer {
     pub fn split_to(&mut self, at: usize) -> Self {
         Self {
             inner: self.inner.split_to(at),
+        }
+    }
+
+    pub fn split_off(&mut self, at: usize) -> Self {
+        Self {
+            inner: self.inner.split_off(at),
         }
     }
 
@@ -252,5 +287,24 @@ impl ByteBuffer {
 
     pub fn len(&self) -> usize {
         self.inner.len()
+    }
+
+    pub fn advance(&mut self, cnt: usize) {
+        self.inner.advance(cnt);
+    }
+
+    pub fn set_position(&mut self, position: usize) {
+        self.inner = self.inner.clone();
+        self.inner.advance(position);
+    }
+
+    pub fn set_len(&mut self, length: usize) {
+        unsafe {
+            self.inner.set_len(length);
+        }
+    }
+
+    pub fn take(&mut self, limit: usize) -> Take<BytesMut> {
+        self.inner.clone().take(limit)
     }
 }

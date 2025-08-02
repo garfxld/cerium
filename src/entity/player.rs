@@ -8,7 +8,7 @@ use tokio::sync::Mutex;
 
 use crate::{network::client::ClientConnection, Tickable};
 
-#[derive(Debug)]
+
 pub struct Player {
     connection: Arc<ClientConnection>,
     last_keep_alive: Mutex<Instant>,

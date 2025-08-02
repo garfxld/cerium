@@ -4,6 +4,7 @@ use cerium_world::{heightmap::Heightmap, light::LightData};
 use crate::{
     buffer::ByteBuffer,
     encode::{Encode, EncodeError},
+    types::BitSet,
 };
 
 #[derive(Debug)]
@@ -55,13 +56,37 @@ impl Encode for Heightmap {
 
 impl Encode for LightData {
     fn encode(buffer: &mut ByteBuffer, _this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(0)?; // sky_light
-        buffer.write_varint(0)?; // block_light
-        buffer.write_varint(0)?; // empty_sky_light
-        buffer.write_varint(0)?; // empty_block_light
+        // buffer.write_varint(0);
+        // buffer.write_varint(0);
+        // buffer.write_varint(0);
+        // buffer.write_varint(0);
 
+        // buffer.write_varint(0);
+        // buffer.write_varint(0);
+
+        let num_sections = 26;
+
+        // Manually encode BitSets - much faster than using the BitSet struct
+        // Sky light mask: all 26 bits set (0x3FFFFFF fits in one u64)
+        buffer.write_varint(1)?; // 1 word
+        buffer.write_u64(0x3FFFFFF_u64)?;
+
+        // Block light mask: same
         buffer.write_varint(0)?;
+
+        // Empty masks: both empty
+        buffer.write_varint(0)?; // 0 words for empty sky
+        buffer.write_varint(1)?; // 0 words for empty block
+        buffer.write_u64(0x3FFFFFF_u64)?;
+
+        // Rest of your light data code...
+        let light_array = vec![0xFF; 2048];
+        buffer.write_varint(num_sections as i32)?;
+        for _ in 0..num_sections {
+            buffer.write_byte_array(&light_array)?;
+        }
         buffer.write_varint(0)?;
+
         Ok(())
     }
 }
