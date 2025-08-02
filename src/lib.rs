@@ -11,12 +11,19 @@ use tokio::{net::TcpListener, sync::Mutex};
 
 use crate::{
     entity::player::Player,
+    event::events::Events,
     network::{auth::KeyStore, client::ClientConnection},
 };
+
+pub use cerium_protocol as protocol;
+pub use cerium_registry as registry;
+pub use cerium_util as util;
+pub use cerium_world as world;
 
 mod entity;
 mod network;
 
+pub mod event;
 mod tickable;
 
 pub use tickable::{Tickable, Ticker};
@@ -34,6 +41,7 @@ pub struct Server {
     connections: Arc<Mutex<HashMap<SocketAddr, Arc<ClientConnection>>>>,
     pub players: Arc<Mutex<Vec<Arc<Player>>>>,
     key_store: Arc<KeyStore>,
+    events: Events,
 }
 
 impl Server {
@@ -43,6 +51,7 @@ impl Server {
             connections: Arc::new(Mutex::new(HashMap::new())),
             players: Arc::new(Mutex::new(Vec::new())),
             key_store: Arc::new(KeyStore::new()),
+            events: Events::new(),
         }
     }
 
@@ -107,5 +116,9 @@ impl Server {
 
     pub fn key_store(&self) -> Arc<KeyStore> {
         self.key_store.clone()
+    }
+
+    pub fn events(&self) -> &Events {
+        &self.events
     }
 }

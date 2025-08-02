@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use crate::{entity::player::Player, network::client::ClientConnection};
+use crate::{
+    entity::player::Player, event::player::PlayerConfigEvent, network::client::ClientConnection,
+};
 use cerium_protocol::{
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
@@ -13,7 +15,6 @@ use cerium_protocol::{
     ProtocolState,
 };
 use cerium_registry::registry::REGISTRIES;
-use cerium_world::World;
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,
@@ -135,9 +136,10 @@ async fn handle_acknowledge_finish_config(
     log::trace!("{:?}", &packet);
     *client.state.lock().await = ProtocolState::Play;
 
+    let player = Arc::new(Player::new(client.clone()).await);
     {
         let mut players = client.server.players.lock().await;
-        players.push(Arc::new(Player::new(client.clone())));
+        players.push(player.clone());
     }
 
     client
@@ -230,26 +232,15 @@ async fn handle_acknowledge_finish_config(
         )
         .await;
 
-    let overworld = REGISTRIES
-        .dimension_type
-        .get("minecraft:overworld".to_owned())
-        .expect("failed to get dimension_type");
+    let mut event = PlayerConfigEvent {
+        player: player.clone(),
+        world: None,
+    };
+    client.server.events().fire(&mut event).await;
 
-    let mut world = World::new(overworld.clone());
-
-    for cx in -16..40 {
-        for cz in -16..40 {
-            world.load_chunk(cx, cz);
-        }
-    }
-
-    let mut idx = 0;
-    for bz in 1..168 {
-        for bx in 1..168 {
-            world.set_block((bx * 2) - 1, 70, (bz * 2) - 1, idx);
-            idx += 1;
-        }
-    }
+    let Some(world) = event.world else {
+        todo!("no world set");
+    };
 
     for cx in -16..16 {
         for cz in -16..16 {

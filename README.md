@@ -18,7 +18,7 @@ Yet another high-performance Minecraft server library written in Rust.
 - Protocol
     - [x] Server list ping
     - [x] Encryption
-    - [ ] Compression
+    - [x] Compression
     - [ ] Joining a world (WIP)
     - [x] Registries
 - World
@@ -26,7 +26,7 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Block Interactions
 - [ ] Items
 - [ ] Inventories
-- [ ] Event system
+- [ ] Event system (WIP)
 
 Of course, more features are planned for the future.
 
