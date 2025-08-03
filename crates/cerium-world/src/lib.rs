@@ -7,7 +7,7 @@ pub mod palette;
 
 use std::collections::HashMap;
 
-use cerium_registry::dimension_type::DimensionType;
+use cerium_registry::{DimensionType, REGISTRIES, RegistryKey};
 
 use crate::chunk::Chunk;
 
@@ -19,7 +19,9 @@ pub struct World {
 
 #[allow(unused)]
 impl World {
-    pub fn new(dimension_type: DimensionType) -> Self {
+    pub fn new(dimension: &RegistryKey<DimensionType>) -> Self {
+        let dimension_type = REGISTRIES.dimension_type.get(dimension).unwrap().clone();
+
         Self {
             dimension_type,
             chunks: HashMap::new(),
@@ -89,17 +91,10 @@ impl World {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cerium_registry::registry::REGISTRIES;
 
     #[test]
     fn test_get_block() {
-        let mut world = World::new(
-            REGISTRIES
-                .dimension_type
-                .get("minecraft:overworld")
-                .unwrap()
-                .clone(),
-        );
+        let mut world = World::new(&DimensionType::OVERWORLD);
 
         world.load_chunk(0, 0);
         world.set_block(0, 0, 0, 22);

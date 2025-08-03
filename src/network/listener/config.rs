@@ -4,6 +4,7 @@ use crate::{
     entity::player::Player, event::player::PlayerConfigEvent, network::client::ClientConnection,
 };
 use cerium_protocol::{
+    ProtocolState,
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
@@ -12,9 +13,8 @@ use cerium_protocol::{
         LoginPacket, PlayerAction, PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket,
         RegistryDataPacket, ServerKnownPacksPacket, SetCenterChunkPacket, SyncPlayerPositionPacket,
     },
-    ProtocolState,
 };
-use cerium_registry::registry::REGISTRIES;
+use cerium_registry::{DimensionType, REGISTRIES};
 
 pub async fn handle_packet(
     client: Arc<ClientConnection>,
@@ -52,67 +52,40 @@ async fn handle_client_info(client: Arc<ClientConnection>, packet: ClientInfoPac
         .await;
 
     client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.cat_variant.clone()),
-        )
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.cat_variant))
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.chicken_variant))
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.cow_variant))
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.frog_variant))
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.painting_variant))
+        .await;
+    client
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.pig_variant))
         .await;
     client
         .send_packet(
             0x07,
-            RegistryDataPacket::from(REGISTRIES.chicken_variant.clone()),
+            RegistryDataPacket::from(&REGISTRIES.wolf_sound_variant),
         )
         .await;
     client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.cow_variant.clone()),
-        )
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.wolf_variant))
         .await;
     client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.frog_variant.clone()),
-        )
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.damage_type))
         .await;
     client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.painting_variant.clone()),
-        )
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.dimension_type))
         .await;
     client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.pig_variant.clone()),
-        )
-        .await;
-    client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.wolf_sound_variant.clone()),
-        )
-        .await;
-    client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.wolf_variant.clone()),
-        )
-        .await;
-    client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.damage_type.clone()),
-        )
-        .await;
-    client
-        .send_packet(
-            0x07,
-            RegistryDataPacket::from(REGISTRIES.dimension_type.clone()),
-        )
-        .await;
-    client
-        .send_packet(0x07, RegistryDataPacket::from(REGISTRIES.biome.clone()))
+        .send_packet(0x07, RegistryDataPacket::from(&REGISTRIES.biome))
         .await;
 
     client.send_packet(0x03, FinishConfigPacket {}).await;
@@ -157,7 +130,7 @@ async fn handle_acknowledge_finish_config(
                 do_limited_crafting: false,
                 dimension_type: REGISTRIES
                     .dimension_type
-                    .get_id("minecraft:overworld".to_owned())
+                    .get_id(&DimensionType::OVERWORLD)
                     .unwrap_or(0) as i32,
                 dimension_name: "minecraft:overworld".to_owned(),
                 hashed_seed: 93522819,

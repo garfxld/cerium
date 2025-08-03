@@ -196,7 +196,6 @@ dependencies = [
  "env_logger",
  "log",
  "num-bigint",
- "pin-project-lite",
  "pkcs1",
  "rand",
  "rsa",
@@ -238,7 +237,11 @@ dependencies = [
 name = "cerium-registry"
 version = "0.1.0"
 dependencies = [
+ "cerium-util",
  "indexmap",
+ "paste",
+ "proc-macro2",
+ "quote",
  "serde",
  "serde_json",
  "simdnbt",

@@ -16,30 +16,28 @@ impl Identifier {
         }
     }
 
-    pub fn vanilla<T>(path: T) -> Self
+    pub fn vanilla<S>(path: S) -> Self
     where
-        T: Into<String>,
+        S: Into<String>,
     {
         Self::new("minecraft", path)
+    }
+
+    pub fn of<S>(key: S) -> Self
+    where
+        S: Into<String>,
+    {
+        let key: String = key.into();
+        if let Some((namespace, path)) = key.split_once(":") {
+            Self::new(namespace, path)
+        } else {
+            Self::vanilla(key)
+        }
     }
 }
 
 impl std::fmt::Display for Identifier {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}:{}", self.namespace, self.path)
-    }
-}
-
-#[derive(Debug)]
-pub struct IdentifierParseError;
-
-impl TryFrom<String> for Identifier {
-    type Error = IdentifierParseError;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        match value.split_once(":") {
-            Some((namespace, path)) => Ok(Self::new(namespace, path)),
-            None => Ok(Self::vanilla(value)), // all biome entries aren't prefixed with "minecraft:" ?
-        }
     }
 }

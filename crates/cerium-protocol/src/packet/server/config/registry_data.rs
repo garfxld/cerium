@@ -1,5 +1,7 @@
+use std::{collections::HashMap, fmt::Debug};
+
 use cerium_protocol_macros::packet;
-use cerium_registry::registry::Registry;
+use cerium_registry::DynamicRegistry;
 use cerium_util::identifier::Identifier;
 use simdnbt::owned::Nbt;
 
@@ -45,19 +47,21 @@ impl Encode for RegistryEntry {
     }
 }
 
-impl<T> From<Registry<T>> for RegistryDataPacket
+impl<T> From<&DynamicRegistry<T>> for RegistryDataPacket
 where
     T: serde::de::DeserializeOwned + simdnbt::Serialize + Clone,
 {
-    fn from(value: Registry<T>) -> Self {
+    fn from(value: &DynamicRegistry<T>) -> Self {
+        let registry_id = value.registry_id().clone();
+        let entries = value.entries();
+
         RegistryDataPacket {
-            registry_id: Identifier::try_from(value.name()).unwrap(),
-            entries: value
-                .entries
-                .iter()
-                .map(|e| RegistryEntry {
-                    entry_id: Identifier::try_from(e.0.to_string()).unwrap(),
-                    data: Some(Nbt::Some(e.1.clone().to_nbt())),
+            registry_id,
+            entries: entries
+                .into_iter()
+                .map(|(key, value)| RegistryEntry {
+                    entry_id: key.as_key().clone(),
+                    data: Some(Nbt::Some(value.clone().to_nbt())),
                 })
                 .collect(),
         }

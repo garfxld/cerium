@@ -26,7 +26,10 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Items
     - [ ] Entities
     - [ ] Block Interactions
+    - [ ] Light API
 - [ ] Inventories
+- [ ] Commands
+- [ ] Text components
 - [ ] Event system (WIP)
 
 Of course, more features are planned for the future.

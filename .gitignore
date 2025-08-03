@@ -1,1 +1,2 @@
 /target
+/crates/cerium-registry/src/generated/*

@@ -36,7 +36,7 @@ uuid = { version = "1.17.0", features = ["v4", "serde"] }
 [package]
 name = "cerium"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 
 [dependencies]
@@ -67,4 +67,3 @@ rsa = "=0.10.0-rc.1"
 rsa-der = "0.3.0"
 sha1 = "0.10.6"
 take_mut = "0.2.2"
-pin-project-lite = "0.2.16"
