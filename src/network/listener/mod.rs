@@ -1,5 +1,5 @@
 use crate::network::client::ClientConnection;
-use cerium_protocol::{buffer::ByteBuffer, decode::DecodeError, ProtocolState};
+use cerium_protocol::{ProtocolState, buffer::ByteBuffer, decode::DecodeError};
 use std::sync::Arc;
 
 mod config;
@@ -20,7 +20,12 @@ impl ClientConnection {
             ProtocolState::Status => status::handle_packet(self, id, data).await,
             ProtocolState::Login => login::handle_packet(self, id, data).await,
             ProtocolState::Config => config::handle_packet(self, id, data).await,
-            ProtocolState::Play => play::handle_packet(self, id, data).await,
+            ProtocolState::Play => {
+                let player = self.player.lock().await;
+                let player = player.clone().unwrap();
+
+                play::handle_packet(player, id, data).await
+            }
         }
     }
 }

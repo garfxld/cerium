@@ -5,3 +5,7 @@ edition = "2024"
 
 [dependencies]
 cerium-registry = { workspace = true }
+cerium-util = { workspace = true }
+
+tokio = { workspace = true }
+futures = { version = "0.3.31"}

@@ -5,16 +5,16 @@ pub mod heightmap;
 pub mod light;
 pub mod palette;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
 
 use cerium_registry::{DimensionType, REGISTRIES, RegistryKey};
+use tokio::sync::{Mutex, RwLock};
 
 use crate::chunk::Chunk;
 
-#[derive(Clone)]
 pub struct World {
     dimension_type: DimensionType,
-    chunks: HashMap<(i32, i32), Chunk>,
+    chunks: RwLock<HashMap<(i32, i32), Arc<Mutex<Chunk>>>>,
 }
 
 #[allow(unused)]
@@ -24,67 +24,70 @@ impl World {
 
         Self {
             dimension_type,
-            chunks: HashMap::new(),
+            chunks: RwLock::new(HashMap::new()),
         }
     }
 
-    pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<&Chunk> {
-        self.chunks.get(&(chunk_x, chunk_z))
+    pub async fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Arc<Mutex<Chunk>>> {
+        let chunks = self.chunks.read().await;
+        chunks.get(&(chunk_x, chunk_z)).cloned()
     }
 
-    pub fn get_chunk_mut(&mut self, chunk_x: i32, chunk_z: i32) -> Option<&mut Chunk> {
-        self.chunks.get_mut(&(chunk_x, chunk_z))
+    pub async fn load_chunk(&self, chunk_x: i32, chunk_z: i32) -> Arc<Mutex<Chunk>> {
+        let mut chunks = self.chunks.write().await;
+
+        let chunk = Arc::new(Mutex::new(Chunk::new(
+            chunk_x,
+            chunk_z,
+            self.dimension_type.min_y,
+        )));
+        chunks.insert((chunk_x, chunk_z), chunk.clone());
+
+        chunk
     }
 
-    pub fn load_chunk(&mut self, chunk_x: i32, chunk_z: i32) {
-        self.chunks.insert(
-            (chunk_x, chunk_z),
-            Chunk::new(chunk_x, chunk_z, self.dimension_type.min_y),
-        );
-    }
+    pub async fn get_block(&self, x: i32, y: i32, z: i32) -> u16 {
+        let cx = x / 16;
+        let cz = z / 16;
 
-    pub fn get_block(&self, x: i32, y: i32, z: i32) -> u16 {
-        let chunk_x = x / 16;
-        let chunk_z = z / 16;
-
-        let chunk = self.get_chunk(chunk_x, chunk_z).unwrap_or_else(|| {
-            panic!("Chunk ({},{}) is not loaded!", chunk_x, chunk_z);
+        let chunk = self.get_chunk(cx, cz).await.unwrap_or_else(|| {
+            panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        chunk.get_block(x, y, z)
+        chunk.lock().await.get_block(x, y, z)
     }
 
-    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: i32) {
-        let chunk_x = x / 16;
-        let chunk_z = z / 16;
+    pub async fn set_block(&self, x: i32, y: i32, z: i32, block: i32) {
+        let cx = x / 16;
+        let cz = z / 16;
 
-        let chunk = self.get_chunk_mut(chunk_x, chunk_z).unwrap_or_else(|| {
-            panic!("Chunk ({},{}) is not loaded!", chunk_x, chunk_z);
-        });
-
-        chunk.set_block(x, y, z, block);
+        let chunk = match self.get_chunk(cx, cz).await {
+            Some(chunk) => chunk,
+            None => self.load_chunk(cx, cz).await,
+        };
+        chunk.lock().await.set_block(x, y, z, block);
     }
 
-    pub fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
-        let chunk_x = x / 16;
-        let chunk_z = z / 16;
+    pub async fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
+        let cx = x / 16;
+        let cz = z / 16;
 
-        let chunk = self.get_chunk(chunk_x, chunk_z).unwrap_or_else(|| {
-            panic!("Chunk ({},{}) is not loaded!", chunk_x, chunk_z);
+        let chunk = self.get_chunk(cx, cz).await.unwrap_or_else(|| {
+            panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        chunk.get_biome(x, y, z)
+        chunk.lock().await.get_biome(x, y, z)
     }
 
-    pub fn set_biome(&mut self, x: i32, y: i32, z: i32, biome: i32) {
-        let chunk_x = x / 16;
-        let chunk_z = z / 16;
+    pub async fn set_biome(&self, x: i32, y: i32, z: i32, biome: i32) {
+        let cx = x / 16;
+        let cz = z / 16;
 
-        let chunk = self.get_chunk_mut(chunk_x, chunk_z).unwrap_or_else(|| {
-            panic!("Chunk ({},{}) is not loaded!", chunk_x, chunk_z);
-        });
-
-        chunk.set_biome(x, y, z, biome);
+        let chunk = match self.get_chunk(cx, cz).await {
+            Some(chunk) => chunk,
+            None => self.load_chunk(cx, cz).await,
+        };
+        chunk.lock().await.set_biome(x, y, z, biome);
     }
 }
 
@@ -92,12 +95,12 @@ impl World {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_get_block() {
-        let mut world = World::new(&DimensionType::OVERWORLD);
+    #[tokio::test]
+    async fn test_get_block() {
+        let world = World::new(&DimensionType::OVERWORLD);
 
-        world.load_chunk(0, 0);
-        world.set_block(0, 0, 0, 22);
-        assert_eq!(world.get_block(0, 0, 0), 22);
+        world.load_chunk(0, 0).await;
+        world.set_block(0, 0, 0, 22).await;
+        assert_eq!(world.get_block(0, 0, 0).await, 22);
     }
 }

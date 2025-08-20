@@ -1,6 +1,5 @@
 use crate::{
-    network::{auth::KeyStore, reader::StreamReader, writer::StreamWriter},
-    Server,
+    entity::player::Player, network::{auth::KeyStore, reader::StreamReader, writer::StreamWriter}, Server
 };
 
 use cerium_protocol::{buffer::ByteBuffer, encode::Encode, ProtocolState};
@@ -27,6 +26,7 @@ pub struct ClientConnection {
     pub game_profile: Mutex<Option<GameProfile>>,
     pub key_store: Arc<KeyStore>,
     pub verify_token: Mutex<[u8; 4]>,
+    pub player: Mutex<Option<Arc<Player>>>,
     pub closed: AtomicBool,
     pub server: Arc<Server>,
 }
@@ -44,6 +44,7 @@ impl ClientConnection {
             game_profile: Mutex::new(None),
             key_store: server.key_store(),
             verify_token: Mutex::new([0; 4]),
+            player: Mutex::new(None),
             closed: AtomicBool::new(false),
             server,
         }

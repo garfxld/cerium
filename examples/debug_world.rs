@@ -13,9 +13,14 @@ async fn main() {
 
     let world = Arc::new(World::new(&DimensionType::OVERWORLD));
 
-    for bz in 0..16 {
-        for bx in 0..16 {
-            world.set_block(bx, 70, bz, 9).await;
+    let mut idx = 0;
+    'outer: for bz in 1..169 {
+        for bx in 1..169 {
+            world.set_block((bz * 2) - 1, 70, (bx * 2) - 1, idx).await;
+            idx += 1;
+            if idx >= 27946 {
+                break 'outer;
+            }
         }
     }
 
@@ -24,7 +29,7 @@ async fn main() {
         .subscribe(move |event: &mut PlayerConfigEvent| {
             println!("PlayerConfigEvent ({})", event.get_player().name());
             event.set_world(world.clone());
-            event.set_position(Position::new(0., 75., 0., 0., 0.));
+            event.set_position(Position::new(0.5, 71., 0.5, 0., 0.));
         })
         .await;
 

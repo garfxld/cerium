@@ -57,6 +57,7 @@ pub mod client {
         mod chat_command;
         mod player_session;
         mod player_movement_flags;
+        mod chunk_batch_received;
 
         pub use client_tick_end::ClientTickEndPacket;
         pub use confirm_teleportation::ConfirmTeleportationPacket;
@@ -77,6 +78,7 @@ pub mod client {
         pub use chat_command::ChatCommandPacket;
         pub use player_session::PlayerSessionPacket;
         pub use player_movement_flags::PlayerMovementFlagsPacket;
+        pub use chunk_batch_received::ChunkBatchReceivedPacket;
     }
 
     pub mod common {
@@ -136,6 +138,11 @@ pub mod server {
         mod set_center_chunk;
         mod chunk_data_and_update_light;
         mod player_info_update;
+        mod chunk_batch_start;
+        mod chunk_batch_finished;
+        mod unload_chunk;
+        mod entity_position;
+        mod entity_position_rotation;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -143,6 +150,11 @@ pub mod server {
         pub use set_center_chunk::SetCenterChunkPacket;
         pub use chunk_data_and_update_light::*;
         pub use player_info_update::*;
+        pub use chunk_batch_start::ChunkBatchStartPacket;
+        pub use chunk_batch_finished::ChunkBatchFinishedPacket;
+        pub use unload_chunk::UnloadChunkPacket;
+        pub use entity_position::EntityPositionPacket;
+        pub use entity_position_rotation::EntityPositionRotationPacket;
     }
 
     pub mod common {}

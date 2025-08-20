@@ -8,10 +8,10 @@ use cerium_protocol::{
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
-        AcknowledgeFinishConfigPacket, ChunkDataAndUpdateLightPacket, ClientInfoPacket,
-        ClientKnownPacksPacket, ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket,
-        LoginPacket, PlayerAction, PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket,
-        RegistryDataPacket, ServerKnownPacksPacket, SetCenterChunkPacket, SyncPlayerPositionPacket,
+        AcknowledgeFinishConfigPacket, ClientInfoPacket, ClientKnownPacksPacket,
+        ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket, LoginPacket, PlayerAction,
+        PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket, RegistryDataPacket,
+        ServerKnownPacksPacket, SetCenterChunkPacket, SyncPlayerPositionPacket,
     },
 };
 use cerium_registry::{DimensionType, REGISTRIES};
@@ -109,11 +109,34 @@ async fn handle_acknowledge_finish_config(
     log::trace!("{:?}", &packet);
     *client.state.lock().await = ProtocolState::Play;
 
-    let player = Arc::new(Player::new(client.clone()).await);
+    let player = Arc::new(Player::new(client.clone(), client.server.clone()).await);
     {
         let mut players = client.server.players.lock().await;
         players.push(player.clone());
+
+        let mut guard = client.player.lock().await;
+        *guard = Some(player.clone());
     }
+
+    let mut event = PlayerConfigEvent {
+        player: player.clone(),
+        world: None,
+        position: None,
+    };
+    client.server.events().fire(&mut event).await;
+
+    if let Some(world) = event.world {
+        player.set_world(world);
+    } else {
+        todo!("no world set");
+    }
+
+    let position = if let Some(position) = event.position {
+        player.set_position(position);
+        position
+    } else {
+        todo!("no position set");
+    };
 
     client
         .send_packet(
@@ -123,8 +146,8 @@ async fn handle_acknowledge_finish_config(
                 is_hardcore: false,
                 dimension_names: vec!["minecraft:overworld".to_owned()],
                 max_players: 20,
-                view_distance: 16,
-                simulation_distance: 16,
+                view_distance: 32,
+                simulation_distance: 8,
                 reduced_debug_info: false,
                 enable_respawn_screen: true,
                 do_limited_crafting: false,
@@ -151,14 +174,14 @@ async fn handle_acknowledge_finish_config(
             0x41,
             SyncPlayerPositionPacket {
                 teleport_id: 0.into(),
-                x: 0.5,
-                y: 71.,
-                z: 0.5,
+                x: position.x(),
+                y: position.y(),
+                z: position.z(),
                 velocity_x: 0.,
                 velocity_y: 0.,
                 velocity_z: 0.,
-                yaw: 0.,
-                pitch: 0.,
+                yaw: position.yaw(),
+                pitch: position.pitch(),
                 flags: 0,
             },
         )
@@ -205,24 +228,7 @@ async fn handle_acknowledge_finish_config(
         )
         .await;
 
-    let mut event = PlayerConfigEvent {
-        player: player.clone(),
-        world: None,
-    };
-    client.server.events().fire(&mut event).await;
-
-    let Some(world) = event.world else {
-        todo!("no world set");
-    };
-
-    for cx in -16..16 {
-        for cz in -16..16 {
-            let chunk = world.get_chunk(cx, cz).unwrap();
-            client
-                .send_packet::<ChunkDataAndUpdateLightPacket>(0x27, chunk.clone().into())
-                .await;
-        }
-    }
+    player.load_chunks().await;
 }
 
 async fn handle_keep_alive(client: Arc<ClientConnection>) {

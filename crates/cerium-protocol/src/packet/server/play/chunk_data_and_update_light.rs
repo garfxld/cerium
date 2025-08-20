@@ -120,11 +120,11 @@ impl Encode for cerium_world::palette::PaletteFormat {
     }
 }
 
-impl Into<ChunkDataAndUpdateLightPacket> for cerium_world::chunk::Chunk {
+impl Into<ChunkDataAndUpdateLightPacket> for &cerium_world::chunk::Chunk {
     fn into(self) -> ChunkDataAndUpdateLightPacket {
         let mut data = ByteBuffer::new();
-        for section in self.sections {
-            cerium_world::chunk_section::ChunkSection::encode(&mut data, section).unwrap();
+        for section in &self.sections {
+            cerium_world::chunk_section::ChunkSection::encode(&mut data, section.clone()).unwrap();
         }
 
         let data = ChunkData {

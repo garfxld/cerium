@@ -3,6 +3,7 @@ use std::sync::Arc;
 use crate::{entity::player::Player, event::Event};
 
 mod player_config;
+
 pub use player_config::PlayerConfigEvent;
 
 pub trait PlayerEvent
