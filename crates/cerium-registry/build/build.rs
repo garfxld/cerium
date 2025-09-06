@@ -61,10 +61,12 @@ fn main() {
 
 pub fn write_file(content: TokenStream, dst: &str) {
     let path = Path::new("src/generated").join(dst);
-    let content = content.to_string();
+    if !path.exists() {
+        std::fs::create_dir(&path).unwrap();
+    }
 
     let mut file = File::create(&path).unwrap();
-    if let Err(e) = file.write_all(content.as_bytes()) {
+    if let Err(e) = file.write_all(content.to_string().as_bytes()) {
         println!("cargo::error={e}");
     }
 
