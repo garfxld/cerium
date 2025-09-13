@@ -5,7 +5,6 @@ Yet another high-performance Minecraft server library written in Rust.
 > [!CAUTION]
 > This repository is still in a very, very, very early stage of development.
 
-
 ## Goals
 
 - High-performance
@@ -19,7 +18,7 @@ Yet another high-performance Minecraft server library written in Rust.
     - [x] Server list ping
     - [x] Encryption
     - [x] Compression
-    - [ ] Joining a world (WIP)
+    - [x] Joining a world *(still very basic)*
     - [x] Registries
 - World
     - [ ] Blocks
@@ -40,3 +39,10 @@ Of course, more features are planned for the future.
 ```sh
 cargo r --example flat_world
 ```
+
+
+## Examples
+
+### Debug World
+
+<img src="thumbnail.png" width="800" alt="Debug World">
