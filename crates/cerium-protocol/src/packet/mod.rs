@@ -58,6 +58,7 @@ pub mod client {
         mod player_session;
         mod player_movement_flags;
         mod chunk_batch_received;
+        mod set_creative_mode_slot;
 
         pub use client_tick_end::ClientTickEndPacket;
         pub use confirm_teleportation::ConfirmTeleportationPacket;
@@ -79,6 +80,7 @@ pub mod client {
         pub use player_session::PlayerSessionPacket;
         pub use player_movement_flags::PlayerMovementFlagsPacket;
         pub use chunk_batch_received::ChunkBatchReceivedPacket;
+        pub use set_creative_mode_slot::SetCreativeModeSlotPacket;
     }
 
     pub mod common {

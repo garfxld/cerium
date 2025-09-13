@@ -5,6 +5,7 @@ members = [
     "crates/cerium-registry",
     "crates/cerium-world",
     "crates/cerium-util",
+    "crates/cerium-inventory",
 ]
 
 resolver = "2"
@@ -16,6 +17,7 @@ cerium-protocol-macros = { path = "crates/cerium-protocol-macros" }
 cerium-registry = { path = "crates/cerium-registry" }
 cerium-world = { path = "crates/cerium-world" }
 cerium-util = { path = "crates/cerium-util" }
+cerium-inventory = { path = "crates/cerium-inventory" }
 
 async-compression = { version = "0.4.27", default-features = false, features = ["tokio", "zlib"] }
 bitflags = "2.9.1"
@@ -30,7 +32,8 @@ thiserror = "2.0.12"
 tokio = { version = "1.46.0", features = ["macros", "rt-multi-thread", "net", "time", "sync", "io-util"], default-features = false }
 ureq = { version = "3.0.12", features = ["json"] }
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
-
+rustc-hash = "2.1.1"
+convert_case = "0.8.0"
 
 
 [package]
@@ -44,6 +47,7 @@ cerium-protocol = { workspace = true }
 cerium-registry = { workspace = true }
 cerium-world = { workspace = true }
 cerium-util = { workspace = true }
+cerium-inventory = { workspace = true }
 
 async-compression = { workspace = true }
 bytes = { workspace = true }

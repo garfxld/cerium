@@ -30,6 +30,7 @@ pub use damage_type::*;
 pub use dimension_type::*;
 pub use dimension_type::*;
 pub use frog_variant::*;
+
 pub use painting_variant::*;
 pub use pig_variant::*;
 use serde::de::DeserializeOwned;

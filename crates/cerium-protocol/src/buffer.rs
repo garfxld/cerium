@@ -1,10 +1,7 @@
 use bytes::{Buf, BufMut as _, BytesMut, buf::Take};
 use uuid::Uuid;
 
-use crate::{
-    decode::{Decode, DecodeError},
-    encode::EncodeError,
-};
+use crate::{decode::DecodeError, encode::EncodeError};
 use cerium_util::identifier::Identifier;
 
 #[derive(Clone)]
@@ -80,12 +77,12 @@ impl ByteBuffer {
         Ok(self.read_u8()? == 1)
     }
 
-    pub fn read_option<T>(&mut self) -> Result<Option<T>, DecodeError>
+    pub fn read_option<T, F>(&mut self, f: F) -> Result<Option<T>, DecodeError>
     where
-        T: Decode,
+        F: Fn(&mut Self) -> Result<T, DecodeError>,
     {
         let value = if self.read_bool()? {
-            Some(T::decode(self)?)
+            Some(f(self)?)
         } else {
             None
         };

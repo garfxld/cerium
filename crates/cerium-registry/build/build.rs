@@ -4,6 +4,8 @@ use indexmap::IndexMap;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
+mod material;
+
 fn main() {
     // Dynamic Registries
     generate("Biome", "biomes.rs", include_str!("../data/biome.json"));
@@ -57,12 +59,14 @@ fn main() {
         "wolf_variants.rs",
         include_str!("../data/wolf_variant.json"),
     );
+
+    material::generate();
 }
 
 pub fn write_file(content: TokenStream, dst: &str) {
     let path = Path::new("src/generated").join(dst);
-    if !path.exists() {
-        std::fs::create_dir(&path).unwrap();
+    if !path.parent().unwrap().exists() {
+        std::fs::create_dir(&path.parent().unwrap()).unwrap();
     }
 
     let mut file = File::create(&path).unwrap();
@@ -73,7 +77,7 @@ pub fn write_file(content: TokenStream, dst: &str) {
     let _ = Command::new("rustfmt").arg(&path).output();
 }
 
-pub(crate) fn generate(strct: &str, dst: &str, content: &str) {
+pub fn generate(strct: &str, dst: &str, content: &str) {
     let entries: IndexMap<String, serde_json::Value> = serde_json::from_str(content).unwrap();
 
     let keys: TokenStream = entries

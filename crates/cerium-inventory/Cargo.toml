@@ -1,0 +1,10 @@
+[package]
+name = "cerium-inventory"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+cerium-registry = { workspace = true }
+
+rustc-hash = { workspace = true }
+simdnbt = { workspace = true }

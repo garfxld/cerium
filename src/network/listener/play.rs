@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
+use cerium_inventory::item::ItemStack;
 use cerium_protocol::{
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
-        ChatCommandPacket, ChunkBatchReceivedPacket, ClientInfoPacket, ClientPluginMessagePacket,
-        ClientTickEndPacket, CloseContainerPacket, ConfirmTeleportationPacket,
-        EntityPositionPacket, EntityPositionRotationPacket, KeepAlivePacket,
-        PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket, PlayerCommandPacket,
-        PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
+        ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
+        ClientPluginMessagePacket, ClientTickEndPacket, CloseContainerPacket,
+        ConfirmTeleportationPacket, EntityPositionPacket, EntityPositionRotationPacket,
+        KeepAlivePacket, PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket,
+        PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
         PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
-        PlayerSessionPacket, SetCenterChunkPacket, SetHeldItemPacket, SwingArmPacket,
-        UseItemOnPacket,
+        PlayerSessionPacket, SetCenterChunkPacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
+        SwingArmPacket, UseItemOnPacket,
     },
 };
 use cerium_util::Position;
@@ -33,7 +34,7 @@ pub async fn handle_packet(
         0x0A => handle_chunk_batch_received(player, ChunkBatchReceivedPacket::decode(data)?).await,
         0x0C => handle_client_tick_end(player, ClientTickEndPacket::decode(data)?).await,
         0x0D => handle_client_info(player, ClientInfoPacket::decode(data)?).await,
-        0x11 => handle_click_container(player).await,
+        0x11 => handle_click_container(player, ClickContainerPacket::decode(data)?).await,
         0x12 => handle_close_container(player, CloseContainerPacket::decode(data)?).await,
         0x15 => handle_plugin_message(player, ClientPluginMessagePacket::decode(data)?).await,
         0x1B => handle_keep_alive(player, KeepAlivePacket::decode(data)?).await,
@@ -56,6 +57,9 @@ pub async fn handle_packet(
         0x2A => handle_player_input(player, PlayerInputPacket::decode(data)?).await,
         0x2B => handle_player_loaded(player, PlayerLoadedPacket::decode(data)?).await,
         0x34 => handle_set_held_item(player, SetHeldItemPacket::decode(data)?).await,
+        0x37 => {
+            handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?).await
+        }
         0x3C => handle_swing_arm(player, SwingArmPacket::decode(data)?).await,
         0x3F => handle_use_item_on(player, UseItemOnPacket::decode(data)?).await,
         _ => panic!("Unknown packet! ({})", id),
@@ -79,7 +83,6 @@ async fn handle_player_session(player: Arc<Player>, packet: PlayerSessionPacket)
 }
 
 async fn handle_chunk_batch_received(player: Arc<Player>, packet: ChunkBatchReceivedPacket) {
-    println!("{:?}", packet);
     player
         .chunk_queue
         .lock()
@@ -100,7 +103,8 @@ async fn handle_client_info(player: Arc<Player>, packet: ClientInfoPacket) {
     let _ = packet;
 }
 
-async fn handle_click_container(player: Arc<Player>) {
+async fn handle_click_container(player: Arc<Player>, packet: ClickContainerPacket) {
+    println!("{packet:?}");
     let _ = player;
 }
 
@@ -249,6 +253,20 @@ async fn handle_player_loaded(player: Arc<Player>, packet: PlayerLoadedPacket) {
 }
 
 async fn handle_set_held_item(player: Arc<Player>, packet: SetHeldItemPacket) {
+    let _ = player;
+    let _ = packet;
+}
+
+async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeModeSlotPacket) {
+    println!("{packet:?}");
+
+    let inventory = player.inventory();
+
+    let item_stack = ItemStack::from(packet.clicked_item);
+    println!("{:?}", item_stack);
+    inventory.set_item_stack(packet.slot as i32, item_stack);
+
+
     let _ = player;
     let _ = packet;
 }

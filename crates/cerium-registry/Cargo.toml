@@ -17,3 +17,4 @@ quote = "1.0.40"
 serde_json = { workspace = true }
 paste = { workspace = true }
 indexmap = { workspace = true }
+convert_case = { workspace = true }

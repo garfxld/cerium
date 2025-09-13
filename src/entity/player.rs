@@ -11,6 +11,7 @@ use crate::{
     Server,
     protocol::{encode::Encode, packet::KeepAlivePacket},
 };
+use cerium_inventory::inventory::PlayerInventory;
 use cerium_protocol::packet::{
     ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
     UnloadChunkPacket,
@@ -57,6 +58,7 @@ pub struct Player {
     pub(crate) chunk_queue: tokio::sync::Mutex<ChunkQueue>,
     last_keep_alive: tokio::sync::Mutex<Instant>,
     interval: tokio::sync::Mutex<Interval>,
+    inventory: Arc<PlayerInventory>,
 }
 
 unsafe impl Send for Player {}
@@ -73,6 +75,7 @@ impl Player {
             chunk_queue: tokio::sync::Mutex::new(ChunkQueue::new()),
             last_keep_alive: tokio::sync::Mutex::new(Instant::now()),
             interval: tokio::sync::Mutex::new(interval(Duration::from_millis(50))),
+            inventory: Arc::new(PlayerInventory::new()),
         }
     }
 
@@ -104,6 +107,10 @@ impl Player {
 
     pub(crate) fn set_position(&self, position: Position) {
         (*self.position.lock().unwrap()) = Some(position)
+    }
+
+    pub fn inventory(&self) -> &Arc<PlayerInventory> {
+        &self.inventory
     }
 
     pub async fn send_packet<P>(&self, packet_id: i32, packet: P)

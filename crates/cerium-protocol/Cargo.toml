@@ -8,6 +8,7 @@ cerium-protocol-macros = { workspace = true }
 cerium-world = { workspace = true }
 cerium-util = { workspace = true }
 cerium-registry = { workspace = true }
+cerium-inventory = { workspace = true }
 
 bytes = { workspace = true }
 uuid = { workspace = true }
@@ -15,3 +16,4 @@ paste = { workspace = true }
 simdnbt = { workspace = true }
 bitflags = { workspace = true }
 serde = { workspace = true }
+rustc-hash = { workspace = true }
