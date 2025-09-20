@@ -1,4 +1,6 @@
+use cerium_registry::block::BlockState;
 use cerium_util::Position;
+use simdnbt::owned::Nbt;
 
 use crate::chunk_section::ChunkSection;
 
@@ -8,6 +10,7 @@ pub struct Chunk {
     pub chunk_z: i32,
     min_y: i32,
     pub sections: Vec<ChunkSection>,
+    pub block_entities: Vec<BlockEntity>,
 }
 
 impl Chunk {
@@ -22,6 +25,7 @@ impl Chunk {
             chunk_z,
             min_y,
             sections,
+            block_entities: vec![],
         }
     }
 
@@ -54,7 +58,24 @@ impl Chunk {
         }
     }
 
-    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: i32) {
+    fn pack_xz(world_x: i32, world_z: i32) -> u8 {
+        let block_x = world_x & 0xF;
+        let block_z = world_z & 0xF;
+        ((block_x << 4) | block_z) as u8
+    }
+
+    pub fn set_block(&mut self, x: i32, y: i32, z: i32, block: &BlockState) {
+        if let Some(block_entity) = block.block_entity() {
+            let be = BlockEntity {
+                packed_xz: Self::pack_xz(x, z),
+                y: y as i16,
+                r#type: block_entity.id,
+                data: Nbt::None,
+            };
+            println!("{:?}", &be);
+            self.block_entities.insert(0, be);
+        }
+
         let section = self.section_at_mut(y);
 
         if let Some(section) = section {
@@ -62,7 +83,7 @@ impl Chunk {
                 Self::to_relative(x),
                 Self::to_relative(y),
                 Self::to_relative(z),
-                block,
+                block.state_id(),
             );
         } else {
             panic!("Chunk section out of bounds for y: {}", y);
@@ -159,4 +180,12 @@ impl Chunk {
             }
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct BlockEntity {
+    pub packed_xz: u8,
+    pub y: i16,
+    pub r#type: i32,
+    pub data: Nbt,
 }

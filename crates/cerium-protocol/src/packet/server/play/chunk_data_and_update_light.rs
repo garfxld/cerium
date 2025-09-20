@@ -1,5 +1,7 @@
+use bytes::buf;
 use cerium_protocol_macros::packet;
-use cerium_world::{heightmap::Heightmap, light::LightData};
+use cerium_registry::generated::block::Block;
+use cerium_world::{chunk::BlockEntity, heightmap::Heightmap, light::LightData};
 
 use crate::{
     buffer::ByteBuffer,
@@ -30,7 +32,7 @@ impl Encode for ChunkDataAndUpdateLightPacket {
 pub struct ChunkData {
     pub heightmaps: Vec<Heightmap>,
     pub data: Vec<u8>,
-    pub block_entities: Vec<i8>, // BlockEntity array
+    pub block_entities: Vec<BlockEntity>,
 }
 
 impl Encode for ChunkData {
@@ -40,8 +42,22 @@ impl Encode for ChunkData {
         })?;
         buffer.write_array(this.data, |buffer, value| buffer.write_u8(value))?;
 
-        // Zero block entities (for now)
-        buffer.write_varint(0)?;
+        buffer.write_array(this.block_entities, |buffer, value| {
+            BlockEntity::encode(buffer, value)
+        });
+        Ok(())
+    }
+}
+
+impl Encode for BlockEntity {
+    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
+        buffer.write_u8(this.packed_xz);
+        buffer.write_i16(this.y);
+        buffer.write_varint(this.r#type);
+
+        let mut data: Vec<u8> = Vec::new();
+        this.data.write_unnamed(&mut data);
+        buffer.put(&*data);
         Ok(())
     }
 }
@@ -56,30 +72,17 @@ impl Encode for Heightmap {
 
 impl Encode for LightData {
     fn encode(buffer: &mut ByteBuffer, _this: Self) -> Result<(), EncodeError> {
-        // buffer.write_varint(0);
-        // buffer.write_varint(0);
-        // buffer.write_varint(0);
-        // buffer.write_varint(0);
-
-        // buffer.write_varint(0);
-        // buffer.write_varint(0);
-
         let num_sections = 26;
 
-        // Manually encode BitSets - much faster than using the BitSet struct
-        // Sky light mask: all 26 bits set (0x3FFFFFF fits in one u64)
-        buffer.write_varint(1)?; // 1 word
+        buffer.write_varint(1)?;
         buffer.write_u64(0x3FFFFFF_u64)?;
 
-        // Block light mask: same
         buffer.write_varint(0)?;
 
-        // Empty masks: both empty
-        buffer.write_varint(0)?; // 0 words for empty sky
-        buffer.write_varint(1)?; // 0 words for empty block
+        buffer.write_varint(0)?;
+        buffer.write_varint(1)?;
         buffer.write_u64(0x3FFFFFF_u64)?;
 
-        // Rest of your light data code...
         let light_array = vec![0xFF; 2048];
         buffer.write_varint(num_sections as i32)?;
         for _ in 0..num_sections {
@@ -130,7 +133,7 @@ impl Into<ChunkDataAndUpdateLightPacket> for &cerium_world::chunk::Chunk {
         let data = ChunkData {
             heightmaps: vec![],
             data: data.to_vec(),
-            block_entities: vec![],
+            block_entities: self.block_entities.clone(),
         };
 
         let light = LightData {};

@@ -4,6 +4,7 @@ use indexmap::IndexMap;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
+mod block;
 mod material;
 
 fn main() {
@@ -60,6 +61,7 @@ fn main() {
         include_str!("../data/wolf_variant.json"),
     );
 
+    block::generate();
     material::generate();
 }
 

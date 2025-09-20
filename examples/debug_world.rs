@@ -4,6 +4,7 @@ use cerium::Server;
 use cerium::registry::DimensionType;
 use cerium::util::Position;
 use cerium::world::World;
+use cerium_registry::generated::block::Block;
 
 #[tokio::main]
 async fn main() {
@@ -14,7 +15,8 @@ async fn main() {
     let mut idx = 0;
     'outer: for bz in 1..169 {
         for bx in 1..169 {
-            world.set_block((bz * 2) - 1, 70, (bx * 2) - 1, idx).await;
+            let block = Block::from_state(idx).unwrap();
+            world.set_block((bz * 2) - 1, 70, (bx * 2) - 1, block).await;
             idx += 1;
             if idx >= 27946 {
                 break 'outer;

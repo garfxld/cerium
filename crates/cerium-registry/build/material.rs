@@ -26,9 +26,9 @@ pub fn generate() {
 
     let enum_variants: TokenStream = variants
         .iter()
-        .map(|(index, ident, _)| {
+        .map(|(_, ident, _)| {
             quote! {
-                #ident = #index,
+                #ident,
             }
         })
         .collect();
@@ -36,6 +36,7 @@ pub fn generate() {
     let from_id_arms: TokenStream = variants
         .iter()
         .map(|(index, ident, _)| {
+            let index: TokenStream = index.to_string().parse().unwrap();
             quote! {
                 #index => Some(Material::#ident),
             }

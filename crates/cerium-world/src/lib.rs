@@ -7,7 +7,9 @@ pub mod palette;
 
 use std::{collections::HashMap, sync::Arc};
 
-use cerium_registry::{DimensionType, REGISTRIES, RegistryKey};
+use cerium_registry::{
+    DimensionType, REGISTRIES, RegistryKey, block::BlockState, generated::block::Block,
+};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::chunk::Chunk;
@@ -46,7 +48,7 @@ impl World {
         chunk
     }
 
-    pub async fn get_block(&self, x: i32, y: i32, z: i32) -> u16 {
+    pub async fn get_block(&self, x: i32, y: i32, z: i32) -> &BlockState {
         let cx = x / 16;
         let cz = z / 16;
 
@@ -54,10 +56,13 @@ impl World {
             panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        chunk.lock().await.get_block(x, y, z)
+        Block::from_state(chunk.lock().await.get_block(x, y, z) as i32).unwrap()
     }
 
-    pub async fn set_block(&self, x: i32, y: i32, z: i32, block: i32) {
+    pub async fn set_block<B>(&self, x: i32, y: i32, z: i32, block: B)
+    where
+        B: AsRef<BlockState>,
+    {
         let cx = x / 16;
         let cz = z / 16;
 
@@ -65,7 +70,7 @@ impl World {
             Some(chunk) => chunk,
             None => self.load_chunk(cx, cz).await,
         };
-        chunk.lock().await.set_block(x, y, z, block);
+        chunk.lock().await.set_block(x, y, z, block.as_ref());
     }
 
     pub async fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
@@ -93,6 +98,8 @@ impl World {
 
 #[cfg(test)]
 mod tests {
+    use cerium_registry::generated::block::Block;
+
     use super::*;
 
     #[tokio::test]
@@ -100,7 +107,7 @@ mod tests {
         let world = World::new(&DimensionType::OVERWORLD);
 
         world.load_chunk(0, 0).await;
-        world.set_block(0, 0, 0, 22).await;
-        assert_eq!(world.get_block(0, 0, 0).await, 22);
+        world.set_block(0, 0, 0, Block::MangrovePlanks).await;
+        assert_eq!(world.get_block(0, 0, 0).await.state_id(), 22);
     }
 }

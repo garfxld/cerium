@@ -10,4 +10,5 @@ mod pig_variants;
 mod wolf_sound_variants;
 mod wolf_variants;
 
+pub mod block;
 pub mod material;

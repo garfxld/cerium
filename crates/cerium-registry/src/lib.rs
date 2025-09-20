@@ -10,6 +10,8 @@ use std::{
 use cerium_util::identifier::Identifier;
 use indexmap::{IndexMap, map::Iter};
 
+pub mod block;
+
 mod biome;
 mod cat_variant;
 mod chicken_variant;
@@ -37,7 +39,7 @@ use serde::de::DeserializeOwned;
 pub use wolf_sound_variant::*;
 pub use wolf_variant::*;
 
-mod generated;
+pub mod generated;
 pub use generated::*;
 
 #[derive(Debug)]

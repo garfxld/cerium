@@ -270,6 +270,7 @@ dependencies = [
  "cerium-registry",
  "cerium-util",
  "futures",
+ "simdnbt",
  "tokio",
 ]
 
