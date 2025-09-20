@@ -19,13 +19,13 @@ pub struct World {
 
 #[allow(unused)]
 impl World {
-    pub fn new(dimension: &RegistryKey<DimensionType>) -> Self {
+    pub fn new(dimension: &RegistryKey<DimensionType>) -> Arc<Self> {
         let dimension_type = REGISTRIES.dimension_type.get(dimension).unwrap().clone();
 
-        Self {
+        Arc::new(Self {
             dimension_type,
             chunks: RwLock::new(HashMap::new()),
-        }
+        })
     }
 
     pub async fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Arc<Mutex<Chunk>>> {

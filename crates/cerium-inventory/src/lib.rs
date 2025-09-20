@@ -1,5 +1,3 @@
-#![feature(const_type_id)]
-
 use std::{any::Any, sync::Arc};
 
 use rustc_hash::FxHashMap;

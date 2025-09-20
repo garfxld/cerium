@@ -18,13 +18,14 @@ pub struct KeyStore {
 
 impl KeyStore {
     pub fn new() -> Self {
-        use rsa::{traits::PublicKeyParts as _, RsaPrivateKey};
+        use rsa::{RsaPrivateKey, traits::PublicKeyParts as _};
 
-        let private_key = RsaPrivateKey::new(&mut rand::rng(), 1024).unwrap();
+        let mut rand = rand::thread_rng();
+        let private_key = RsaPrivateKey::new(&mut rand, 1024).unwrap();
 
         let public_key_der = rsa_der::public_key_to_der(
-            &private_key.n().to_be_bytes(),
-            &private_key.e().to_be_bytes(),
+            &private_key.n().to_bytes_be(),
+            &private_key.e().to_bytes_be(),
         )
         .into_boxed_slice();
 

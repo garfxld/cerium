@@ -77,7 +77,7 @@ struct AdditionsSound {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
-struct Music {
+struct _Music {
     sound: String,
     min_delay: i32,
     max_delay: i32,

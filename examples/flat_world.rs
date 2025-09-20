@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use cerium::event::player::{PlayerConfigEvent, PlayerEvent as _};
 
 use cerium::Server;
@@ -11,7 +9,7 @@ use cerium::world::World;
 async fn main() {
     let server = Server::new();
 
-    let world = Arc::new(World::new(&DimensionType::OVERWORLD));
+    let world = World::new(&DimensionType::OVERWORLD);
 
     for bz in 0..16 {
         for bx in 0..16 {
