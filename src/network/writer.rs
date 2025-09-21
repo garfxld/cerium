@@ -1,12 +1,13 @@
 use std::{
     io::Error,
-    pin::{pin, Pin},
+    pin::{Pin, pin},
     task::{Context, Poll},
 };
 
 use aes::cipher::{BlockEncryptMut as _, BlockSizeUser as _, KeyIvInit as _};
-use async_compression::{tokio::write::ZlibEncoder, Level};
+use async_compression::{Level, tokio::write::ZlibEncoder};
 
+use cerium_protocol::encode::EncodeError;
 use tokio::io::{AsyncWrite, AsyncWriteExt, BufWriter};
 
 use crate::network::auth::Encryptor;
@@ -43,13 +44,14 @@ where
         self.threshold = threshold;
     }
 
-    async fn write_varint(&mut self, value: i32) -> Result<(), std::io::Error> {
+    async fn write_varint(&mut self, value: i32) -> Result<(), EncodeError> {
         let mut val = value;
         for _ in 0..5 {
             let b: u8 = val as u8 & 0b01111111;
             val >>= 7;
             self.write_u8(if val == 0 { b } else { b | 0b10000000 })
-                .await?;
+                .await
+                .map_err(|_| EncodeError)?;
             if val == 0 {
                 break;
             }
@@ -65,7 +67,7 @@ where
         }
     }
 
-    pub async fn write_packet(&mut self, packet: &[u8]) {
+    pub async fn write_packet(&mut self, packet: &[u8]) -> Result<(), EncodeError> {
         let compressed = self.threshold != -1;
 
         let mut data = packet;
@@ -74,8 +76,8 @@ where
         if !compressed {
             // WITHOUT compression
 
-            self.write_varint(data_len).await.unwrap();
-            self.write_all(&mut data).await.unwrap();
+            self.write_varint(data_len).await?;
+            self.write_all(&mut data).await.map_err(|_| EncodeError)?;
         } else {
             // WITH compression
 
@@ -85,32 +87,30 @@ where
                 let mut compressed = Vec::new();
 
                 let mut deflator = ZlibEncoder::with_quality(&mut compressed, Level::Default);
-                deflator.write_all(&data).await.unwrap();
-                deflator.flush().await.unwrap();
+                deflator.write_all(&data).await.map_err(|_| EncodeError)?;
+                deflator.flush().await.map_err(|_| EncodeError)?;
 
                 // len of data_len + compressed_len
                 self.write_varint(Self::varint_size(data_len) + compressed.len() as i32)
-                    .await
-                    .unwrap();
+                    .await?;
 
                 // data_len
-                self.write_varint(data_len).await.unwrap();
-
-                self.write_all(&compressed).await.unwrap();
+                self.write_varint(data_len).await?;
+                self.write_all(&compressed).await.map_err(|_| EncodeError)?;
             } else {
                 // size < threshold
 
                 // len of data_len + data_len (because uncompressed)
-                self.write_varint(1 + data_len).await.unwrap();
+                self.write_varint(1 + data_len).await?;
 
                 // data_len (0 to indicate uncompressed)
-                self.write_varint(0).await.unwrap();
+                self.write_varint(0).await?;
 
-                self.write_all(&data).await.unwrap();
+                self.write_all(&data).await.map_err(|_| EncodeError)?;
             }
         }
 
-        self.flush().await.unwrap();
+        self.flush().await.map_err(|_| EncodeError)
     }
 }
 

@@ -3,35 +3,31 @@ use crate::network::{
     client::ClientConnection,
 };
 use cerium_protocol::{
+    ProtocolState,
     buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
         EncryptionRequestPacket, EncryptionResponsePacket, LoginAcknowledgePacket,
         LoginStartPacket, LoginSuccessPacket, SetCompressionPacket,
     },
-    ProtocolState,
 };
 use cerium_util::auth::GameProfile;
 use std::sync::Arc;
 
-pub async fn handle_packet(
-    client: Arc<ClientConnection>,
-    id: i32,
-    data: &mut ByteBuffer,
-) -> Result<(), DecodeError> {
+#[rustfmt::skip]
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_login_start(client, LoginStartPacket::decode(data)?).await,
         0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data)?).await,
         0x02 => handle_plugin_response(client).await,
         0x03 => handle_login_acknowledged(client, LoginAcknowledgePacket::decode(data)?).await,
         0x04 => handle_cookie_response(client).await,
-        _ => panic!("Unknown packet! ({})", id),
+        _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
 async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPacket) {
-    log::trace!("{:?}", &packet);
     *client.game_profile.lock().await = Some(GameProfile {
         uuid: packet.uuid,
         name: packet.name,
@@ -77,7 +73,6 @@ async fn handle_encryption_response(
     client: Arc<ClientConnection>,
     packet: EncryptionResponsePacket,
 ) {
-    log::trace!("{:?}", &packet);
     let shared_secret = client.key_store.decrypt(&packet.shared_secret).unwrap();
 
     // enable encryption
@@ -97,15 +92,15 @@ async fn handle_encryption_response(
         .await;
 }
 
-async fn handle_plugin_response(_client: Arc<ClientConnection>) {
-    todo!()
+async fn handle_plugin_response(client: Arc<ClientConnection>) {
+    let _ = client;
 }
 
 async fn handle_login_acknowledged(client: Arc<ClientConnection>, packet: LoginAcknowledgePacket) {
-    log::trace!("{:?}", &packet);
+    let _ = packet;
     *client.state.lock().await = ProtocolState::Config;
 }
 
-async fn handle_cookie_response(_client: Arc<ClientConnection>) {
-    todo!()
+async fn handle_cookie_response(client: Arc<ClientConnection>) {
+    let _ = client;
 }

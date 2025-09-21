@@ -6,21 +6,17 @@ use cerium_protocol::{
 };
 use std::sync::Arc;
 
-pub async fn handle_packet(
-    client: Arc<ClientConnection>,
-    id: i32,
-    data: &mut ByteBuffer,
-) -> Result<(), DecodeError> {
+#[rustfmt::skip]
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?).await,
         0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?).await,
-        _ => panic!("Unknown packet! ({})", id),
+        _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
 async fn handle_status_request(client: Arc<ClientConnection>, packet: StatusRequestPacket) {
-    log::trace!("{:?}", &packet);
     let _ = packet;
 
     let mut event = ServerListPingEvent::new(SERVER_LIST_PING.to_owned());
@@ -34,15 +30,10 @@ async fn handle_status_request(client: Arc<ClientConnection>, packet: StatusRequ
 }
 
 async fn handle_ping_request(client: Arc<ClientConnection>, packet: PingRequestPacket) {
-    log::trace!("{:?}", &packet);
-    client
-        .send_packet(
-            0x01,
-            PongResponsePacket {
-                timestamp: packet.timestamp,
-            },
-        )
-        .await;
+    let packet = PongResponsePacket {
+        timestamp: packet.timestamp,
+    };
+    client.send_packet(0x01, packet).await;
 }
 
 const SERVER_LIST_PING: &'static str = r#"

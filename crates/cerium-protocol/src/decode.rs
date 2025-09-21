@@ -1,7 +1,14 @@
+use thiserror::Error;
+
 use crate::buffer::ByteBuffer;
 
-#[derive(Debug, Clone)]
-pub struct DecodeError;
+#[derive(Debug, Clone, Error)]
+pub enum DecodeError {
+    #[error("{0}")]
+    Decode(String),
+    #[error("Unknown Packet: {0}")]
+    UnkownPacket(i32),
+}
 
 pub trait Decode
 where

@@ -1,7 +1,7 @@
 use bytes::buf;
 use cerium_protocol_macros::packet;
 use cerium_registry::generated::block::Block;
-use cerium_world::{chunk::BlockEntity, heightmap::Heightmap, light::LightData};
+use cerium_world::{chunk::BlockEntity, heightmap::Heightmap};
 
 use crate::{
     buffer::ByteBuffer,
@@ -35,37 +35,14 @@ pub struct ChunkData {
     pub block_entities: Vec<BlockEntity>,
 }
 
+#[derive(Debug, Clone)]
+pub struct LightData {}
+
 impl Encode for ChunkData {
     fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_array(this.heightmaps, |buffer, value| {
-            Heightmap::encode(buffer, value)
-        })?;
-        buffer.write_array(this.data, |buffer, value| buffer.write_u8(value))?;
-
-        buffer.write_array(this.block_entities, |buffer, value| {
-            BlockEntity::encode(buffer, value)
-        });
-        Ok(())
-    }
-}
-
-impl Encode for BlockEntity {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_u8(this.packed_xz);
-        buffer.write_i16(this.y);
-        buffer.write_varint(this.r#type);
-
-        let mut data: Vec<u8> = Vec::new();
-        this.data.write_unnamed(&mut data);
-        buffer.put(&*data);
-        Ok(())
-    }
-}
-
-impl Encode for Heightmap {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(this.kind)?;
-        buffer.write_array(this.data, |buffer, value| buffer.write_i64(value))?;
+        buffer.write_array(this.heightmaps, |b, v| Heightmap::encode(b, v))?;
+        buffer.write_array(this.data, |b, v| b.write_u8(v))?;
+        buffer.write_array(this.block_entities, |b, v| BlockEntity::encode(b, v));
         Ok(())
     }
 }
@@ -90,68 +67,6 @@ impl Encode for LightData {
         }
         buffer.write_varint(0)?;
 
-        Ok(())
-    }
-}
-
-impl Encode for cerium_world::palette::Palette {
-    fn encode(buffer: &mut ByteBuffer, mut this: Self) -> Result<(), EncodeError> {
-        this.compute();
-
-        buffer.write_u8(this.bpe)?;
-        cerium_world::palette::PaletteFormat::encode(buffer, this.format)?;
-        for value in this.values {
-            buffer.write_i64(value)?;
-        }
-
-        Ok(())
-    }
-}
-
-impl Encode for cerium_world::palette::PaletteFormat {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        match this {
-            cerium_world::palette::PaletteFormat::SingleValued { value } => {
-                buffer.write_varint(value)?;
-            }
-            cerium_world::palette::PaletteFormat::Indirect { values } => {
-                buffer.write_array(values, |buffer, value| buffer.write_varint(value))?;
-            }
-            cerium_world::palette::PaletteFormat::Direct => {}
-        }
-        Ok(())
-    }
-}
-
-impl Into<ChunkDataAndUpdateLightPacket> for &cerium_world::chunk::Chunk {
-    fn into(self) -> ChunkDataAndUpdateLightPacket {
-        let mut data = ByteBuffer::new();
-        for section in &self.sections {
-            cerium_world::chunk_section::ChunkSection::encode(&mut data, section.clone()).unwrap();
-        }
-
-        let data = ChunkData {
-            heightmaps: vec![],
-            data: data.to_vec(),
-            block_entities: self.block_entities.clone(),
-        };
-
-        let light = LightData {};
-
-        ChunkDataAndUpdateLightPacket {
-            chunk_x: self.chunk_x,
-            chunk_z: self.chunk_z,
-            data,
-            light,
-        }
-    }
-}
-
-impl Encode for cerium_world::chunk_section::ChunkSection {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_i16(this.block_states.count() as i16)?;
-        cerium_world::palette::Palette::encode(buffer, this.block_states)?;
-        cerium_world::palette::Palette::encode(buffer, this.biomes)?;
         Ok(())
     }
 }

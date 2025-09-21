@@ -20,9 +20,6 @@ pub static REGISTRY: LazyLock<(HashMap<i32, BlockState>, Vec<i32>)> = LazyLock::
         to_state.push(block["defaultStateId"].as_i64().unwrap() as i32);
 
         for (_state_key, state) in block["states"].as_object().unwrap() {
-            if id == 8 {
-                println!("{:?}", state);
-            }
             let state_id = state["stateId"].as_i64().unwrap() as usize;
             let state = BlockState {
                 id,

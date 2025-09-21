@@ -5,6 +5,8 @@ pub mod decode;
 pub mod encode;
 pub mod types;
 
+mod chunk;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProtocolState {
     Handshake,
@@ -16,7 +18,6 @@ pub enum ProtocolState {
 }
 
 impl ProtocolState {
-    #[allow(unused)] // todo: remove
     pub fn from_id(id: i32) -> Self {
         match id {
             0 => Self::Handshake,

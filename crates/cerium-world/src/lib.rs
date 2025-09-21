@@ -2,7 +2,6 @@ pub mod chunk;
 pub mod chunk_section;
 
 pub mod heightmap;
-pub mod light;
 pub mod palette;
 
 use std::{collections::HashMap, sync::Arc};

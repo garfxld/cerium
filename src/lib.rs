@@ -104,7 +104,6 @@ impl Server {
                 async move {
                     connection.read_loop().await;
 
-                    // todo: move to connection close
                     connections.lock().await.remove(&addr);
                     players.lock().await.retain(|p| p.addr() != addr);
                 }

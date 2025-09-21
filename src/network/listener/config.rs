@@ -16,31 +16,25 @@ use cerium_protocol::{
 };
 use cerium_registry::{DimensionType, REGISTRIES};
 
-pub async fn handle_packet(
-    client: Arc<ClientConnection>,
-    id: i32,
-    data: &mut ByteBuffer,
-) -> Result<(), DecodeError> {
+#[rustfmt::skip]
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?).await,
         0x01 => handle_cookie_response(client).await,
         0x02 => handle_plugin_message(client, ClientPluginMessagePacket::decode(data)?).await,
-        0x03 => {
-            handle_acknowledge_finish_config(client, AcknowledgeFinishConfigPacket::decode(data)?)
-                .await
-        }
+        0x03 => handle_acknowledge_finish_config(client, AcknowledgeFinishConfigPacket::decode(data)?).await,
         0x04 => handle_keep_alive(client).await,
         0x05 => handle_pong(client).await,
         0x06 => handle_resource_pack_response(client).await,
         0x07 => handle_client_known_packs(client, ClientKnownPacksPacket::decode(data)?).await,
         0x08 => handle_custom_click_action(client).await,
-        _ => panic!("Unknown packet! ({})", id),
+        _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
 async fn handle_client_info(client: Arc<ClientConnection>, packet: ClientInfoPacket) {
-    log::trace!("{:?}", &packet);
+    let _ = packet;
 
     client
         .send_packet(
@@ -93,11 +87,9 @@ async fn handle_client_info(client: Arc<ClientConnection>, packet: ClientInfoPac
 
 async fn handle_cookie_response(client: Arc<ClientConnection>) {
     let _ = client;
-    todo!()
 }
 
 async fn handle_plugin_message(client: Arc<ClientConnection>, packet: ClientPluginMessagePacket) {
-    log::trace!("{:?}", &packet);
     let _ = client;
     let _ = packet;
 }
@@ -106,7 +98,7 @@ async fn handle_acknowledge_finish_config(
     client: Arc<ClientConnection>,
     packet: AcknowledgeFinishConfigPacket,
 ) {
-    log::trace!("{:?}", &packet);
+    let _ = packet;
     *client.state.lock().await = ProtocolState::Play;
 
     let player = Arc::new(Player::new(client.clone(), client.server.clone()).await);
@@ -233,17 +225,14 @@ async fn handle_acknowledge_finish_config(
 
 async fn handle_keep_alive(client: Arc<ClientConnection>) {
     let _ = client;
-    todo!()
 }
 
 async fn handle_pong(client: Arc<ClientConnection>) {
     let _ = client;
-    todo!()
 }
 
 async fn handle_resource_pack_response(client: Arc<ClientConnection>) {
     let _ = client;
-    todo!()
 }
 
 async fn handle_client_known_packs(client: Arc<ClientConnection>, packet: ClientKnownPacksPacket) {
@@ -253,5 +242,4 @@ async fn handle_client_known_packs(client: Arc<ClientConnection>, packet: Client
 
 async fn handle_custom_click_action(client: Arc<ClientConnection>) {
     let _ = client;
-    todo!()
 }

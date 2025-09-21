@@ -1,19 +1,21 @@
 use crate::{
-    entity::player::Player, network::{auth::KeyStore, reader::StreamReader, writer::StreamWriter}, Server
+    Server,
+    entity::player::Player,
+    network::{auth::KeyStore, reader::StreamReader, writer::StreamWriter},
 };
 
-use cerium_protocol::{buffer::ByteBuffer, encode::Encode, ProtocolState};
+use cerium_protocol::{ProtocolState, buffer::ByteBuffer, encode::Encode};
 use cerium_util::auth::GameProfile;
 use std::{
     net::SocketAddr,
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 use tokio::net::{
-    tcp::{OwnedReadHalf, OwnedWriteHalf},
     TcpStream,
+    tcp::{OwnedReadHalf, OwnedWriteHalf},
 };
 use tokio::sync::Mutex;
 
@@ -56,7 +58,7 @@ impl ClientConnection {
 
     pub async fn read_loop(self: Arc<Self>) {
         let this = self.clone();
-        while !this.closed.load(Ordering::Relaxed) {
+        while !this.closed() {
             let this = this.clone();
 
             let packet = {
@@ -94,6 +96,17 @@ impl ClientConnection {
         data.write_varint(packet_id).unwrap();
         P::encode(&mut data, packet).unwrap();
 
-        self.swriter.lock().await.write_packet(&data.to_vec()).await;
+        let mut swriter = self.swriter.lock().await;
+        if let Err(_) = swriter.write_packet(&data.to_vec()).await {
+            self.close();
+        };
+    }
+
+    pub fn closed(&self) -> bool {
+        self.closed.load(Ordering::Relaxed)
+    }
+
+    pub fn close(&self) {
+        self.closed.store(true, Ordering::Relaxed);
     }
 }

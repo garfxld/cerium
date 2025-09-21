@@ -17,3 +17,4 @@ simdnbt = { workspace = true }
 bitflags = { workspace = true }
 serde = { workspace = true }
 rustc-hash = { workspace = true }
+thiserror = { workspace = true }

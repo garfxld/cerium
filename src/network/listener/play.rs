@@ -20,15 +20,10 @@ use cerium_world::chunk::Chunk;
 
 use crate::entity::player::Player;
 
-pub async fn handle_packet(
-    player: Arc<Player>,
-    id: i32,
-    data: &mut ByteBuffer,
-) -> Result<(), DecodeError> {
+#[rustfmt::skip]
+pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
     match id {
-        0x00 => {
-            handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await
-        }
+        0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await,
         0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?).await,
         0x09 => handle_player_session(player, PlayerSessionPacket::decode(data)?).await,
         0x0A => handle_chunk_batch_received(player, ChunkBatchReceivedPacket::decode(data)?).await,
@@ -39,17 +34,9 @@ pub async fn handle_packet(
         0x15 => handle_plugin_message(player, ClientPluginMessagePacket::decode(data)?).await,
         0x1B => handle_keep_alive(player, KeepAlivePacket::decode(data)?).await,
         0x1D => handle_player_position(player, PlayerPositionPacket::decode(data)?).await,
-        0x1E => {
-            handle_player_position_and_rotation(
-                player,
-                PlayerPositionAndRotationPacket::decode(data)?,
-            )
-            .await
-        }
+        0x1E => handle_player_position_and_rotation(player, PlayerPositionAndRotationPacket::decode(data)?).await,
         0x1F => handle_player_rotation(player, PlayerRotationPacket::decode(data)?).await,
-        0x20 => {
-            handle_player_movement_flags(player, PlayerMovementFlagsPacket::decode(data)?).await
-        }
+        0x20 => handle_player_movement_flags(player, PlayerMovementFlagsPacket::decode(data)?).await,
         0x23 => handle_pick_item_from_block(player, PickItemFromBlockPacket::decode(data)?).await,
         0x27 => handle_player_abilities(player, PlayerAbilitiesPacket::decode(data)?).await,
         0x28 => handle_player_action(player, PlayerActionPacket::decode(data)?).await,
@@ -57,12 +44,10 @@ pub async fn handle_packet(
         0x2A => handle_player_input(player, PlayerInputPacket::decode(data)?).await,
         0x2B => handle_player_loaded(player, PlayerLoadedPacket::decode(data)?).await,
         0x34 => handle_set_held_item(player, SetHeldItemPacket::decode(data)?).await,
-        0x37 => {
-            handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?).await
-        }
+        0x37 => handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?).await,
         0x3C => handle_swing_arm(player, SwingArmPacket::decode(data)?).await,
         0x3F => handle_use_item_on(player, UseItemOnPacket::decode(data)?).await,
-        _ => panic!("Unknown packet! ({})", id),
+        _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
@@ -98,14 +83,13 @@ async fn handle_client_tick_end(player: Arc<Player>, packet: ClientTickEndPacket
 }
 
 async fn handle_client_info(player: Arc<Player>, packet: ClientInfoPacket) {
-    log::debug!("{:?}", packet);
     let _ = player;
     let _ = packet;
 }
 
 async fn handle_click_container(player: Arc<Player>, packet: ClickContainerPacket) {
-    println!("{packet:?}");
     let _ = player;
+    let _ = packet;
 }
 
 async fn handle_close_container(player: Arc<Player>, packet: CloseContainerPacket) {
@@ -258,17 +242,11 @@ async fn handle_set_held_item(player: Arc<Player>, packet: SetHeldItemPacket) {
 }
 
 async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeModeSlotPacket) {
-    println!("{packet:?}");
-
     let inventory = player.inventory();
 
     let item_stack = ItemStack::from(packet.clicked_item);
-    println!("{:?}", item_stack);
+
     inventory.set_item_stack(packet.slot as i32, item_stack);
-
-
-    let _ = player;
-    let _ = packet;
 }
 
 async fn handle_swing_arm(player: Arc<Player>, packet: SwingArmPacket) {

@@ -93,7 +93,7 @@ impl ByteBuffer {
         let length = self.read_varint()? as usize;
         let bytes = self.split_to(length);
 
-        String::from_utf8(bytes.to_vec()).map_err(|_| DecodeError)
+        String::from_utf8(bytes.to_vec()).map_err(|e| DecodeError::Decode(e.to_string()))
     }
 
     pub fn read_uuid(&mut self) -> Result<Uuid, DecodeError> {
@@ -109,7 +109,7 @@ impl ByteBuffer {
                 return Ok(value);
             }
         }
-        return Err(DecodeError); // VarInt is too large.
+        return Err(DecodeError::Decode("VarInt too large".to_string())); // VarInt is too large.
     }
 
     pub fn read_list<T, F>(&mut self, mut read: F) -> Result<Vec<T>, DecodeError>
@@ -129,7 +129,7 @@ impl ByteBuffer {
 
         match identifier.split_once(":") {
             Some((namespace, path)) => Ok(Identifier::new(namespace, path)),
-            None => Err(DecodeError),
+            None => Err(DecodeError::Decode("Identifier read".to_string())),
         }
     }
 

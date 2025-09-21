@@ -193,6 +193,7 @@ dependencies = [
  "futures",
  "log",
  "num-bigint",
+ "paste",
  "rand",
  "rsa",
  "rsa-der",
@@ -229,6 +230,7 @@ dependencies = [
  "rustc-hash",
  "serde",
  "simdnbt",
+ "thiserror",
  "uuid",
 ]
 
