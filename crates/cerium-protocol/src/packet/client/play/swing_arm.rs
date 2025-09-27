@@ -9,9 +9,9 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("swing")]
+#[packet("swing", 0x3C)]
 pub struct SwingArmPacket {
-    pub hand: i32, // VarInt Enum (Hand)
+    pub hand: i32,
 }
 
 impl ClientPacket for SwingArmPacket {}

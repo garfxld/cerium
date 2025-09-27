@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("chunk_batch_start")]
+#[packet("chunk_batch_start", 0x0C)]
 pub struct ChunkBatchStartPacket {
     // Empty
 }

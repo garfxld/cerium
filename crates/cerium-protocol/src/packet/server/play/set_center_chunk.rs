@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("set_chunk_cache_center")]
+#[packet("set_chunk_cache_center", 0x57)]
 pub struct SetCenterChunkPacket {
     pub chunk_x: i32,
     pub chunk_z: i32,

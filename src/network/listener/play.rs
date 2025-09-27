@@ -6,10 +6,10 @@ use cerium_protocol::{
     decode::{Decode as _, DecodeError},
     packet::{
         ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
-        ClientPluginMessagePacket, ClientTickEndPacket, CloseContainerPacket,
-        ConfirmTeleportationPacket, EntityPositionPacket, EntityPositionRotationPacket,
-        KeepAlivePacket, PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket,
-        PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
+        ClientTickEndPacket, CloseContainerPacket, ConfirmTeleportationPacket,
+        EntityPositionPacket, EntityPositionRotationPacket, KeepAlivePacket,
+        PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket, PlayerCommandPacket,
+        PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
         PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
         PlayerSessionPacket, SetCenterChunkPacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
         SwingArmPacket, UseItemOnPacket,
@@ -31,7 +31,7 @@ pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Bytes) -> Re
         0x0D => handle_client_info(player, ClientInfoPacket::decode(data)?).await,
         0x11 => handle_click_container(player, ClickContainerPacket::decode(data)?).await,
         0x12 => handle_close_container(player, CloseContainerPacket::decode(data)?).await,
-        0x15 => handle_plugin_message(player, ClientPluginMessagePacket::decode(data)?).await,
+        // 0x15 => handle_plugin_message(player, PluginMessagePacket::decode(data)?).await,
         0x1B => handle_keep_alive(player, KeepAlivePacket::decode(data)?).await,
         0x1D => handle_player_position(player, PlayerPositionPacket::decode(data)?).await,
         0x1E => handle_player_position_and_rotation(player, PlayerPositionAndRotationPacket::decode(data)?).await,
@@ -97,10 +97,10 @@ async fn handle_close_container(player: Arc<Player>, packet: CloseContainerPacke
     let _ = packet;
 }
 
-async fn handle_plugin_message(player: Arc<Player>, packet: ClientPluginMessagePacket) {
-    let _ = player;
-    let _ = packet;
-}
+// async fn handle_plugin_message(player: Arc<Player>, packet: PluginMessagePacket) {
+//     let _ = player;
+//     let _ = packet;
+// }
 
 async fn handle_keep_alive(player: Arc<Player>, packet: KeepAlivePacket) {
     let _ = player;
@@ -123,13 +123,10 @@ async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacke
     player.set_position(new_position);
     if old_chunk != new_chunk {
         player
-            .send_packet(
-                0x57,
-                SetCenterChunkPacket {
-                    chunk_x: new_chunk.0,
-                    chunk_z: new_chunk.1,
-                },
-            )
+            .send_packet(SetCenterChunkPacket {
+                chunk_x: new_chunk.0,
+                chunk_z: new_chunk.1,
+            })
             .await;
         player.update_chunks(new_chunk, old_chunk).await;
     }
@@ -139,16 +136,13 @@ async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacke
     let delta_z = new_position.z() * 4096. - old_position.z() * 4096.;
 
     player
-        .send_packet(
-            0x2E,
-            EntityPositionPacket {
-                entitiy_id: 0,
-                delta_x: delta_x as i16,
-                delta_y: delta_y as i16,
-                delta_z: delta_z as i16,
-                on_ground: false,
-            },
-        )
+        .send_packet(EntityPositionPacket {
+            entitiy_id: 0,
+            delta_x: delta_x as i16,
+            delta_y: delta_y as i16,
+            delta_z: delta_z as i16,
+            on_ground: false,
+        })
         .await;
 }
 
@@ -165,13 +159,10 @@ async fn handle_player_position_and_rotation(
     player.set_position(new_position);
     if old_chunk != new_chunk {
         player
-            .send_packet(
-                0x57,
-                SetCenterChunkPacket {
-                    chunk_x: new_chunk.0,
-                    chunk_z: new_chunk.1,
-                },
-            )
+            .send_packet(SetCenterChunkPacket {
+                chunk_x: new_chunk.0,
+                chunk_z: new_chunk.1,
+            })
             .await;
         player.update_chunks(new_chunk, old_chunk).await;
     }
@@ -181,18 +172,15 @@ async fn handle_player_position_and_rotation(
     let delta_z = new_position.z().mul_add(4096., -(old_position.z() * 4096.)) as i16;
 
     player
-        .send_packet(
-            0x2F,
-            EntityPositionRotationPacket {
-                entitiy_id: 0,
-                delta_x: delta_x as i16,
-                delta_y: delta_y as i16,
-                delta_z: delta_z as i16,
-                yaw: (packet.yaw * 256. / 360.) as u8,
-                pitch: (packet.pitch * 256. / 360.) as u8,
-                on_ground: false,
-            },
-        )
+        .send_packet(EntityPositionRotationPacket {
+            entitiy_id: 0,
+            delta_x: delta_x as i16,
+            delta_y: delta_y as i16,
+            delta_z: delta_z as i16,
+            yaw: (packet.yaw * 256. / 360.) as u8,
+            pitch: (packet.pitch * 256. / 360.) as u8,
+            on_ground: false,
+        })
         .await;
 }
 

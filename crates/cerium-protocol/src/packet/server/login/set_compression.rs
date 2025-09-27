@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("login_compression")]
+#[packet("login_compression", 0x03)]
 pub struct SetCompressionPacket {
     pub threshold: i32,
 }

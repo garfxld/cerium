@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("move_entity_pos")]
+#[packet("move_entity_pos", 0x2E)]
 pub struct EntityPositionPacket {
     pub entitiy_id: i32,
     pub delta_x: i16,

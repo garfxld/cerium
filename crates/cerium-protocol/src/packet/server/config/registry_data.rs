@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("registry_data")]
+#[packet("registry_data", 0x07)]
 pub struct RegistryDataPacket {
     pub registry_id: Identifier,
     pub entries: Vec<RegistryEntry>,

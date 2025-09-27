@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("chat_session_update")]
+#[packet("chat_session_update", 0x09)]
 pub struct PlayerSessionPacket {
     pub session_id: Uuid,
     pub expires_at: i64,

@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("select_known_packs")]
+#[packet("select_known_packs", 0x07)]
 pub struct KnownPacksPacket {
     pub known_packs: Vec<KnownPacks>,
 }

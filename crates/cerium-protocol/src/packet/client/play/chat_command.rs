@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("chat_command")]
+#[packet("chat_command", 0x06)]
 pub struct ChatCommandPacket {
     pub command: String,
 }

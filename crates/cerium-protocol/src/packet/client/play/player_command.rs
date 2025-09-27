@@ -9,10 +9,10 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_command")]
+#[packet("player_command", 0x29)]
 pub struct PlayerCommandPacket {
     pub entity_id: i32,
-    pub action_id: i32, // todo: VarInt Enum
+    pub action_id: i32,
     pub jump_boost: i32,
 }
 

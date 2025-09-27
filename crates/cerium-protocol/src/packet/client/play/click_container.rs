@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("container_click")]
+#[packet("container_click", 0x11)]
 pub struct ClickContainerPacket {
     pub window_id: i32,
     pub state_id: i32,

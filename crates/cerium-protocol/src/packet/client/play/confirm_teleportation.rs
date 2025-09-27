@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("accept_teleportation")]
+#[packet("accept_teleportation", 0x00)]
 pub struct ConfirmTeleportationPacket {
     teleport_id: i32,
 }

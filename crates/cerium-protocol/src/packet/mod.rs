@@ -31,10 +31,12 @@ pub mod client {
         mod client_info;
         mod known_packs;
         mod acknowledge_finish_config;
+        mod plugin_message;
 
         pub use client_info::ClientInfoPacket;
         pub use known_packs::KnownPacksPacket;
         pub use acknowledge_finish_config::AcknowledgeFinishConfigPacket;
+        pub use plugin_message::PluginMessagePacket;
     }
 
     pub mod play {
@@ -82,19 +84,12 @@ pub mod client {
         pub use chunk_batch_received::ChunkBatchReceivedPacket;
         pub use set_creative_mode_slot::SetCreativeModeSlotPacket;
     }
-
-    pub mod common {
-        mod client_plugin_message;
-
-        pub use client_plugin_message::ClientPluginMessagePacket;
-    }
  
     pub use handshake::*;
     pub use status::*;
     pub use login::*;
     pub use config::*;
     pub use play::*;
-    pub use common::*;
 }
 
 pub mod server {
@@ -159,14 +154,11 @@ pub mod server {
         pub use entity_position_rotation::EntityPositionRotationPacket;
     }
 
-    pub mod common {}
-
     pub use handshake::*;
     pub use status::*;
     pub use login::*;
     pub use config::*;
     pub use play::*;
-    pub use common::*;
 }
 
 use std::fmt::Debug;
@@ -181,6 +173,7 @@ use crate::{decode::Decode, encode::Encode};
 
 
 pub trait Packet where Self: Debug + Clone + Decode + Encode {
+    const ID: i32;
 }
 
 pub trait ClientPacket where Self: Packet {

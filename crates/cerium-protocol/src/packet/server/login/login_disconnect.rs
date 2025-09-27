@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("login_disconnect")]
+#[packet("login_disconnect", 0x00)]
 pub struct LoginDisconnectPacket {
     pub reason: String,
 }

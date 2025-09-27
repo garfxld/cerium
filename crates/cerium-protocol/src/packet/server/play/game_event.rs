@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("game_event")]
+#[packet("game_event", 0x22)]
 pub struct GameEventPacket {
     pub event: u8,
     pub value: f32,

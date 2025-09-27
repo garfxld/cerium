@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("ping_request")]
+#[packet("ping_request", 0x01)]
 pub struct PingRequestPacket {
     pub timestamp: i64,
 }

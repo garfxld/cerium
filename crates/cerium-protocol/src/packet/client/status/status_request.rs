@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("status_request")]
+#[packet("status_request", 0x00)]
 pub struct StatusRequestPacket {
     // Empty
 }

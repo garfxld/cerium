@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("move_player_pos")]
+#[packet("move_player_pos", 0x1D)]
 pub struct PlayerPositionPacket {
     pub x: f64,
     pub feet_y: f64,

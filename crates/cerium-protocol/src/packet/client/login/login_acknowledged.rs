@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("login_acknowledged")]
+#[packet("login_acknowledged", 0x03)]
 pub struct LoginAcknowledgePacket {
     // Empty
 }

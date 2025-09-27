@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("use_item_on")]
+#[packet("use_item_on", 0x3F)]
 pub struct UseItemOnPacket {
     pub hand: i32, // VarInt Enum (Hand)
     pub position: i64,

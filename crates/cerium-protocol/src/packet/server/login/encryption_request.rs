@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("hello")]
+#[packet("hello", 0x01)]
 pub struct EncryptionRequestPacket {
     pub server_id: String,
     pub public_key: Box<[u8]>,

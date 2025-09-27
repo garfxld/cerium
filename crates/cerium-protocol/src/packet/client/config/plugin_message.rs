@@ -10,24 +10,25 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("custom_payload")]
-pub struct ClientPluginMessagePacket {
+#[packet("custom_payload", 0x02)]
+pub struct PluginMessagePacket {
     pub identifier: Identifier,
     pub data: Vec<u8>,
 }
 
-impl ClientPacket for ClientPluginMessagePacket {}
+impl ClientPacket for PluginMessagePacket {}
 
-impl Decode for ClientPluginMessagePacket {
+impl Decode for PluginMessagePacket {
+    #[rustfmt::skip]
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
             identifier: r.read_identifier()?,
-            data: r.read_array(|r| r.read_u8())?,
+            data:       r.read_array(|r| r.read_u8())?,
         })
     }
 }
 
-impl Encode for ClientPluginMessagePacket {
+impl Encode for PluginMessagePacket {
     fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
         w.write_identifier(this.identifier)?;
         w.write_array(this.data, |w, v| w.write_u8(v))?;

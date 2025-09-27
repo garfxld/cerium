@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("client_tick_end")]
+#[packet("client_tick_end", 0x0C)]
 pub struct ClientTickEndPacket {
     // Empty
 }

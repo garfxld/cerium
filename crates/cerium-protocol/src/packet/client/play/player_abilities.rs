@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_abilities")]
+#[packet("player_abilities", 0x27)]
 pub struct PlayerAbilitiesPacket {
     pub flags: i8,
 }

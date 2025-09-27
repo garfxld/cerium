@@ -10,7 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("hello")]
+#[packet("hello", 0x00)]
 pub struct LoginStartPacket {
     pub name: String,
     pub uuid: Uuid,

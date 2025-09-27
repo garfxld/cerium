@@ -5,7 +5,7 @@ use crate::{
 };
 
 use bytes::{BufMut, Bytes, BytesMut};
-use cerium_protocol::{ProtocolState, encode::Encode, write::PacketWrite};
+use cerium_protocol::{ProtocolState, packet::Packet, write::PacketWrite};
 use cerium_util::auth::GameProfile;
 use std::{
     net::SocketAddr,
@@ -74,7 +74,10 @@ impl ClientConnection {
             data.put_slice(&packet.data());
             let mut data = Bytes::from(data);
 
-            this.handle_packet(packet.id(), &mut data).await.unwrap();
+            if let Err(e) = this.handle_packet(packet.id(), &mut data).await {
+                log::error!("{}", e);
+                break;
+            };
         }
     }
 
@@ -90,12 +93,12 @@ impl ClientConnection {
         self.swriter.lock().await.set_compression(threshold);
     }
 
-    pub async fn send_packet<P>(&self, packet_id: i32, packet: P)
+    pub async fn send_packet<P>(&self, packet: P)
     where
-        P: Encode,
+        P: Packet,
     {
         let mut data = BytesMut::new();
-        data.write_varint(packet_id).unwrap();
+        data.write_varint(P::ID).unwrap();
         P::encode(&mut data, packet).unwrap();
 
         let mut swriter = self.swriter.lock().await;

@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_loaded")]
+#[packet("player_loaded", 0x2B)]
 pub struct PlayerLoadedPacket {
     // Empty
 }

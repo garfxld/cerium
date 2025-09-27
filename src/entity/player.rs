@@ -7,13 +7,10 @@ use std::{
 
 use crate::util::{Position, auth::GameProfile};
 use crate::world::{World, chunk::Chunk};
-use crate::{
-    Server,
-    protocol::{encode::Encode, packet::KeepAlivePacket},
-};
+use crate::{Server, protocol::packet::KeepAlivePacket};
 use cerium_inventory::inventory::PlayerInventory;
 use cerium_protocol::packet::{
-    ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
+    ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, Packet,
     UnloadChunkPacket,
 };
 
@@ -113,11 +110,11 @@ impl Player {
         &self.inventory
     }
 
-    pub async fn send_packet<P>(&self, packet_id: i32, packet: P)
+    pub async fn send_packet<P>(&self, packet: P)
     where
-        P: Encode,
+        P: Packet,
     {
-        self.connection.send_packet(packet_id, packet).await;
+        self.connection.send_packet(packet).await;
     }
 
     pub(crate) async fn load_chunks(&self) {
@@ -165,13 +162,10 @@ impl Player {
     }
 
     async fn unload_chunk(&self, cx: i32, cz: i32) {
-        self.send_packet::<UnloadChunkPacket>(
-            0x21,
-            UnloadChunkPacket {
-                chunk_x: cx,
-                chunk_z: cz,
-            },
-        )
+        self.send_packet(UnloadChunkPacket {
+            chunk_x: cx,
+            chunk_z: cz,
+        })
         .await;
     }
 
@@ -189,28 +183,22 @@ impl Player {
         if size < 1 {
             return;
         }
-        self.send_packet(0x0C, ChunkBatchStartPacket {}).await;
+        self.send_packet(ChunkBatchStartPacket {}).await;
 
         for chunk in chunks {
-            self.send_packet::<ChunkDataAndUpdateLightPacket>(0x27, (&chunk).into())
+            self.send_packet::<ChunkDataAndUpdateLightPacket>((&chunk).into())
                 .await;
         }
-        self.send_packet(
-            0x0B,
-            ChunkBatchFinishedPacket {
-                batch_size: size as i32,
-            },
-        )
+        self.send_packet(ChunkBatchFinishedPacket {
+            batch_size: size as i32,
+        })
         .await;
     }
 
     async fn keep_alive(&self) {
-        self.send_packet(
-            0x26,
-            KeepAlivePacket {
-                keep_alive_id: std::time::UNIX_EPOCH.elapsed().unwrap().as_millis() as i64,
-            },
-        )
+        self.send_packet(KeepAlivePacket {
+            keep_alive_id: std::time::UNIX_EPOCH.elapsed().unwrap().as_millis() as i64,
+        })
         .await;
     }
 }

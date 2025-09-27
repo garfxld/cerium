@@ -11,7 +11,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_info_update")]
+#[packet("player_info_update", 0x3F)]
 pub struct PlayerInfoUpdatePacket {
     pub actions: u8,
     pub players: Vec<PlayerEntry>,

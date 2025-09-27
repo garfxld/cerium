@@ -17,7 +17,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("set_creative_mode_slot")]
+#[packet("set_creative_mode_slot", 0x37)]
 pub struct SetCreativeModeSlotPacket {
     pub slot: i16,
     pub clicked_item: Slot,

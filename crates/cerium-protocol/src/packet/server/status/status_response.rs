@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("status_response")]
+#[packet("status_response", 0x00)]
 pub struct StatusResponsePacket {
     pub json_response: String,
 }

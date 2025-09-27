@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_input")]
+#[packet("player_input", 0x2A)]
 pub struct PlayerInputPacket {
     pub flags: u8,
 }

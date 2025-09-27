@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("set_carried_item")]
+#[packet("set_carried_item", 0x34)]
 pub struct SetHeldItemPacket {
     pub slot: i16,
 }

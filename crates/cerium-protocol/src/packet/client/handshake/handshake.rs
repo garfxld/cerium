@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("intention")]
+#[packet("intention", 0x00)]
 pub struct HandshakePacket {
     pub protocol_version: i32,
     pub server_address: String,

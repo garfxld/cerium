@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("pong_response")]
+#[packet("pong_response", 0x01)]
 pub struct PongResponsePacket {
     pub timestamp: i64,
 }

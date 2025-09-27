@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("keep_alive")]
+#[packet("keep_alive", 0x36)]
 pub struct KeepAlivePacket {
     pub keep_alive_id: i64,
 }

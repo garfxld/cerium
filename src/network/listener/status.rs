@@ -26,14 +26,14 @@ async fn handle_status_request(client: Arc<ClientConnection>, packet: StatusRequ
         json_response: event.response,
     };
 
-    client.send_packet(0x00, response).await;
+    client.send_packet(response).await;
 }
 
 async fn handle_ping_request(client: Arc<ClientConnection>, packet: PingRequestPacket) {
     let packet = PongResponsePacket {
         timestamp: packet.timestamp,
     };
-    client.send_packet(0x01, packet).await;
+    client.send_packet(packet).await;
 }
 
 const SERVER_LIST_PING: &'static str = r#"

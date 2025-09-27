@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("chunk_batch_finished")]
+#[packet("chunk_batch_finished", 0x0B)]
 pub struct ChunkBatchFinishedPacket {
     pub batch_size: i32,
 }

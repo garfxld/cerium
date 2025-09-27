@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("key")]
+#[packet("key", 0x01)]
 pub struct EncryptionResponsePacket {
     pub shared_secret: Box<[u8]>,
     pub verify_token: Box<[u8]>,

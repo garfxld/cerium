@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("finish_configuration")]
+#[packet("finish_configuration", 0x03)]
 pub struct AcknowledgeFinishConfigPacket {
     // Empty
 }

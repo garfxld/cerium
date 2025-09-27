@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("level_chunk_with_light")]
+#[packet("level_chunk_with_light", 0x27)]
 pub struct ChunkDataAndUpdateLightPacket {
     pub chunk_x: i32,
     pub chunk_z: i32,

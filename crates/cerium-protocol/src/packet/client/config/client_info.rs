@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("client_information")]
+#[packet("client_information", 0x0D)]
 pub struct ClientInfoPacket {
     locale: String, // 16
     view_distance: u8,

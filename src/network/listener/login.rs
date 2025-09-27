@@ -36,9 +36,7 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
 
     let threshold = 256;
 
-    client
-        .send_packet(0x03, SetCompressionPacket { threshold })
-        .await;
+    client.send_packet(SetCompressionPacket { threshold }).await;
     client.set_compression(threshold).await;
 
     // todo: check for online mode
@@ -48,23 +46,19 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
         *client.verify_token.lock().await = verify_token;
 
         client
-            .send_packet(
-                0x01,
-                EncryptionRequestPacket {
-                    server_id: "".to_owned(),
-                    public_key: client.key_store.public_key_der.clone(),
-                    verify_token: Box::new(verify_token),
-                    should_authenticate: true,
-                },
-            )
+            .send_packet(EncryptionRequestPacket {
+                server_id: "".to_owned(),
+                public_key: client.key_store.public_key_der.clone(),
+                verify_token: Box::new(verify_token),
+                should_authenticate: true,
+            })
             .await;
     } else {
         // offline mode
         client
-            .send_packet(
-                0x02,
-                LoginSuccessPacket::from(client.game_profile.lock().await.clone().unwrap()),
-            )
+            .send_packet(LoginSuccessPacket::from(
+                client.game_profile.lock().await.clone().unwrap(),
+            ))
             .await;
     }
 }
@@ -88,7 +82,7 @@ async fn handle_encryption_response(
     *client_game_profile = Some(game_profile.clone());
 
     client
-        .send_packet(0x02, LoginSuccessPacket::from(game_profile.clone()))
+        .send_packet(LoginSuccessPacket::from(game_profile.clone()))
         .await;
 }
 

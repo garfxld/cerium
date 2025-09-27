@@ -40,7 +40,7 @@ pub enum ServerError {
 }
 
 pub struct Server {
-    stopped: AtomicBool,
+    closed: AtomicBool,
     connections: Arc<Mutex<HashMap<SocketAddr, Arc<ClientConnection>>>>,
     players: Arc<Mutex<Vec<Arc<Player>>>>,
     key_store: Arc<KeyStore>,
@@ -50,7 +50,7 @@ pub struct Server {
 impl Server {
     pub fn new() -> Self {
         Self {
-            stopped: AtomicBool::new(false),
+            closed: AtomicBool::new(false),
             connections: Arc::new(Mutex::new(HashMap::new())),
             players: Arc::new(Mutex::new(Vec::new())),
             key_store: Arc::new(KeyStore::new()),
@@ -83,13 +83,13 @@ impl Server {
             let mut ticker = Ticker::new(this.clone());
 
             async move {
-                while !this.stopped() {
+                while !this.closed() {
                     ticker.tick().await;
                 }
             }
         });
 
-        while !this.stopped() {
+        while !this.closed() {
             let (stream, addr) = listener.accept().await.unwrap();
 
             let conn = Arc::new(ClientConnection::new(addr, stream, this.clone()));
@@ -115,12 +115,12 @@ impl Server {
         Ok(())
     }
 
-    pub fn stopped(&self) -> bool {
-        self.stopped.load(Ordering::Relaxed)
+    pub fn closed(&self) -> bool {
+        self.closed.load(Ordering::Relaxed)
     }
 
-    pub fn stop(&self) {
-        self.stopped.store(true, Ordering::Release);
+    pub fn close(&self) {
+        self.closed.store(true, Ordering::Release);
     }
 
     pub fn key_store(&self) -> Arc<KeyStore> {

@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("login")]
+#[packet("login", 0x2B)]
 pub struct LoginPacket {
     pub entity_id: i32,
     pub is_hardcore: bool,

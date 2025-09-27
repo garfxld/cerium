@@ -8,7 +8,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_position")]
+#[packet("player_position", 0x41)]
 pub struct SyncPlayerPositionPacket {
     pub teleport_id: i32,
     pub x: f64,

@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("pick_item_from_block")]
+#[packet("pick_item_from_block", 0x23)]
 pub struct PickItemFromBlockPacket {
     pub position: i64,
     pub include_data: bool,

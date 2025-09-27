@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("chunk_batch_received")]
+#[packet("chunk_batch_received", 0x0A)]
 pub struct ChunkBatchReceivedPacket {
     pub chunks_per_tick: f32,
 }

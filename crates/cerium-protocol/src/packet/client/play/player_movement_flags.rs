@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("move_player_status_only")]
+#[packet("move_player_status_only", 0x20)]
 pub struct PlayerMovementFlagsPacket {
     pub flags: u8,
 }

@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("move_player_rot")]
+#[packet("move_player_rot", 0x1F)]
 pub struct PlayerRotationPacket {
     pub yaw: f32,
     pub pitch: f32,

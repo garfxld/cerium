@@ -9,7 +9,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone)]
-#[packet("container_close")]
+#[packet("container_close", 0x12)]
 pub struct CloseContainerPacket {
     pub window_id: i32,
 }
