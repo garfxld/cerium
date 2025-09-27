@@ -1,14 +1,13 @@
-use convert_case::{Case, Casing};
+use convert_case::{Case, Casing as _};
 use indexmap::IndexMap;
 use proc_macro2::TokenStream;
-use quote::format_ident;
-use quote::quote;
+use quote::{format_ident, quote};
 
 use crate::write_file;
 
 pub fn generate() {
     let entries: IndexMap<String, serde_json::Value> =
-        serde_json::from_str(include_str!("../data/item.json")).unwrap();
+        serde_json::from_str(include_str!("../data/block.json")).unwrap();
 
     let variants: Vec<_> = entries
         .keys()
@@ -33,35 +32,13 @@ pub fn generate() {
         })
         .collect();
 
-    let from_id_arms: TokenStream = variants
-        .iter()
-        .map(|(index, ident, _)| {
-            let index: TokenStream = index.to_string().parse().unwrap();
-            quote! {
-                #index => Some(Material::#ident),
-            }
-        })
-        .collect();
-
     let out = quote! {
-        #![allow(unused)]
-
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         #[repr(i32)]
-        pub enum Material {
+        pub enum Block {
             #enum_variants
         }
-
-        impl Material {
-            pub fn from_id(id: i32) -> Option<Material> {
-                match id {
-                    #from_id_arms
-                    _ => None,
-                }
-            }
-        }
-
     };
 
-    write_file(out, "material.rs");
+    write_file(out, "blocks.rs");
 }

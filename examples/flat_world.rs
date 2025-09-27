@@ -4,7 +4,7 @@ use cerium::Server;
 use cerium::registry::DimensionType;
 use cerium::util::Position;
 use cerium::world::World;
-use cerium_registry::generated::block::Block;
+use cerium_registry::Block;
 
 #[tokio::main]
 async fn main() {
@@ -14,7 +14,7 @@ async fn main() {
 
     for bz in 0..16 {
         for bx in 0..16 {
-            world.set_block(bx, 70, bz, Block::GrassBlock).await;
+            world.set_block(bx, 70, bz, Block::GrassBlock);
         }
     }
 

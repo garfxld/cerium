@@ -271,6 +271,9 @@ dependencies = [
  "cerium-registry",
  "cerium-util",
  "futures",
+ "indexmap",
+ "serde",
+ "serde_json",
  "simdnbt",
  "tokio",
 ]

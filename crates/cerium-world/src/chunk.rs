@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use cerium_registry::block::BlockState;
+use cerium_registry::BlockState;
 use cerium_util::Position;
 use simdnbt::owned::Nbt;
 
@@ -134,10 +134,10 @@ impl Chunk {
         ((position.x() / 16.0) as i32, (position.z() / 16.0) as i32)
     }
 
-    /// This implementation comes from [Minestom](https://github.com/Minestom/Minestom/blob/7620f3320988e766cb8e34dd640b5a23911fa7e8/src/main/java/net/minestom/server/coordinate/ChunkRange.java#L48),
-    /// which comes from [Krypton](https://github.com/KryptonMC/Krypton/blob/a9eff5463328f34072cdaf37aae3e77b14fcac93/server/src/main/kotlin/org/kryptonmc/krypton/util/math/Maths.kt#L62),
-    /// which comes from a kotlin port [Esophose](https://github.com/Esophose),
-    /// which originally comes from a [StackOverflow answer](https://stackoverflow.com/questions/398299/looping-in-a-spiral).
+    // This implementation comes from [Minestom](https://github.com/Minestom/Minestom/blob/7620f3320988e766cb8e34dd640b5a23911fa7e8/src/main/java/net/minestom/server/coordinate/ChunkRange.java#L48),
+    // which comes from [Krypton](https://github.com/KryptonMC/Krypton/blob/a9eff5463328f34072cdaf37aae3e77b14fcac93/server/src/main/kotlin/org/kryptonmc/krypton/util/math/Maths.kt#L62),
+    // which comes from a kotlin port [Esophose](https://github.com/Esophose),
+    // which originally comes from a [StackOverflow answer](https://stackoverflow.com/questions/398299/looping-in-a-spiral).
     pub fn chunks_in_range(chunk: (i32, i32), range: i32) -> Vec<(i32, i32)> {
         let (cx, cz) = chunk;
 

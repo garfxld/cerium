@@ -126,12 +126,14 @@ impl Player {
 
         let world = self.world();
         for (cx, cz) in Chunk::chunks_in_range(chunk, view_distance) {
-            let chunk = match world.get_chunk(cx, cz).await {
+            let chunk = match world.get_chunk(cx, cz) {
                 Some(chunk) => chunk,
-                None => world.load_chunk(cx, cz).await,
+                None => world.load_chunk(cx, cz),
             };
-            let chunk: tokio::sync::MutexGuard<'_, Chunk> = chunk.lock().await;
-            self.send_chunk(chunk.clone()).await;
+
+            // probably stop cloning the chunk in the future
+            let chunk = chunk.lock().unwrap().clone();
+            self.send_chunk(chunk).await;
         }
     }
 
@@ -152,13 +154,14 @@ impl Player {
     async fn load_chunk(&self, cx: i32, cz: i32) {
         let world = self.world();
 
-        let chunk = match world.get_chunk(cx, cz).await {
+        let chunk = match world.get_chunk(cx, cz) {
             Some(chunk) => chunk,
-            None => world.load_chunk(cx, cz).await,
+            None => world.load_chunk(cx, cz),
         };
 
-        let chunk: tokio::sync::MutexGuard<'_, Chunk> = chunk.lock().await;
-        self.send_chunk(chunk.clone()).await;
+        // probably stop cloning the chunk in the future
+        let chunk = chunk.lock().unwrap().clone();
+        self.send_chunk(chunk).await;
     }
 
     async fn unload_chunk(&self, cx: i32, cz: i32) {

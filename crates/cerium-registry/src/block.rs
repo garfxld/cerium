@@ -3,7 +3,17 @@ use std::{collections::HashMap, ops::Deref, sync::LazyLock};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 
-use crate::generated::block::Block;
+include!("generated/blocks.rs");
+
+impl Deref for Block {
+    type Target = BlockState;
+
+    fn deref(&self) -> &<Block as Deref>::Target {
+        // None of these get calls should panic due to registry and auto-generate code accessing the same json file.
+        let state_id = *REGISTRY.1.get(*self as usize).unwrap();
+        REGISTRY.0.get(&state_id).unwrap()
+    }
+}
 
 pub static REGISTRY: LazyLock<(HashMap<i32, BlockState>, Vec<i32>)> = LazyLock::new(|| {
     let entries: IndexMap<String, serde_json::Value> =
@@ -63,6 +73,10 @@ impl BlockState {
 
     pub fn block_entity(&self) -> Option<&BlockEntityInfo> {
         self.block_entity.as_ref()
+    }
+
+    pub fn from_id(id: i32) -> Option<&'static BlockState> {
+        REGISTRY.0.get(&id)
     }
 }
 

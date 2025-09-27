@@ -1,13 +1,14 @@
-use convert_case::{Case, Casing as _};
+use convert_case::{Case, Casing};
 use indexmap::IndexMap;
 use proc_macro2::TokenStream;
-use quote::{format_ident, quote};
+use quote::format_ident;
+use quote::quote;
 
 use crate::write_file;
 
 pub fn generate() {
     let entries: IndexMap<String, serde_json::Value> =
-        serde_json::from_str(include_str!("../data/block.json")).unwrap();
+        serde_json::from_str(include_str!("../data/item.json")).unwrap();
 
     let variants: Vec<_> = entries
         .keys()
@@ -32,31 +33,33 @@ pub fn generate() {
         })
         .collect();
 
-    let out = quote! {
-        #![allow(unused)]
-        use std::ops::Deref;
+    let from_id_arms: TokenStream = variants
+        .iter()
+        .map(|(index, ident, _)| {
+            let index: TokenStream = index.to_string().parse().unwrap();
+            quote! {
+                #index => Some(Material::#ident),
+            }
+        })
+        .collect();
 
+    let out = quote! {
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         #[repr(i32)]
-        pub enum Block {
+        pub enum Material {
             #enum_variants
         }
 
-        impl Block {
-            pub fn from_state(id: i32) -> Option<&'static crate::block::BlockState> {
-                crate::block::REGISTRY.0.get(&id)
+        impl Material {
+            pub fn from_id(id: i32) -> Option<Material> {
+                match id {
+                    #from_id_arms
+                    _ => None,
+                }
             }
         }
 
-        impl Deref for Block {
-            type Target = crate::block::BlockState;
-
-            fn deref(&self) -> &<Block as Deref>::Target {
-                let state_id = *crate::block::REGISTRY.1.get(*self as usize).unwrap();
-                crate::block::REGISTRY.0.get(&state_id).unwrap()
-            }
-        }
     };
 
-    write_file(out, "block.rs");
+    write_file(out, "materials.rs");
 }

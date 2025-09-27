@@ -4,8 +4,8 @@ use indexmap::IndexMap;
 use proc_macro2::TokenStream;
 use quote::{format_ident, quote};
 
-mod block;
-mod material;
+mod blocks;
+mod materials;
 
 fn main() {
     // Dynamic Registries
@@ -61,8 +61,9 @@ fn main() {
         include_str!("../data/wolf_variant.json"),
     );
 
-    block::generate();
-    material::generate();
+    // Static Registries
+    blocks::generate();
+    materials::generate();
 }
 
 pub fn write_file(content: TokenStream, dst: &str) {

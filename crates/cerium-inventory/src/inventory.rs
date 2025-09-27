@@ -38,7 +38,7 @@ impl PlayerInventory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use cerium_registry::material::Material;
+    use cerium_registry::Material;
 
     #[test]
     pub fn test_player_inventory() {

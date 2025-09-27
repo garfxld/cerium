@@ -22,11 +22,10 @@ Yet another high-performance Minecraft server library written in Rust.
     - [x] Registries
 - World
     - [ ] Blocks
-    - [ ] Items
     - [ ] Entities
     - [ ] Block Interactions
     - [ ] Light API
-- [ ] Inventories
+- [ ] Item/Inventory API
 - [ ] Commands
 - [ ] Text components
 - [ ] Event system (WIP)

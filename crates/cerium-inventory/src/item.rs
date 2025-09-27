@@ -4,7 +4,7 @@ use std::{
     sync::Arc,
 };
 
-use cerium_registry::material::Material;
+use cerium_registry::Material;
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use simdnbt::owned::Nbt;
 

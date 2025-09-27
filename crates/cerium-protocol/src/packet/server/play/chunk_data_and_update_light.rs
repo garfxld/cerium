@@ -1,6 +1,4 @@
-use bytes::buf;
 use cerium_protocol_macros::packet;
-use cerium_registry::generated::block::Block;
 use cerium_world::{chunk::BlockEntity, heightmap::Heightmap};
 
 use crate::{

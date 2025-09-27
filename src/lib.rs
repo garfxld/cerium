@@ -7,7 +7,10 @@ use std::{
     },
 };
 
-use tokio::{net::TcpListener, sync::Mutex};
+use tokio::{
+    net::{TcpListener, ToSocketAddrs},
+    sync::Mutex,
+};
 
 use crate::{
     entity::player::Player,
@@ -37,9 +40,9 @@ pub enum ServerError {
 }
 
 pub struct Server {
-    running: AtomicBool,
+    stopped: AtomicBool,
     connections: Arc<Mutex<HashMap<SocketAddr, Arc<ClientConnection>>>>,
-    pub players: Arc<Mutex<Vec<Arc<Player>>>>,
+    players: Arc<Mutex<Vec<Arc<Player>>>>,
     key_store: Arc<KeyStore>,
     events: Events,
 }
@@ -47,7 +50,7 @@ pub struct Server {
 impl Server {
     pub fn new() -> Self {
         Self {
-            running: AtomicBool::new(true),
+            stopped: AtomicBool::new(false),
             connections: Arc::new(Mutex::new(HashMap::new())),
             players: Arc::new(Mutex::new(Vec::new())),
             key_store: Arc::new(KeyStore::new()),
@@ -55,15 +58,14 @@ impl Server {
         }
     }
 
-    pub async fn bind<T>(self, addr: T) -> Result<(), ServerError>
+    pub async fn bind<A>(self, addr: A) -> Result<(), ServerError>
     where
-        T: ToString,
+        A: ToSocketAddrs,
     {
         #[cfg(debug_assertions)]
         env_logger::try_init().unwrap();
 
-        let address = addr.to_string();
-        let listener = TcpListener::bind(address)
+        let listener = TcpListener::bind(addr)
             .await
             .map_err(|e| ServerError::IoError(e))?;
 
@@ -78,16 +80,16 @@ impl Server {
 
         tokio::spawn({
             let this = this.clone();
+            let mut ticker = Ticker::new(this.clone());
+
             async move {
-                let ticker = Ticker::new(this.clone());
-                while this.running.load(Ordering::Relaxed) {
+                while !this.stopped() {
                     ticker.tick().await;
-                    tokio::time::sleep(std::time::Duration::from_millis(20)).await;
                 }
             }
         });
 
-        while this.running.load(Ordering::Relaxed) {
+        while !this.stopped() {
             let (stream, addr) = listener.accept().await.unwrap();
 
             let conn = Arc::new(ClientConnection::new(addr, stream, this.clone()));
@@ -111,6 +113,14 @@ impl Server {
         }
 
         Ok(())
+    }
+
+    pub fn stopped(&self) -> bool {
+        self.stopped.load(Ordering::Relaxed)
+    }
+
+    pub fn stop(&self) {
+        self.stopped.store(true, Ordering::Release);
     }
 
     pub fn key_store(&self) -> Arc<KeyStore> {

@@ -10,3 +10,7 @@ cerium-util = { workspace = true }
 tokio = { workspace = true }
 futures = { workspace = true }
 simdnbt = { workspace = true }
+
+serde = { workspace = true }
+serde_json = { workspace = true }
+indexmap = { workspace = true }

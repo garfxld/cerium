@@ -10,8 +10,6 @@ use std::{
 use cerium_util::identifier::Identifier;
 use indexmap::{IndexMap, map::Iter};
 
-pub mod block;
-
 mod biome;
 mod cat_variant;
 mod chicken_variant;
@@ -41,6 +39,12 @@ pub use wolf_variant::*;
 
 pub mod generated;
 pub use generated::*;
+
+mod block;
+pub use block::{Block, BlockState};
+
+mod material;
+pub use material::Material;
 
 #[derive(Debug)]
 pub struct DynamicRegistry<T>
