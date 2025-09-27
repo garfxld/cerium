@@ -123,6 +123,6 @@ mod tests {
 
         world.load_chunk(0, 0);
         world.set_block(0, 0, 0, Block::MangrovePlanks);
-        assert_eq!(world.get_block(0, 0, 0).state_id(), 22);
+        assert_eq!(world.get_block(0, 0, 0).state_id(), 26);
     }
 }
