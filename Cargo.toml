@@ -1,23 +1,13 @@
 [workspace]
 members = [
-    "crates/cerium-protocol",
-    "crates/cerium-protocol-macros",
-    "crates/cerium-registry",
-    "crates/cerium-world",
-    "crates/cerium-util",
-    "crates/cerium-inventory",
+    "cerium",
+    "cerium-protocol-macros",
 ]
 
 resolver = "2"
 
-
 [workspace.dependencies]
-cerium-protocol = { path = "crates/cerium-protocol" }
-cerium-protocol-macros = { path = "crates/cerium-protocol-macros" }
-cerium-registry = { path = "crates/cerium-registry" }
-cerium-world = { path = "crates/cerium-world" }
-cerium-util = { path = "crates/cerium-util" }
-cerium-inventory = { path = "crates/cerium-inventory" }
+cerium-protocol-macros = { path = "cerium-protocol-macros" }
 
 tokio = { version = "1.46.0", features = ["macros", "rt-multi-thread", "net", "time", "sync", "io-util"], default-features = false }
 bytes = "1.10.1"
@@ -48,42 +38,7 @@ sha1 = "0.10.6"
 take_mut = "0.2.2"
 
 quote = "1.0.40"
+syn = "2.0"
 proc-macro2 = "1.0.95"
 paste = "1.0.15"
 convert_case = "0.8.0"
-
-[package]
-name = "cerium"
-version = "0.1.0"
-edition = "2024"
-
-
-[dependencies]
-cerium-protocol = { workspace = true }
-cerium-registry = { workspace = true }
-cerium-world = { workspace = true }
-cerium-util = { workspace = true }
-cerium-inventory = { workspace = true }
-
-async-compression = { workspace = true }
-bytes = { workspace = true }
-rand = { workspace = true }
-serde = { workspace = true }
-thiserror = { workspace = true }
-tokio = { workspace = true }
-ureq = { workspace = true }
-uuid = { workspace = true }
-
-# Logging
-log = { workspace = true }
-env_logger = { workspace = true }
-
-# Encryption
-aes = { workspace = true }
-cfb8 = { workspace = true }
-num-bigint = { workspace = true }
-rsa = { workspace = true }
-rsa-der = { workspace = true }
-sha1 = { workspace = true }
-take_mut = { workspace = true }
-futures = { workspace = true }

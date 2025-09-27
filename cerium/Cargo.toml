@@ -1,0 +1,46 @@
+[package]
+name = "cerium"
+version = "0.1.0"
+edition = "2024"
+
+build = "build/build.rs"
+
+[dependencies]
+async-compression = { workspace = true }
+bytes = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true }
+ureq = { workspace = true }
+uuid = { workspace = true }
+simdnbt = { workspace = true }
+paste = { workspace = true }
+cerium-protocol-macros = { workspace = true }
+rustc-hash = { workspace = true }
+bitflags = { workspace = true }
+indexmap = { workspace = true }
+serde_json = { workspace = true }
+
+# Logging
+log = { workspace = true }
+env_logger = { workspace = true }
+
+# Encryption
+aes = { workspace = true }
+cfb8 = { workspace = true }
+num-bigint = { workspace = true }
+rsa = { workspace = true }
+rsa-der = { workspace = true }
+sha1 = { workspace = true }
+take_mut = { workspace = true }
+futures = { workspace = true }
+
+[build-dependencies]
+indexmap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+proc-macro2 = { workspace = true }
+syn = { workspace = true }
+quote = { workspace = true }
+convert_case = { workspace = true }
