@@ -1,20 +1,32 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("container_close")]
 pub struct CloseContainerPacket {
     pub window_id: i32,
 }
 
+impl ClientPacket for CloseContainerPacket {}
+
 impl Decode for CloseContainerPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(CloseContainerPacket {
-            window_id: buffer.read_varint()?,
+            window_id: r.read_varint()?,
         })
+    }
+}
+
+impl Encode for CloseContainerPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.window_id)?;
+        Ok(())
     }
 }

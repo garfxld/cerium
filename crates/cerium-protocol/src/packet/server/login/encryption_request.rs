@@ -1,9 +1,10 @@
-use bytes::BufMut;
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -15,16 +16,24 @@ pub struct EncryptionRequestPacket {
     pub should_authenticate: bool,
 }
 
+impl Decode for EncryptionRequestPacket {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            server_id:           r.read_string()?,
+            public_key:          r.read_array(|r| r.read_u8())?.into_boxed_slice(),
+            verify_token:        r.read_array(|r| r.read_u8())?.into_boxed_slice(),
+            should_authenticate: r.read_bool()?,
+        })
+    }
+}
+
 impl Encode for EncryptionRequestPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_string(this.server_id)?;
-        buffer.write_array(this.public_key.to_vec(), |buffer, value| {
-            buffer.write_u8(value)
-        })?;
-        buffer.write_array(this.verify_token.to_vec(), |buffer, value| {
-            buffer.write_u8(value)
-        })?;
-        buffer.write_bool(this.should_authenticate)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_string(this.server_id)?;
+        w.write_array(this.public_key.to_vec(), |w, v| w.write_u8(v))?;
+        w.write_array(this.verify_token.to_vec(), |w, v| w.write_u8(v))?;
+        w.write_bool(this.should_authenticate)?;
         Ok(())
     }
 }

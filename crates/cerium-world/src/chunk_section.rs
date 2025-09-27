@@ -38,4 +38,3 @@ impl ChunkSection {
         self.biomes.get(x, y, z)
     }
 }
-

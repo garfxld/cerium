@@ -1,8 +1,11 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -11,10 +14,19 @@ pub struct ChunkBatchReceivedPacket {
     pub chunks_per_tick: f32,
 }
 
+impl ClientPacket for ChunkBatchReceivedPacket {}
+
 impl Decode for ChunkBatchReceivedPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            chunks_per_tick: buffer.read_f32()?,
+            chunks_per_tick: r.read_f32()?,
         })
+    }
+}
+
+impl Encode for ChunkBatchReceivedPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_f32(this.chunks_per_tick)?;
+        Ok(())
     }
 }

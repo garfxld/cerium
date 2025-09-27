@@ -1,3 +1,4 @@
+use bytes::BytesMut;
 use cerium_world::{
     chunk::{BlockEntity, Chunk},
     chunk_section::ChunkSection,
@@ -6,40 +7,59 @@ use cerium_world::{
 };
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
     packet::{ChunkData, ChunkDataAndUpdateLightPacket, LightData},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-impl Encode for BlockEntity {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_u8(this.packed_xz)?;
-        buffer.write_i16(this.y)?;
-        buffer.write_varint(this.r#type)?;
+impl Decode for BlockEntity {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            packed_xz: r.read_u8()?,
+            y: r.read_i16()?,
+            r#type: r.read_varint()?,
+            data: r.read_nbt()?,
+        })
+    }
+}
 
-        let mut data: Vec<u8> = Vec::new();
-        this.data.write_unnamed(&mut data);
-        buffer.put(&*data);
+impl Encode for BlockEntity {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_u8(this.packed_xz)?;
+        w.write_i16(this.y)?;
+        w.write_varint(this.r#type)?;
+        w.write_nbt(this.data)?;
         Ok(())
     }
 }
 
+impl Decode for Heightmap {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            kind: r.read_varint()?,
+            data: r.read_array(|r| r.read_i64())?,
+        })
+    }
+}
+
 impl Encode for Heightmap {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(this.kind)?;
-        buffer.write_array(this.data, |buffer, value| buffer.write_i64(value))?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.kind)?;
+        w.write_array(this.data, |w, v| w.write_i64(v))?;
         Ok(())
     }
 }
 
 impl Encode for Palette {
-    fn encode(buffer: &mut ByteBuffer, mut this: Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, mut this: Self) -> Result<(), EncodeError> {
         this.compute();
 
-        buffer.write_u8(this.bpe)?;
-        PaletteFormat::encode(buffer, this.format)?;
+        w.write_u8(this.bpe)?;
+        PaletteFormat::encode(w, this.format)?;
         for value in this.values {
-            buffer.write_i64(value)?;
+            w.write_i64(value)?;
         }
 
         Ok(())
@@ -47,13 +67,13 @@ impl Encode for Palette {
 }
 
 impl Encode for PaletteFormat {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
         match this {
             PaletteFormat::SingleValued { value } => {
-                buffer.write_varint(value)?;
+                w.write_varint(value)?;
             }
             PaletteFormat::Indirect { values } => {
-                buffer.write_array(values, |buffer, value| buffer.write_varint(value))?;
+                w.write_array(values, |buffer, value| buffer.write_varint(value))?;
             }
             PaletteFormat::Direct => {}
         }
@@ -62,17 +82,17 @@ impl Encode for PaletteFormat {
 }
 
 impl Encode for ChunkSection {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_i16(this.block_states.count() as i16)?;
-        Palette::encode(buffer, this.block_states)?;
-        Palette::encode(buffer, this.biomes)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_i16(this.block_states.count() as i16)?;
+        Palette::encode(w, this.block_states)?;
+        Palette::encode(w, this.biomes)?;
         Ok(())
     }
 }
 
 impl Into<ChunkDataAndUpdateLightPacket> for &Chunk {
     fn into(self) -> ChunkDataAndUpdateLightPacket {
-        let mut data = ByteBuffer::new();
+        let mut data = BytesMut::new();
         for section in self.sections() {
             ChunkSection::encode(&mut data, section.clone()).unwrap();
         }

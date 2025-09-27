@@ -1,5 +1,6 @@
 use crate::network::client::ClientConnection;
-use cerium_protocol::{ProtocolState, buffer::ByteBuffer, decode::DecodeError};
+use bytes::Bytes;
+use cerium_protocol::{ProtocolState, decode::DecodeError};
 use std::sync::Arc;
 
 mod config;
@@ -12,7 +13,7 @@ impl ClientConnection {
     pub async fn handle_packet(
         self: Arc<Self>,
         id: i32,
-        data: &mut ByteBuffer,
+        data: &mut Bytes,
     ) -> Result<(), DecodeError> {
         let state = *self.state.lock().await;
         match state {

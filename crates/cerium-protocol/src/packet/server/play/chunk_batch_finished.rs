@@ -1,19 +1,29 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("chunk_batch_finished")]
 pub struct ChunkBatchFinishedPacket {
     pub batch_size: i32,
 }
 
+impl Decode for ChunkBatchFinishedPacket {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            batch_size: r.read_varint()?,
+        })
+    }
+}
+
 impl Encode for ChunkBatchFinishedPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(this.batch_size)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.batch_size)?;
         Ok(())
     }
 }

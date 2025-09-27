@@ -3,8 +3,10 @@ use cerium_util::auth::{GameProfile, Property};
 use uuid::Uuid;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -15,14 +17,21 @@ pub struct LoginSuccessPacket {
     pub properties: Vec<Property>,
 }
 
-impl Encode for LoginSuccessPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_uuid(this.uuid)?;
-        buffer.write_string(this.username)?;
+impl Decode for LoginSuccessPacket {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            uuid: r.read_uuid()?,
+            username: r.read_string()?,
+            properties: r.read_array(Property::decode)?,
+        })
+    }
+}
 
-        buffer.write_array(this.properties, |buffer, value| {
-            Property::encode(buffer, value)
-        })?;
+impl Encode for LoginSuccessPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_uuid(this.uuid)?;
+        w.write_string(this.username)?;
+        w.write_array(this.properties, Property::encode)?;
         Ok(())
     }
 }

@@ -1,20 +1,32 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("swing")]
 pub struct SwingArmPacket {
     pub hand: i32, // VarInt Enum (Hand)
 }
 
+impl ClientPacket for SwingArmPacket {}
+
 impl Decode for SwingArmPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            hand: buffer.read_varint()?,
+            hand: r.read_varint()?,
         })
+    }
+}
+
+impl Encode for SwingArmPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.hand)?;
+        Ok(())
     }
 }

@@ -1,5 +1,5 @@
 #![allow(unused, ambiguous_glob_reexports)]
-#![cfg_attr(rustfmt, rustfmt_skip)] // prevent re-ordering packet defenitions
+#![cfg_attr(rustfmt, rustfmt_skip)] // prevent packet defenitions from re-ordering
 
 pub mod client {
 
@@ -29,11 +29,11 @@ pub mod client {
 
     pub mod config {
         mod client_info;
-        mod client_known_packs;
+        mod known_packs;
         mod acknowledge_finish_config;
 
         pub use client_info::ClientInfoPacket;
-        pub use client_known_packs::ClientKnownPacksPacket;
+        pub use known_packs::KnownPacksPacket;
         pub use acknowledge_finish_config::AcknowledgeFinishConfigPacket;
     }
 
@@ -124,11 +124,11 @@ pub mod server {
     }
 
     pub mod config {
-        mod server_known_packs;
+        mod known_packs;
         mod registry_data;
         mod finish_config;
 
-        pub use server_known_packs::ServerKnownPacksPacket;
+        pub use known_packs::KnownPacksPacket;
         pub use registry_data::*;
         pub use finish_config::FinishConfigPacket;
     }
@@ -169,15 +169,26 @@ pub mod server {
     pub use common::*;
 }
 
+use std::fmt::Debug;
+
 pub use client::*;
 pub use server::*;
 
 pub mod keep_alive;
 pub use keep_alive::KeepAlivePacket;
 
+use crate::{decode::Decode, encode::Encode};
 
-pub trait Packet {
+
+pub trait Packet where Self: Debug + Clone + Decode + Encode {
 }
+
+pub trait ClientPacket where Self: Packet {
+}
+
+pub trait ServerPacket where Self: Packet {
+}
+
 
 #[derive(Debug, Clone)]
 pub struct RawPacket {

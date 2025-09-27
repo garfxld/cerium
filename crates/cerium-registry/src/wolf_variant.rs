@@ -1,4 +1,3 @@
-
 #[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
 pub struct WolfVariant {
     pub assets: WolfAssets,

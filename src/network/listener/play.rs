@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
+use bytes::Bytes;
 use cerium_inventory::item::ItemStack;
 use cerium_protocol::{
-    buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
         ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
@@ -21,7 +21,7 @@ use cerium_world::chunk::Chunk;
 use crate::entity::player::Player;
 
 #[rustfmt::skip]
-pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
+pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await,
         0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?).await,

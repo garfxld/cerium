@@ -1,6 +1,6 @@
 use std::{
     io::{Error, ErrorKind},
-    pin::{pin, Pin},
+    pin::{Pin, pin},
     task::{Context, Poll},
 };
 

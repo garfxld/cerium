@@ -6,8 +6,10 @@ use cerium_util::identifier::Identifier;
 use simdnbt::owned::Nbt;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -17,12 +19,20 @@ pub struct RegistryDataPacket {
     pub entries: Vec<RegistryEntry>,
 }
 
+impl Decode for RegistryDataPacket {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            registry_id: r.read_identifier()?,
+            entries:     r.read_array(|r| RegistryEntry::decode(r))?,
+        })
+    }
+}
+
 impl Encode for RegistryDataPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_identifier(this.registry_id)?;
-        buffer.write_array(this.entries, |buffer, value| {
-            RegistryEntry::encode(buffer, value)
-        })?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_identifier(this.registry_id)?;
+        w.write_array(this.entries, RegistryEntry::encode)?;
         Ok(())
     }
 }
@@ -33,16 +43,20 @@ pub struct RegistryEntry {
     pub data: Option<Nbt>,
 }
 
-impl Encode for RegistryEntry {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_identifier(this.entry_id)?;
-        buffer.write_optional(this.data, |buffer, value| {
-            let mut data: Vec<u8> = Vec::new();
-            value.write_unnamed(&mut data);
-            buffer.put(&*data);
-            Ok(())
-        })?;
+impl Decode for RegistryEntry {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            entry_id: r.read_identifier()?,
+            data:     r.read_option(|r| r.read_nbt())?,
+        })
+    }
+}
 
+impl Encode for RegistryEntry {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_identifier(this.entry_id)?;
+        w.write_option(this.data, |w, v| w.write_nbt(v))?;
         Ok(())
     }
 }

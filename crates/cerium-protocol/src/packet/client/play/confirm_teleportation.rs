@@ -1,20 +1,32 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("accept_teleportation")]
 pub struct ConfirmTeleportationPacket {
     teleport_id: i32,
 }
 
+impl ClientPacket for ConfirmTeleportationPacket {}
+
 impl Decode for ConfirmTeleportationPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            teleport_id: buffer.read_varint()?,
+            teleport_id: r.read_varint()?,
         })
+    }
+}
+
+impl Encode for ConfirmTeleportationPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.teleport_id)?;
+        Ok(())
     }
 }

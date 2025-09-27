@@ -1,11 +1,15 @@
+#![feature(associated_type_defaults)]
+
 pub mod packet;
 
-pub mod buffer;
 pub mod decode;
 pub mod encode;
 pub mod types;
 
 mod chunk;
+
+pub mod read;
+pub mod write;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProtocolState {

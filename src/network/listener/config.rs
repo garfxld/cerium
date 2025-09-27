@@ -3,21 +3,21 @@ use std::sync::Arc;
 use crate::{
     entity::player::Player, event::player::PlayerConfigEvent, network::client::ClientConnection,
 };
+use bytes::Bytes;
 use cerium_protocol::{
     ProtocolState,
-    buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{
-        AcknowledgeFinishConfigPacket, ClientInfoPacket, ClientKnownPacksPacket,
-        ClientPluginMessagePacket, FinishConfigPacket, GameEventPacket, LoginPacket, PlayerAction,
-        PlayerEntry, PlayerInfoFlags, PlayerInfoUpdatePacket, RegistryDataPacket,
-        ServerKnownPacksPacket, SetCenterChunkPacket, SyncPlayerPositionPacket,
+        AcknowledgeFinishConfigPacket, ClientInfoPacket, ClientPluginMessagePacket,
+        FinishConfigPacket, GameEventPacket, LoginPacket, PlayerAction, PlayerEntry,
+        PlayerInfoFlags, PlayerInfoUpdatePacket, RegistryDataPacket, SetCenterChunkPacket,
+        SyncPlayerPositionPacket, client, server,
     },
 };
 use cerium_registry::{DimensionType, REGISTRIES};
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?).await,
         0x01 => handle_cookie_response(client).await,
@@ -26,7 +26,7 @@ pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut By
         0x04 => handle_keep_alive(client).await,
         0x05 => handle_pong(client).await,
         0x06 => handle_resource_pack_response(client).await,
-        0x07 => handle_client_known_packs(client, ClientKnownPacksPacket::decode(data)?).await,
+        0x07 => handle_client_known_packs(client, client::config::KnownPacksPacket::decode(data)?).await,
         0x08 => handle_custom_click_action(client).await,
         _ => return Err(DecodeError::UnkownPacket(id)),
     };
@@ -39,7 +39,7 @@ async fn handle_client_info(client: Arc<ClientConnection>, packet: ClientInfoPac
     client
         .send_packet(
             0x0E,
-            ServerKnownPacksPacket {
+            server::config::KnownPacksPacket {
                 known_packs: Vec::new(),
             },
         )
@@ -165,7 +165,7 @@ async fn handle_acknowledge_finish_config(
         .send_packet(
             0x41,
             SyncPlayerPositionPacket {
-                teleport_id: 0.into(),
+                teleport_id: 0,
                 x: position.x(),
                 y: position.y(),
                 z: position.z(),
@@ -235,7 +235,10 @@ async fn handle_resource_pack_response(client: Arc<ClientConnection>) {
     let _ = client;
 }
 
-async fn handle_client_known_packs(client: Arc<ClientConnection>, packet: ClientKnownPacksPacket) {
+async fn handle_client_known_packs(
+    client: Arc<ClientConnection>,
+    packet: client::config::KnownPacksPacket,
+) {
     let _ = client;
     let _ = packet;
 }

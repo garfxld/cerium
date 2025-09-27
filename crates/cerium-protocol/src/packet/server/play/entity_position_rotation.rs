@@ -1,11 +1,13 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("move_entity_pos_rot")]
 pub struct EntityPositionRotationPacket {
     pub entitiy_id: i32,
@@ -17,15 +19,30 @@ pub struct EntityPositionRotationPacket {
     pub on_ground: bool,
 }
 
+impl Decode for EntityPositionRotationPacket {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            entitiy_id: r.read_varint()?,
+            delta_x:    r.read_i16()?,
+            delta_y:    r.read_i16()?,
+            delta_z:    r.read_i16()?,
+            yaw:        r.read_u8()?,
+            pitch:      r.read_u8()?,
+            on_ground:  r.read_bool()?,
+        })
+    }
+}
+
 impl Encode for EntityPositionRotationPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(this.entitiy_id)?;
-        buffer.write_i16(this.delta_x)?;
-        buffer.write_i16(this.delta_y)?;
-        buffer.write_i16(this.delta_z)?;
-        buffer.write_u8(this.yaw)?;
-        buffer.write_u8(this.pitch)?;
-        buffer.write_bool(this.on_ground)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.entitiy_id)?;
+        w.write_i16(this.delta_x)?;
+        w.write_i16(this.delta_y)?;
+        w.write_i16(this.delta_z)?;
+        w.write_u8(this.yaw)?;
+        w.write_u8(this.pitch)?;
+        w.write_bool(this.on_ground)?;
         Ok(())
     }
 }

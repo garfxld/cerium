@@ -1,22 +1,36 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
 #[packet("pick_item_from_block")]
 pub struct PickItemFromBlockPacket {
-    pub position: i64, // todo: Position
+    pub position: i64,
     pub include_data: bool,
 }
 
+impl ClientPacket for PickItemFromBlockPacket {}
+
 impl Decode for PickItemFromBlockPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            position: buffer.read_i64()?,
-            include_data: buffer.read_bool()?,
+            position:     r.read_i64()?,
+            include_data: r.read_bool()?,
         })
+    }
+}
+
+impl Encode for PickItemFromBlockPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_i64(this.position)?;
+        w.write_bool(this.include_data)?;
+        Ok(())
     }
 }

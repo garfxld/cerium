@@ -1,8 +1,8 @@
-use crate::buffer::ByteBuffer;
+use crate::write::PacketWrite;
 
 #[derive(Debug, Clone)]
 pub struct EncodeError;
 
 pub trait Encode {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError>;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError>;
 }

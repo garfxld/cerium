@@ -1,13 +1,13 @@
 use crate::{event::ServerListPingEvent, network::client::ClientConnection};
+use bytes::Bytes;
 use cerium_protocol::{
-    buffer::ByteBuffer,
     decode::{Decode as _, DecodeError},
     packet::{PingRequestPacket, PongResponsePacket, StatusRequestPacket, StatusResponsePacket},
 };
 use std::sync::Arc;
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut ByteBuffer) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?).await,
         0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?).await,

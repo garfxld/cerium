@@ -1,18 +1,29 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("status_request")]
 pub struct StatusRequestPacket {
     // Empty
 }
 
+impl ClientPacket for StatusRequestPacket {}
+
 impl Decode for StatusRequestPacket {
-    fn decode(_: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
+    }
+}
+
+impl Encode for StatusRequestPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        Ok(())
     }
 }

@@ -1,8 +1,11 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -11,10 +14,19 @@ pub struct ChatCommandPacket {
     pub command: String,
 }
 
+impl ClientPacket for ChatCommandPacket {}
+
 impl Decode for ChatCommandPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            command: buffer.read_string()?,
+            command: r.read_string()?,
         })
+    }
+}
+
+impl Encode for ChatCommandPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_string(this.command)?;
+        Ok(())
     }
 }

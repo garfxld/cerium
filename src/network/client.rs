@@ -4,7 +4,8 @@ use crate::{
     network::{auth::KeyStore, reader::StreamReader, writer::StreamWriter},
 };
 
-use cerium_protocol::{ProtocolState, buffer::ByteBuffer, encode::Encode};
+use bytes::{BufMut, Bytes, BytesMut};
+use cerium_protocol::{ProtocolState, encode::Encode, write::PacketWrite};
 use cerium_util::auth::GameProfile;
 use std::{
     net::SocketAddr,
@@ -69,8 +70,9 @@ impl ClientConnection {
                 }
             };
 
-            let mut data = ByteBuffer::new();
-            data.write_slice(packet.data()).unwrap();
+            let mut data = BytesMut::new();
+            data.put_slice(&packet.data());
+            let mut data = Bytes::from(data);
 
             this.handle_packet(packet.id(), &mut data).await.unwrap();
         }
@@ -92,7 +94,7 @@ impl ClientConnection {
     where
         P: Encode,
     {
-        let mut data = ByteBuffer::new();
+        let mut data = BytesMut::new();
         data.write_varint(packet_id).unwrap();
         P::encode(&mut data, packet).unwrap();
 

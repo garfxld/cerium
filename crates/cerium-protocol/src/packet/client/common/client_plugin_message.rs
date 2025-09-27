@@ -2,32 +2,35 @@ use cerium_protocol_macros::packet;
 use cerium_util::identifier::Identifier;
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::ClientPacket,
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("custom_payload")]
 pub struct ClientPluginMessagePacket {
     pub identifier: Identifier,
     pub data: Vec<u8>,
 }
 
+impl ClientPacket for ClientPluginMessagePacket {}
+
 impl Decode for ClientPluginMessagePacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
-        let identifier = buffer.read_identifier()?;
-
-        let length = buffer.read_varint()?;
-
-        // todo: fix overflow
-        // currently when using fabric the client send a "minecraft:register" packet to the server.
-        // for some reason the read length is way too big and therefore crashes the server.
-        // current output (no typo): "abric:attachment_sync_v1fabric-screen-handler-api-v1:open_screen"
-        let buffer = buffer.split_to(std::cmp::min(length as usize, buffer.remaining()));
-
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            identifier,
-            data: buffer.to_vec(),
+            identifier: r.read_identifier()?,
+            data: r.read_array(|r| r.read_u8())?,
         })
+    }
+}
+
+impl Encode for ClientPluginMessagePacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_identifier(this.identifier)?;
+        w.write_array(this.data, |w, v| w.write_u8(v))?;
+        Ok(())
     }
 }

@@ -9,31 +9,45 @@ use rustc_hash::FxHashMap;
 use simdnbt::owned::{BaseNbt, Nbt, NbtTag};
 
 use crate::{
-    buffer::ByteBuffer,
     decode::{Decode, DecodeError},
+    encode::{Encode, EncodeError},
+    packet::{ClickContainerPacket, ClientPacket},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 #[packet("set_creative_mode_slot")]
 pub struct SetCreativeModeSlotPacket {
     pub slot: i16,
     pub clicked_item: Slot,
 }
 
+impl ClientPacket for SetCreativeModeSlotPacket {}
+
 impl Decode for SetCreativeModeSlotPacket {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
+    #[rustfmt::skip]
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            slot: buffer.read_i16()?,
-            clicked_item: Slot::decode(buffer)?,
+            slot:         r.read_i16()?,
+            clicked_item: Slot::decode(r)?,
         })
     }
 }
 
+impl Encode for SetCreativeModeSlotPacket {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_i16(this.slot)?;
+        Slot::encode(w, this.clicked_item)?;
+        Ok(())
+    }
+}
+
 impl Decode for Slot {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
-        let item_count = buffer.read_varint()?;
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        let item_count = r.read_varint()?;
         let item_id = if item_count > 0 {
-            Some(buffer.read_varint()?)
+            Some(r.read_varint()?)
         } else {
             None
         };
@@ -44,19 +58,19 @@ impl Decode for Slot {
             FxHashMap::with_hasher(Default::default());
         let mut to_remove: Vec<i32> = vec![];
         if item_count > 0 {
-            let n1 = buffer.read_varint()?;
-            let n2 = buffer.read_varint()?;
+            let n1 = r.read_varint()?;
+            let n2 = r.read_varint()?;
 
             for _ in (0..n1) {
-                let component = AnyDataComponent::decode(buffer)?;
+                let component = AnyDataComponent::decode(r)?;
 
                 let id = component.id();
-                let value = component.decode_to(buffer);
+                let value = component.decode_to(r);
                 to_add.insert(id, value);
             }
 
             for _ in (0..n2) {
-                to_remove.push(buffer.read_varint()?);
+                to_remove.push(r.read_varint()?);
             }
         }
 
@@ -69,13 +83,19 @@ impl Decode for Slot {
     }
 }
 
+impl Encode for Slot {
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        todo!()
+    }
+}
+
 pub trait DecodeTo<T>: Decode {
-    fn decode_to(self, buffer: &mut ByteBuffer) -> T;
+    fn decode_to<R: PacketRead>(self, r: &mut R) -> T;
 }
 
 impl Decode for AnyDataComponent {
-    fn decode(buffer: &mut ByteBuffer) -> Result<Self, DecodeError> {
-        Ok(Self::from_id(buffer.read_varint()?).unwrap())
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self::from_id(r.read_varint()?).unwrap())
     }
 }
 macro_rules! match_component {
@@ -97,18 +117,18 @@ macro_rules! match_component {
 }
 
 impl DecodeTo<Arc<dyn Any + Send + Sync>> for AnyDataComponent {
-    fn decode_to(self, buffer: &mut ByteBuffer) -> Arc<dyn Any + Send + Sync> {
+    fn decode_to<R: PacketRead>(self, r: &mut R) -> Arc<dyn Any + Send + Sync> {
         match_component!(self, {
             DataComponent::CUSTOM_DATA => {
                simdnbt::owned::read(&mut Cursor::new(
-            &buffer
-                .read_list(|buffer: &mut ByteBuffer| Ok(buffer.read_u8().unwrap()))
+            &r
+                .read_array(|r| r.read_u8())
                 .unwrap(),
         ))
             },
-            DataComponent::MAX_STACK_SIZE => buffer.read_varint().unwrap(),
-            DataComponent::MAX_DAMAGE => buffer.read_varint().unwrap(),
-            DataComponent::DAMAGE => buffer.read_varint().unwrap(),
+            DataComponent::MAX_STACK_SIZE => r.read_varint().unwrap(),
+            DataComponent::MAX_DAMAGE => r.read_varint().unwrap(),
+            DataComponent::DAMAGE => r.read_varint().unwrap(),
             DataComponent::UNBREAKABLE => (),
             _ => todo!()
         })

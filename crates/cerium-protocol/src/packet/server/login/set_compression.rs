@@ -1,8 +1,10 @@
 use cerium_protocol_macros::packet;
 
 use crate::{
-    buffer::ByteBuffer,
+    decode::{Decode, DecodeError},
     encode::{Encode, EncodeError},
+    read::PacketRead,
+    write::PacketWrite,
 };
 
 #[derive(Debug, Clone)]
@@ -11,9 +13,17 @@ pub struct SetCompressionPacket {
     pub threshold: i32,
 }
 
+impl Decode for SetCompressionPacket {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        Ok(Self {
+            threshold: r.read_varint()?,
+        })
+    }
+}
+
 impl Encode for SetCompressionPacket {
-    fn encode(buffer: &mut ByteBuffer, this: Self) -> Result<(), EncodeError> {
-        buffer.write_varint(this.threshold)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+        w.write_varint(this.threshold)?;
         Ok(())
     }
 }
