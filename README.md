@@ -25,10 +25,15 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Entities
     - [ ] Block Interactions
     - [ ] Light API
+    - [ ] Chunk Generation API
 - [ ] Item/Inventory API
 - [ ] Commands
 - [ ] Text components
 - [ ] Event system (WIP)
+- [ ] Resource Pack Support
+- [ ] Advancements
+- [ ] Proxy Support
+- [ ] Scoreboards
 
 Of course, more features are planned for the future.
 
