@@ -19,22 +19,38 @@ cerium-world = { path = "crates/cerium-world" }
 cerium-util = { path = "crates/cerium-util" }
 cerium-inventory = { path = "crates/cerium-inventory" }
 
-async-compression = { version = "0.4.27", default-features = false, features = ["tokio", "zlib"] }
-bitflags = "2.9.1"
+tokio = { version = "1.46.0", features = ["macros", "rt-multi-thread", "net", "time", "sync", "io-util"], default-features = false }
 bytes = "1.10.1"
-indexmap = { version = "2.10.0", features = ["serde"] }
-paste = "1.0.15"
+async-compression = { version = "0.4.27", default-features = false, features = ["tokio", "zlib"] }
+ureq = { version = "3.0.12", features = ["json"] }
+bitflags = "2.9.1"
 rand = "0.8"
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.140"
 simdnbt = "0.8.0"
 thiserror = "2.0.16"
-tokio = { version = "1.46.0", features = ["macros", "rt-multi-thread", "net", "time", "sync", "io-util"], default-features = false }
-ureq = { version = "3.0.12", features = ["json"] }
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
+indexmap = { version = "2.10.0", features = ["serde"] }
 rustc-hash = "2.1.1"
-convert_case = "0.8.0"
 
+# Logging
+log = "0.4.27"
+env_logger = "0.11.8"
+
+# Encryption
+aes = "0.8.4"
+cfb8 = "0.8.1"
+futures = "0.3.31"
+num-bigint = "0.4.6"
+rsa = "0.9.8"
+rsa-der = "0.3.0"
+sha1 = "0.10.6"
+take_mut = "0.2.2"
+
+quote = "1.0.40"
+proc-macro2 = "1.0.95"
+paste = "1.0.15"
+convert_case = "0.8.0"
 
 [package]
 name = "cerium"
@@ -57,18 +73,17 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 ureq = { workspace = true }
 uuid = { workspace = true }
-paste = { workspace = true }
 
 # Logging
-log = "0.4.27"
-env_logger = "0.11.8"
+log = { workspace = true }
+env_logger = { workspace = true }
 
 # Encryption
-aes = "0.8.4"
-cfb8 = "0.8.1"
-num-bigint = "0.4.6"
-rsa = "0.9.8"
-rsa-der = "0.3.0"
-sha1 = "0.10.6"
-take_mut = "0.2.2"
-futures = "0.3.31"
+aes = { workspace = true }
+cfb8 = { workspace = true }
+num-bigint = { workspace = true }
+rsa = { workspace = true }
+rsa-der = { workspace = true }
+sha1 = { workspace = true }
+take_mut = { workspace = true }
+futures = { workspace = true }

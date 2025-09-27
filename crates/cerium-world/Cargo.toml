@@ -8,5 +8,5 @@ cerium-registry = { workspace = true }
 cerium-util = { workspace = true }
 
 tokio = { workspace = true }
-futures = { version = "0.3.31"}
+futures = { workspace = true }
 simdnbt = { workspace = true }
