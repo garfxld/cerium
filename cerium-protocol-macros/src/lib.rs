@@ -31,12 +31,9 @@ pub fn packet(attr: TokenStream, item: TokenStream) -> TokenStream {
     let expanded = quote! {
         #input_struct
 
-        impl #struct_ident {
-            pub const RESOURCE_ID: &'static str = #packet_name;
-        }
-
         impl crate::protocol::packet::Packet for #struct_ident {
             const ID: i32 = #packet_id;
+            const RESOURCE_ID: &'static str = #packet_name;
         }
     };
 

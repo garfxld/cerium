@@ -91,44 +91,32 @@ impl Position {
     }
 }
 
-/// A utility trait for converting a type into a [Position].
-pub trait IntoPosition {
-    /// Converts `self` into a [`Position`].
-    fn into_position(self) -> Position;
-}
-
-impl IntoPosition for Position {
-    fn into_position(self) -> Position {
-        self
-    }
-}
-
-impl<A> IntoPosition for (A, A, A)
+impl<A> From<(A, A, A)> for Position
 where
     A: Into<f64>,
 {
-    fn into_position(self) -> Position {
-        Position {
-            x: self.0.into(),
-            y: self.1.into(),
-            z: self.2.into(),
+    fn from(value: (A, A, A)) -> Self {
+        Self {
+            x: value.0.into(),
+            y: value.1.into(),
+            z: value.2.into(),
             ..Position::ZERO
         }
     }
 }
 
-impl<A, B> IntoPosition for (A, A, A, B, B)
+impl<A, B> From<(A, A, A, B, B)> for Position
 where
     A: Into<f64>,
     B: Into<f32>,
 {
-    fn into_position(self) -> Position {
+    fn from(value: (A, A, A, B, B)) -> Self {
         Position {
-            x: self.0.into(),
-            y: self.1.into(),
-            z: self.2.into(),
-            yaw: self.3.into(),
-            pitch: self.4.into(),
+            x: value.0.into(),
+            y: value.1.into(),
+            z: value.2.into(),
+            yaw: value.3.into(),
+            pitch: value.4.into(),
         }
     }
 }

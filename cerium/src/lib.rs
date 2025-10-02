@@ -4,6 +4,7 @@ pub mod event;
 pub mod inventory;
 pub mod protocol;
 pub mod registry;
+pub mod text;
 pub mod tickable;
 pub mod util;
 pub mod world;

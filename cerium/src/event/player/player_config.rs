@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use crate::util::{IntoPosition, Position};
+use crate::util::Position;
 use crate::world::World;
 
 use crate::{
@@ -31,11 +31,8 @@ impl PlayerConfigEvent {
         self.world.clone()
     }
 
-    pub fn set_position<P>(&mut self, position: P)
-    where
-        P: IntoPosition,
-    {
-        self.position = Some(position.into_position());
+    pub fn set_position(&mut self, position: impl Into<Position>) {
+        self.position = Some(position.into());
     }
 
     pub fn get_position(&self) -> Option<&Position> {

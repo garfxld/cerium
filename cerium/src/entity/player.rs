@@ -4,27 +4,24 @@ use std::{
     sync::{Arc, Mutex},
     time::{Duration, Instant},
 };
-use tokio::time::{Interval, interval};
 use uuid::Uuid;
 
-use crate::{Server, protocol::packet::server::play::KeepAlivePacket};
 use crate::{
+    Server,
     auth::GameProfile,
+    entity::{Entity, EntityType, GameMode},
+    inventory::PlayerInventory,
+    network::client::ClientConnection,
+    protocol::packet::{
+        ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
+        GameEventPacket, Packet, SystemChatMessagePacket, UnloadChunkPacket,
+        server::play::KeepAlivePacket,
+    },
+    text::Component,
+    tickable::Tickable,
+    util::Position,
     world::{Chunk, World},
 };
-use crate::{
-    entity::GameMode,
-    protocol::packet::{
-        ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, Packet,
-        UnloadChunkPacket,
-    },
-};
-use crate::{
-    entity::{Entity, EntityType},
-    inventory::PlayerInventory,
-};
-use crate::{network::client::ClientConnection, tickable::Tickable};
-use crate::{protocol::packet::GameEventPacket, util::Position};
 
 pub struct ChunkQueue {
     queue: VecDeque<Chunk>,
@@ -62,7 +59,6 @@ pub struct Player {
     position: Mutex<Option<Position>>,
     pub(crate) chunk_queue: tokio::sync::Mutex<ChunkQueue>,
     last_keep_alive: tokio::sync::Mutex<Instant>,
-    interval: tokio::sync::Mutex<Interval>,
     inventory: Arc<PlayerInventory>,
     game_mode: Mutex<GameMode>,
 }
@@ -78,7 +74,6 @@ impl Player {
             position: Mutex::new(None),
             chunk_queue: tokio::sync::Mutex::new(ChunkQueue::new()),
             last_keep_alive: tokio::sync::Mutex::new(Instant::now()),
-            interval: tokio::sync::Mutex::new(interval(Duration::from_millis(50))),
             inventory: Arc::new(PlayerInventory::new()),
             game_mode: Mutex::new(GameMode::Survival),
         }
@@ -88,8 +83,8 @@ impl Player {
         self.connection.addr()
     }
 
-    pub fn name(&self) -> String {
-        self.game_profile.name.to_owned()
+    pub fn name(&self) -> &String {
+        &self.game_profile.name
     }
 
     pub fn uuid(&self) -> Uuid {
@@ -134,6 +129,18 @@ impl Player {
 
     pub fn inventory(&self) -> &Arc<PlayerInventory> {
         &self.inventory
+    }
+
+    pub async fn send_message(&self, message: impl Into<Component>) {
+        self.send_packet(SystemChatMessagePacket {
+            content: message.into(),
+            overlay: false,
+        })
+        .await;
+    }
+
+    pub async fn kick(&self, reason: impl Into<Component>) {
+        self.connection.kick(reason.into()).await;
     }
 
     pub async fn send_packet<P>(&self, packet: P)
@@ -222,17 +229,12 @@ impl Player {
     }
 
     async fn keep_alive(&self) {
-        self.send_packet(KeepAlivePacket {
-            keep_alive_id: std::time::UNIX_EPOCH.elapsed().unwrap().as_millis() as i64,
-        })
-        .await;
+        self.send_packet(KeepAlivePacket { keep_alive_id: 0 }).await
     }
 }
 
 impl Tickable for Player {
     async fn tick(self: &Arc<Self>) {
-        self.interval.lock().await.tick().await;
-
         let mut last_keep_alive = self.last_keep_alive.lock().await;
         if last_keep_alive.elapsed() > Duration::from_secs(20) {
             self.keep_alive().await;

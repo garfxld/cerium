@@ -41,3 +41,12 @@ impl std::fmt::Display for Identifier {
         write!(f, "{}:{}", self.namespace, self.path)
     }
 }
+
+impl<S> From<S> for Identifier
+where
+    S: Into<String>,
+{
+    fn from(value: S) -> Self {
+        Self::of(value.into())
+    }
+}

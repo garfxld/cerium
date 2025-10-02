@@ -148,6 +148,8 @@ pub mod server {
         mod spawn_entity;
         mod keep_alive;
         mod remove_entities;
+        mod disconnect;
+        mod system_chat_message;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -163,6 +165,8 @@ pub mod server {
         pub use spawn_entity::SpawnEntityPacket;
         pub use keep_alive::KeepAlivePacket;
         pub use remove_entities::RemoveEntitiesPacket;
+        pub use disconnect::DisconnectPacket;
+        pub use system_chat_message::SystemChatMessagePacket;
     }
 
     pub use handshake::*;
@@ -183,6 +187,7 @@ use crate::protocol::{decode::Decode, encode::Encode};
 
 pub trait Packet where Self: Debug + Clone + Decode + Encode {
     const ID: i32;
+    const RESOURCE_ID: &'static str;
 }
 
 pub trait ClientPacket where Self: Packet {

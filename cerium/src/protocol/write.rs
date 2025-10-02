@@ -1,6 +1,6 @@
 use crate::util::Identifier;
 use bytes::{BufMut, BytesMut};
-use simdnbt::owned::Nbt;
+use simdnbt::owned::{Nbt, NbtTag};
 use uuid::Uuid;
 
 use crate::protocol::encode::EncodeError;
@@ -43,6 +43,8 @@ pub trait PacketWrite {
     fn write_uuid(&mut self, value: Uuid) -> Result<()>;
 
     fn write_nbt(&mut self, value: Nbt) -> Result<()>;
+
+    fn write_nbt_tag(&mut self, value: NbtTag) -> Result<()>;
 
     fn write_option<T, F>(&mut self, value: Option<T>, f: F) -> Result<()>
     where
@@ -127,6 +129,13 @@ impl PacketWrite for BytesMut {
     fn write_nbt(&mut self, value: Nbt) -> Result<()> {
         let mut data: Vec<u8> = Vec::new();
         value.write_unnamed(&mut data);
+        self.put(&*data);
+        Ok(())
+    }
+
+    fn write_nbt_tag(&mut self, value: NbtTag) -> Result<()> {
+        let mut data: Vec<u8> = Vec::new();
+        value.write(&mut data);
         self.put(&*data);
         Ok(())
     }

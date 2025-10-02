@@ -13,12 +13,13 @@ use tokio::net::{
 use tokio::sync::Mutex;
 
 use crate::auth::GameProfile;
-use crate::protocol::{ProtocolState, packet::Packet, write::PacketWrite};
 use crate::{
     Server,
     auth::KeyStore,
     entity::Player,
     network::{reader::StreamReader, writer::StreamWriter},
+    protocol::{ProtocolState, packet::Packet, packet::server::play, write::PacketWrite},
+    text::Component,
 };
 
 pub struct ClientConnection {
@@ -106,6 +107,13 @@ impl ClientConnection {
         if let Err(_) = swriter.write_packet(&data.to_vec()).await {
             self.close();
         };
+    }
+
+    pub async fn kick(&self, reason: Component) {
+        match *self.state.lock().await {
+            ProtocolState::Play => self.send_packet(play::DisconnectPacket { reason }).await,
+            _ => todo!(),
+        }
     }
 
     pub fn closed(&self) -> bool {

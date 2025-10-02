@@ -7,7 +7,7 @@ use uuid::Uuid;
 use crate::{
     entity::{EntityType, Player},
     protocol::packet::{RemoveEntitiesPacket, SpawnEntityPacket},
-    util::{IntoPosition, Position},
+    util::Position,
 };
 
 pub struct Entity {
@@ -51,9 +51,9 @@ impl Entity {
 
     pub fn set_position<P>(&self, position: P)
     where
-        P: IntoPosition,
+        P: Into<Position>,
     {
-        *self.position.lock().unwrap() = position.into_position();
+        *self.position.lock().unwrap() = position.into();
 
         // todo: teleport
     }

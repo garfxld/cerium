@@ -28,7 +28,7 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Chunk Generation API
 - [ ] Item/Inventory API
 - [ ] Commands
-- [ ] Text components
+- [x] Text components
 - [ ] Event system (WIP)
 - [ ] Resource Pack Support
 - [ ] Advancements
