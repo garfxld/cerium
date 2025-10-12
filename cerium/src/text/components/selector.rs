@@ -1,13 +1,14 @@
-use serde::{Deserialize, Serialize};
-use simdnbt::owned;
-
 use crate::text::{Component, ParentComponent, StyledComponent, style::Style};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct SelectorComponent {
     selector: String,
     seperator: Box<Option<Component>>,
+    #[serde(flatten)]
     style: Style,
+    #[serde(rename = "extra", skip_serializing_if = "Vec::is_empty", default)]
     children: Vec<Component>,
 }
 
@@ -49,23 +50,5 @@ impl ParentComponent for SelectorComponent {
 impl From<SelectorComponent> for Component {
     fn from(value: SelectorComponent) -> Self {
         Component::Selector(value)
-    }
-}
-
-impl simdnbt::Serialize for SelectorComponent {
-    fn to_compound(self) -> owned::NbtCompound {
-        let mut compound = owned::NbtCompound::new();
-        compound.insert("selector", self.selector);
-        if let Some(seperator) = *self.seperator {
-            compound.insert("seperator", seperator);
-        }
-
-        // Style + Children
-        compound.extend(self.style.to_compound());
-        if !self.children.is_empty() {
-            compound.insert("extra", self.children);
-        }
-
-        compound
     }
 }

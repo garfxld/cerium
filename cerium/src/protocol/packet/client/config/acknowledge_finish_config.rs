@@ -1,29 +1,18 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("finish_configuration", 0x03)]
 pub struct AcknowledgeFinishConfigPacket {
     // Empty
 }
 
+impl Packet for AcknowledgeFinishConfigPacket {}
 impl ClientPacket for AcknowledgeFinishConfigPacket {}
 
 impl Decode for AcknowledgeFinishConfigPacket {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
-    }
-}
-
-impl Encode for AcknowledgeFinishConfigPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        Ok(())
     }
 }

@@ -1,15 +1,9 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("interact", 0x19)]
 pub struct InteractPacket {
     entity_id: i32,
     r#type: i32,
@@ -20,6 +14,7 @@ pub struct InteractPacket {
     sneak_key_pressed: bool,
 }
 
+impl Packet for InteractPacket {}
 impl ClientPacket for InteractPacket {}
 
 impl Decode for InteractPacket {
@@ -52,11 +47,5 @@ impl Decode for InteractPacket {
             hand,
             sneak_key_pressed: r.read_bool()?,
         })
-    }
-}
-
-impl Encode for InteractPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        todo!()
     }
 }

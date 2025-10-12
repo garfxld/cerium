@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize, Serializer};
 
 // ===== Rgb =====
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Rgb {
     r: u8,
     g: u8,
@@ -42,6 +42,36 @@ impl Serialize for Rgb {
     }
 }
 
+impl<'de> Deserialize<'de> for Rgb {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let s = String::deserialize(deserializer)?;
+
+        if let Ok(color) = NamedColor::try_from(s.as_str()) {
+            return Ok(color.into());
+        }
+
+        // not a NamedColor, therefore the prefix is required.
+        let hex = s.strip_prefix('#').unwrap();
+
+        if hex.len() != 6 {
+            return Err(D::Error::custom(format!("invalid hex color: {}", s)));
+        }
+
+        let rgb = u32::from_str_radix(hex, 16)
+            .map_err(|_| D::Error::custom(format!("invalid hex color: {}", s)))?;
+
+        let r = ((rgb >> 16) & 0xFF) as u8;
+        let g = ((rgb >> 8) & 0xFF) as u8;
+        let b = (rgb & 0xFF) as u8;
+        Ok(Rgb { r, g, b })
+    }
+}
+
 impl From<Rgba> for Rgb {
     fn from(value: Rgba) -> Self {
         Self {
@@ -54,7 +84,7 @@ impl From<Rgba> for Rgb {
 
 // ===== Rgba =====
 
-#[derive(Debug, Clone, Copy, Deserialize, Default, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash)]
 pub struct Rgba {
     r: u8,
     g: u8,
@@ -97,6 +127,33 @@ impl Serialize for Rgba {
 
         let s = format!("#{r:02x}{g:02x}{b:02x}{a:02x}");
         serializer.serialize_str(&s)
+    }
+}
+
+impl<'de> Deserialize<'de> for Rgba {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::Error;
+
+        let s = String::deserialize(deserializer)?;
+
+        // the prefix is required.
+        let hex = s.strip_prefix('#').unwrap();
+
+        if hex.len() != 8 {
+            return Err(D::Error::custom(format!("invalid hex color: {}", s)));
+        }
+
+        let rgba = u32::from_str_radix(hex, 16)
+            .map_err(|_| D::Error::custom(format!("invalid hex color: {}", s)))?;
+
+        let r = ((rgba >> 24) & 0xFF) as u8;
+        let g = ((rgba >> 16) & 0xFF) as u8;
+        let b = ((rgba >> 8) & 0xFF) as u8;
+        let a = (rgba & 0xFF) as u8;
+        Ok(Rgba { r, g, b, a })
     }
 }
 

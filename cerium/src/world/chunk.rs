@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
 use crate::util::Position;
-use simdnbt::owned::Nbt;
 
 use crate::world::{BlockEntity, BlockState, ChunkSection};
 
@@ -65,7 +64,7 @@ impl Chunk {
                 packed_xz,
                 y: y as i16,
                 r#type: info.id,
-                data: Nbt::None,
+                data: None,
             };
 
             self.block_entities.insert(packed_xz, block_entity);

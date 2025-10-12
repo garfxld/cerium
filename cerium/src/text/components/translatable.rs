@@ -1,14 +1,15 @@
-use serde::{Deserialize, Serialize};
-use simdnbt::owned;
-
 use crate::text::{Component, ParentComponent, StyledComponent, style::Style};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct TranslatableComponent {
     translate: String,
     fallback: Option<String>,
     with: Vec<Component>,
+    #[serde(flatten)]
     style: Style,
+    #[serde(rename = "extra", skip_serializing_if = "Vec::is_empty", default)]
     children: Vec<Component>,
 }
 
@@ -50,26 +51,5 @@ impl ParentComponent for TranslatableComponent {
 impl From<TranslatableComponent> for Component {
     fn from(value: TranslatableComponent) -> Self {
         Component::Translatable(value)
-    }
-}
-
-impl simdnbt::Serialize for TranslatableComponent {
-    fn to_compound(self) -> owned::NbtCompound {
-        let mut compound = owned::NbtCompound::new();
-        compound.insert("translate", self.translate);
-        if let Some(fallback) = self.fallback {
-            compound.insert("fallback", fallback);
-        }
-        if self.with.len() > 0 {
-            compound.insert("with", self.with);
-        }
-
-        // Style + Children
-        compound.extend(self.style.to_compound());
-        if !self.children.is_empty() {
-            compound.insert("extra", self.children);
-        }
-
-        compound
     }
 }

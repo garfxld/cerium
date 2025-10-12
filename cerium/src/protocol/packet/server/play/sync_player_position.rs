@@ -1,14 +1,9 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    read::PacketRead,
-    write::PacketWrite,
+    encode::{Encode, EncodeError, PacketWrite},
+    packet::{Packet, ServerPacket},
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_position", 0x41)]
 pub struct SyncPlayerPositionPacket {
     pub teleport_id: i32,
     pub x: f64,
@@ -22,26 +17,11 @@ pub struct SyncPlayerPositionPacket {
     pub flags: i32, // todo: change to flags type (https://minecraft.wiki/w/Java_Edition_protocol/Packets#Teleport_Flags)
 }
 
-impl Decode for SyncPlayerPositionPacket {
-    #[rustfmt::skip]
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            teleport_id: r.read_varint()?,
-            x:           r.read_f64()?,
-            y:           r.read_f64()?,
-            z:           r.read_f64()?,
-            velocity_x:  r.read_f64()?,
-            velocity_y:  r.read_f64()?,
-            velocity_z:  r.read_f64()?,
-            yaw:         r.read_f32()?,
-            pitch:       r.read_f32()?,
-            flags:       r.read_i32()?,
-        })
-    }
-}
+impl Packet for SyncPlayerPositionPacket {}
+impl ServerPacket for SyncPlayerPositionPacket {}
 
 impl Encode for SyncPlayerPositionPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
         w.write_varint(this.teleport_id)?;
         w.write_f64(this.x)?;
         w.write_f64(this.y)?;

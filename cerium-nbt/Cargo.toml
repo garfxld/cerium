@@ -1,0 +1,10 @@
+[package]
+name = "cerium-nbt"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+thiserror = { workspace = true }
+paste = { workspace = true }
+bytes = { workspace = true }

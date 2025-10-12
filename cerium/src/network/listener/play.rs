@@ -1,8 +1,8 @@
-use bytes::Bytes;
+use std::io::Cursor;
 use std::sync::Arc;
 
 use crate::entity::Player;
-use crate::inventory::item::ItemStack;
+use crate::item::ItemStack;
 use crate::protocol::{
     decode::{Decode as _, DecodeError},
     packet::{
@@ -21,7 +21,7 @@ use crate::util::Position;
 use crate::world::Chunk;
 
 #[rustfmt::skip]
-pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
+pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await,
         0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?).await,
@@ -250,8 +250,8 @@ async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeM
 }
 
 async fn handle_swing_arm(player: Arc<Player>, packet: SwingArmPacket) {
-    let _ = player;
     let _ = packet;
+    let _ = player;
 }
 
 async fn handle_use_item_on(player: Arc<Player>, packet: UseItemOnPacket) {

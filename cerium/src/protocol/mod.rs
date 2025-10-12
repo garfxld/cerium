@@ -1,3 +1,8 @@
+use crate::protocol::{
+    decode::{Decode, DecodeError, PacketRead},
+    encode::{Encode, EncodeError, PacketWrite},
+};
+
 pub mod packet;
 
 pub mod decode;
@@ -5,9 +10,6 @@ pub mod encode;
 pub mod types;
 
 mod chunk;
-
-pub mod read;
-pub mod write;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum ProtocolState {
@@ -30,5 +32,25 @@ impl ProtocolState {
             5 => Self::Play,
             _ => panic!("protocol with id {} does not exist!", id),
         }
+    }
+}
+
+pub trait DataType
+where
+    Self: Sized,
+{
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError>;
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError>;
+}
+
+impl<T: DataType> Encode for T {
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        <Self as DataType>::encode(w, this)
+    }
+}
+
+impl<T: DataType> Decode for T {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        <Self as DataType>::decode(r)
     }
 }

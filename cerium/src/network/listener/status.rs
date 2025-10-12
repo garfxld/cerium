@@ -6,11 +6,11 @@ use crate::protocol::{
     },
 };
 use crate::{event::ServerListPingEvent, network::client::ClientConnection};
-use bytes::Bytes;
-use std::sync::Arc;
+
+use std::{io::Cursor, sync::Arc};
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?).await,
         0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?).await,
@@ -42,8 +42,8 @@ async fn handle_ping_request(client: Arc<ClientConnection>, packet: PingRequestP
 const SERVER_LIST_PING: &'static str = r#"
 {
     "version": {
-        "name": "1.21.7",
-        "protocol": 772
+        "name": "1.21.10",
+        "protocol": 773
     },
     "players": {
         "max": 100,

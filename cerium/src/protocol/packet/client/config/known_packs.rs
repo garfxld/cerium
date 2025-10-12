@@ -1,19 +1,14 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("select_known_packs", 0x07)]
 pub struct KnownPacksPacket {
     pub known_packs: Vec<KnownPacks>,
 }
 
+impl Packet for KnownPacksPacket {}
 impl ClientPacket for KnownPacksPacket {}
 
 impl Decode for KnownPacksPacket {
@@ -21,13 +16,6 @@ impl Decode for KnownPacksPacket {
         Ok(Self {
             known_packs: r.read_array(KnownPacks::decode)?,
         })
-    }
-}
-
-impl Encode for KnownPacksPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_array(this.known_packs, KnownPacks::encode);
-        Ok(())
     }
 }
 
@@ -46,14 +34,5 @@ impl Decode for KnownPacks {
             id:        r.read_string()?,
             version:   r.read_string()?,
         })
-    }
-}
-
-impl Encode for KnownPacks {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_string(this.namespace)?;
-        w.write_string(this.id)?;
-        w.write_string(this.version)?;
-        Ok(())
     }
 }

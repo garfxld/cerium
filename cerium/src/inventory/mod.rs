@@ -5,10 +5,6 @@ use rustc_hash::FxHashMap;
 mod inventory;
 pub use inventory::PlayerInventory;
 
-pub mod item;
-mod material;
-pub use material::Material;
-
 #[derive(Debug, Clone)]
 pub struct Slot {
     pub item_count: i32,

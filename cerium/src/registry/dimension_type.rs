@@ -1,9 +1,6 @@
-use simdnbt::{
-    ToNbtTag,
-    owned::{NbtCompound, NbtTag},
-};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DimensionType {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub fixed_time: Option<i64>,
@@ -26,37 +23,17 @@ pub struct DimensionType {
     pub monster_spawn_block_light_limit: i32,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum MonsterSpawnLightLevel {
     Int(i32),
     Tagged(MonsterSpawnLightLevelTagged),
 }
 
-impl ToNbtTag for MonsterSpawnLightLevel {
-    fn to_nbt_tag(self) -> simdnbt::owned::NbtTag {
-        match self {
-            Self::Int(v) => NbtTag::Int(v),
-            Self::Tagged(v) => v.to_nbt_tag(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MonsterSpawnLightLevelTagged {
     min_inclusive: i32,
     max_inclusive: i32,
     #[serde(rename = "type")]
     r#type: String,
-}
-
-impl ToNbtTag for MonsterSpawnLightLevelTagged {
-    fn to_nbt_tag(self) -> simdnbt::owned::NbtTag {
-        let values = vec![
-            ("min_inclusive".into(), NbtTag::Int(self.min_inclusive)),
-            ("max_inclusive".into(), NbtTag::Int(self.max_inclusive)),
-            ("type".into(), NbtTag::String(self.r#type.clone().into())),
-        ];
-        NbtTag::Compound(NbtCompound::from_values(values))
-    }
 }

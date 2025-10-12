@@ -1,37 +1,29 @@
-use cerium_protocol_macros::packet;
-use simdnbt::owned::Nbt;
+use serde::{Serialize, de::DeserializeOwned};
 use std::{collections::HashMap, fmt::Debug};
 
-use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    read::PacketRead,
-    write::PacketWrite,
+use crate::{
+    protocol::{
+        encode::{Encode, EncodeError, PacketWrite},
+        packet::{Packet, ServerPacket},
+    },
+    registry::DynamicRegistry,
+    util::Identifier,
 };
-use crate::registry::DynamicRegistry;
-use crate::util::Identifier;
+use cerium_nbt::{Nbt, ToNbt, to_nbt_compound};
 
 #[derive(Debug, Clone)]
-#[packet("registry_data", 0x07)]
 pub struct RegistryDataPacket {
     pub registry_id: Identifier,
     pub entries: Vec<RegistryEntry>,
 }
 
-impl Decode for RegistryDataPacket {
-    #[rustfmt::skip]
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            registry_id: r.read_identifier()?,
-            entries:     r.read_array(|r| RegistryEntry::decode(r))?,
-        })
-    }
-}
+impl Packet for RegistryDataPacket {}
+impl ServerPacket for RegistryDataPacket {}
 
 impl Encode for RegistryDataPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_identifier(this.registry_id)?;
-        w.write_array(this.entries, RegistryEntry::encode)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_identifier(&this.registry_id)?;
+        w.write_array(&this.entries, RegistryEntry::encode)?;
         Ok(())
     }
 }
@@ -42,39 +34,28 @@ pub struct RegistryEntry {
     pub data: Option<Nbt>,
 }
 
-impl Decode for RegistryEntry {
-    #[rustfmt::skip]
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            entry_id: r.read_identifier()?,
-            data:     r.read_option(|r| r.read_nbt())?,
-        })
-    }
-}
-
 impl Encode for RegistryEntry {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_identifier(this.entry_id)?;
-        w.write_option(this.data, |w, v| w.write_nbt(v))?;
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_identifier(&this.entry_id)?;
+        w.write_option(&this.data, |w, v| w.write_nbt(v))?;
         Ok(())
     }
 }
 
 impl<T> From<&DynamicRegistry<T>> for RegistryDataPacket
 where
-    T: serde::de::DeserializeOwned + simdnbt::Serialize + Clone,
+    T: Serialize + DeserializeOwned + Clone,
 {
     fn from(value: &DynamicRegistry<T>) -> Self {
         let registry_id = value.registry_id().clone();
         let entries = value.entries();
-
         RegistryDataPacket {
             registry_id,
             entries: entries
                 .into_iter()
                 .map(|(key, value)| RegistryEntry {
                     entry_id: key.as_key().clone(),
-                    data: Some(Nbt::Some(value.clone().to_nbt())),
+                    data: Some(to_nbt_compound(value).unwrap().into()),
                 })
                 .collect(),
         }

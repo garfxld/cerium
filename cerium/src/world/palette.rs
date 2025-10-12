@@ -100,23 +100,23 @@ impl Palette {
         }
     }
 
-    pub fn compute(&mut self) {
+    pub fn compute(&self) -> (u8, PaletteFormat, Vec<i64>) {
         let bpe = Palette::required_bpe(self.count.len() as i32) as u8;
+
         if bpe == 0 {
             // SingleValued Format
-            self.bpe = 0;
-            self.format = PaletteFormat::SingleValued {
-                value: *self.count.keys().next().unwrap_or(&0) as i32,
-            };
-            self.values = vec![];
-            return;
+            return (
+                0,
+                PaletteFormat::SingleValued {
+                    value: *self.count.keys().next().unwrap_or(&0) as i32,
+                },
+                vec![],
+            );
         }
 
         if bpe <= self.max_bpe {
             // Indirect Format
-
             let bpe = bpe.max(self.min_bpe) as u8;
-
             let palette: Box<[u16]> = self
                 .count
                 .keys()
@@ -128,53 +128,46 @@ impl Palette {
                 .enumerate()
                 .map(|(index, key)| (*key, index))
                 .collect();
-
             let flat_values = &self.data;
             let values: Vec<i64> = flat_values
                 .chunks(64 / bpe as usize)
                 .map(|chunk| {
                     let mut packed_long = 0u64;
-
                     for (entry_index, &block_id) in chunk.iter().enumerate() {
                         let palette_index = *key_to_index_map
                             .get(&block_id)
                             .expect("Block ID not found in palette");
-
                         debug_assert!(palette_index < (1 << bpe));
                         let bit_offset = entry_index * bpe as usize;
-
                         packed_long |= (palette_index as u64) << bit_offset;
                     }
-
                     packed_long as i64
                 })
                 .collect();
 
-            self.bpe = bpe;
-            self.format = PaletteFormat::Indirect {
-                values: palette.iter().map(|v| *v as i32).collect(),
-            };
-            self.values = values;
+            return (
+                bpe,
+                PaletteFormat::Indirect {
+                    values: palette.iter().map(|v| *v as i32).collect(),
+                },
+                values,
+            );
         } else {
             // Direct Format
             let bpe = self.direct_bpe;
-
             let values: Vec<i64> = self
                 .data
                 .chunks(64 / bpe as usize)
                 .map(|chunk| {
                     chunk.iter().enumerate().fold(0, |acc, (index, value)| {
                         debug_assert!((1 << bpe) > *value);
-
                         let packed_offset_index = (*value as i64) << (bpe as u64 * index as u64);
                         acc | packed_offset_index
                     })
                 })
                 .collect();
 
-            self.bpe = bpe;
-            self.format = PaletteFormat::Direct;
-            self.values = values;
+            return (bpe, PaletteFormat::Direct, values);
         }
     }
 }

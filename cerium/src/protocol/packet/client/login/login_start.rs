@@ -1,21 +1,17 @@
-use cerium_protocol_macros::packet;
 use uuid::Uuid;
 
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("hello", 0x00)]
 pub struct LoginStartPacket {
     pub name: String,
     pub uuid: Uuid,
 }
 
+impl Packet for LoginStartPacket {}
 impl ClientPacket for LoginStartPacket {}
 
 impl Decode for LoginStartPacket {
@@ -24,13 +20,5 @@ impl Decode for LoginStartPacket {
             name: r.read_string()?,
             uuid: r.read_uuid()?,
         })
-    }
-}
-
-impl Encode for LoginStartPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_string(this.name)?;
-        w.write_uuid(this.uuid)?;
-        Ok(())
     }
 }

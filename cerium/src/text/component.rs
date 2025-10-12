@@ -169,15 +169,23 @@ where
     }
 }
 
-impl simdnbt::Serialize for Component {
-    fn to_compound(self) -> simdnbt::owned::NbtCompound {
-        match self {
-            Component::Text(c) => c.to_compound(),
-            Component::Translatable(c) => c.to_compound(),
-            Component::Object(c) => c.to_compound(),
-            Component::Score(c) => c.to_compound(),
-            Component::Keybind(c) => c.to_compound(),
-            Component::Selector(c) => c.to_compound(),
-        }
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::text::color::NamedColor;
+
+    #[test]
+    fn test_json_deserialize() {
+        let raw = r##"{"text":"","hover_event":{"action":"show_text","value":[{"text":"hover"}]},"extra":[{"text":"first line","color":"#ff5555","bold":true},{"text":"\n"},{"text":"second line"}]}"##;
+        let component1: Component = serde_json::from_str(raw).unwrap();
+        
+        let component2 = Component::empty()
+            .child(Component::text("first line").bold().color(NamedColor::Red))
+            .child(Component::new_line())
+            .child("second line")
+            .on_hover(HoverEvent::show_text("hover"))
+            .into();
+
+        assert_eq!(component1, component2)
     }
 }

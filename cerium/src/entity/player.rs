@@ -14,7 +14,7 @@ use crate::{
     network::client::ClientConnection,
     protocol::packet::{
         ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
-        GameEventPacket, Packet, SystemChatMessagePacket, UnloadChunkPacket,
+        GameEventPacket, Packet, ServerPacket, SystemChatMessagePacket, UnloadChunkPacket,
         server::play::KeepAlivePacket,
     },
     text::Component,
@@ -23,8 +23,10 @@ use crate::{
     world::{Chunk, World},
 };
 
+type SyncChunk = Arc<Mutex<Chunk>>;
+
 pub struct ChunkQueue {
-    queue: VecDeque<Chunk>,
+    queue: VecDeque<SyncChunk>,
     chunks_per_tick: i32,
 }
 
@@ -40,13 +42,13 @@ impl ChunkQueue {
         self.chunks_per_tick = chunks_per_tick;
     }
 
-    pub fn queue(&mut self, chunk: Chunk) {
+    pub fn queue(&mut self, chunk: SyncChunk) {
         self.queue.push_back(chunk);
     }
 
-    pub fn drain(&mut self) -> Box<[Chunk]> {
+    pub fn drain(&mut self) -> Box<[SyncChunk]> {
         let size = self.queue.len().min(self.chunks_per_tick as usize);
-        let chunks: Vec<Chunk> = self.queue.drain(0..size).collect();
+        let chunks: Vec<SyncChunk> = self.queue.drain(0..size).collect();
         chunks.into_boxed_slice()
     }
 }
@@ -145,8 +147,9 @@ impl Player {
 
     pub async fn send_packet<P>(&self, packet: P)
     where
-        P: Packet,
+        P: Packet + ServerPacket + 'static,
     {
+        log::debug!("sending: {}", std::any::type_name_of_val(&packet));
         self.connection.send_packet(packet).await;
     }
 
@@ -155,14 +158,14 @@ impl Player {
         let view_distance = 32;
 
         let world = self.world();
-        for (cx, cz) in Chunk::chunks_in_range(chunk, view_distance) {
+        let chunks = Chunk::chunks_in_range(chunk, view_distance);
+        println!("loading {:?} chunks", chunks.len());
+        for (cx, cz) in chunks {
             let chunk = match world.get_chunk(cx, cz) {
                 Some(chunk) => chunk,
                 None => world.load_chunk(cx, cz),
             };
 
-            // probably stop cloning the chunk in the future
-            let chunk = chunk.lock().unwrap().clone();
             self.send_chunk(chunk).await;
         }
     }
@@ -189,8 +192,6 @@ impl Player {
             None => world.load_chunk(cx, cz),
         };
 
-        // probably stop cloning the chunk in the future
-        let chunk = chunk.lock().unwrap().clone();
         self.send_chunk(chunk).await;
     }
 
@@ -202,8 +203,8 @@ impl Player {
         .await;
     }
 
-    async fn send_chunk(&self, chunk: Chunk) {
-        self.chunk_queue.lock().await.queue(chunk.clone());
+    async fn send_chunk(&self, chunk: SyncChunk) {
+        self.chunk_queue.lock().await.queue(chunk);
     }
 
     // works for now
@@ -219,8 +220,11 @@ impl Player {
         self.send_packet(ChunkBatchStartPacket {}).await;
 
         for chunk in chunks {
-            self.send_packet::<ChunkDataAndUpdateLightPacket>((&chunk).into())
-                .await;
+            let packet: ChunkDataAndUpdateLightPacket = {
+                let chunk = &*chunk.lock().unwrap();
+                chunk.into()
+            };
+            self.send_packet(packet).await;
         }
         self.send_packet(ChunkBatchFinishedPacket {
             batch_size: size as i32,

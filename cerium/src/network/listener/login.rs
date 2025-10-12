@@ -1,5 +1,4 @@
-use bytes::Bytes;
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 
 use crate::{
     auth::{self, GameProfile},
@@ -15,7 +14,7 @@ use crate::{
 };
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_login_start(client, LoginStartPacket::decode(data)?).await,
         0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data)?).await,

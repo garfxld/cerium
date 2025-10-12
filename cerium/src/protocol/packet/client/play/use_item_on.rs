@@ -1,15 +1,9 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("use_item_on", 0x3F)]
 pub struct UseItemOnPacket {
     pub hand: i32, // VarInt Enum (Hand)
     pub position: i64,
@@ -22,6 +16,7 @@ pub struct UseItemOnPacket {
     pub sequence: i32,
 }
 
+impl Packet for UseItemOnPacket {}
 impl ClientPacket for UseItemOnPacket {}
 
 impl Decode for UseItemOnPacket {
@@ -38,20 +33,5 @@ impl Decode for UseItemOnPacket {
             world_border_hit: r.read_bool()?,
             sequence:         r.read_varint()?,
         })
-    }
-}
-
-impl Encode for UseItemOnPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_varint(this.hand)?;
-        w.write_i64(this.position)?;
-        w.write_varint(this.face)?;
-        w.write_f32(this.cursor_x)?;
-        w.write_f32(this.cursor_y)?;
-        w.write_f32(this.cursor_z)?;
-        w.write_bool(this.inside_block)?;
-        w.write_bool(this.world_border_hit)?;
-        w.write_varint(this.sequence)?;
-        Ok(())
     }
 }

@@ -1,31 +1,22 @@
-use cerium_protocol_macros::packet;
-use simdnbt::{Serialize, ToNbtTag};
-
 use crate::{
     protocol::{
-        decode::{Decode, DecodeError},
-        encode::{Encode, EncodeError},
-        read::PacketRead,
-        write::PacketWrite,
+        encode::{Encode, EncodeError, PacketWrite},
+        packet::{Packet, ServerPacket},
     },
     text::Component,
 };
 
 #[derive(Debug, Clone)]
-#[packet("disconnect", 0x1C)]
 pub struct DisconnectPacket {
     pub reason: Component,
 }
 
-impl Decode for DisconnectPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self { reason: todo!() })
-    }
-}
+impl Packet for DisconnectPacket {}
+impl ServerPacket for DisconnectPacket {}
 
 impl Encode for DisconnectPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_nbt_tag(this.reason.to_nbt_tag())?;
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_component(&this.reason)?;
         Ok(())
     }
 }

@@ -1,29 +1,19 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    read::PacketRead,
-    write::PacketWrite,
+    encode::{Encode, EncodeError, PacketWrite},
+    packet::{Packet, ServerPacket},
 };
 
 #[derive(Debug, Clone)]
-#[packet("login_disconnect", 0x00)]
 pub struct LoginDisconnectPacket {
     pub reason: String,
 }
 
-impl Decode for LoginDisconnectPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            reason: r.read_string()?,
-        })
-    }
-}
+impl Packet for LoginDisconnectPacket {}
+impl ServerPacket for LoginDisconnectPacket {}
 
 impl Encode for LoginDisconnectPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_string(this.reason)?;
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_string(&this.reason)?;
         Ok(())
     }
 }

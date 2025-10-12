@@ -1,5 +1,6 @@
-use bytes::{BufMut, Bytes, BytesMut};
+use bytes::BytesMut;
 use std::{
+    io::Cursor,
     net::SocketAddr,
     sync::{
         Arc,
@@ -12,14 +13,20 @@ use tokio::net::{
 };
 use tokio::sync::Mutex;
 
-use crate::auth::GameProfile;
 use crate::{
     Server,
     auth::KeyStore,
     entity::Player,
     network::{reader::StreamReader, writer::StreamWriter},
-    protocol::{ProtocolState, packet::Packet, packet::server::play, write::PacketWrite},
+    protocol::{
+        ProtocolState,
+        packet::{Packet, server::play},
+    },
     text::Component,
+};
+use crate::{
+    auth::GameProfile,
+    protocol::{encode::PacketWrite as _, packet::ServerPacket},
 };
 
 pub struct ClientConnection {
@@ -71,13 +78,10 @@ impl ClientConnection {
                     Err(_) => break,
                 }
             };
-
-            let mut data = BytesMut::new();
-            data.put_slice(&packet.data());
-            let mut data = Bytes::from(data);
+            let mut data = Cursor::new(packet.data());
 
             if let Err(e) = this.handle_packet(packet.id(), &mut data).await {
-                log::error!("{}", e);
+                log::error!("error: {}", e);
                 break;
             };
         }
@@ -95,13 +99,25 @@ impl ClientConnection {
         self.swriter.lock().await.set_compression(threshold);
     }
 
+    async fn state(&self) -> ProtocolState {
+        *self.state.lock().await
+    }
+
     pub async fn send_packet<P>(&self, packet: P)
     where
-        P: Packet,
+        P: Packet + ServerPacket + 'static,
     {
         let mut data = BytesMut::new();
-        data.write_varint(P::ID).unwrap();
-        P::encode(&mut data, packet).unwrap();
+        let packet_id = crate::protocol::encode::packet_id::<P>(&self.state().await);
+        let Some(packet_id) = packet_id else {
+            panic!(
+                "Failed to find packet id for Packet '{}'.",
+                std::any::type_name_of_val(&packet)
+            );
+        };
+
+        data.write_varint(packet_id).unwrap();
+        P::encode(&mut data, &packet).unwrap();
 
         let mut swriter = self.swriter.lock().await;
         if let Err(_) = swriter.write_packet(&data.to_vec()).await {

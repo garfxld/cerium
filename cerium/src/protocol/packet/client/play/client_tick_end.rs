@@ -1,29 +1,18 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("client_tick_end", 0x0C)]
 pub struct ClientTickEndPacket {
     // Empty
 }
 
+impl Packet for ClientTickEndPacket {}
 impl ClientPacket for ClientTickEndPacket {}
 
 impl Decode for ClientTickEndPacket {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
-    }
-}
-
-impl Encode for ClientTickEndPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        Ok(())
     }
 }

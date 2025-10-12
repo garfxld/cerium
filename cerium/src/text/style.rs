@@ -1,10 +1,6 @@
 use std::borrow::Cow;
 
 use serde::{Deserialize, Serialize};
-use simdnbt::{
-    ToNbtTag,
-    owned::{self, NbtCompound, NbtTag},
-};
 
 use crate::text::{
     Component,
@@ -135,68 +131,6 @@ impl Style {
     }
 }
 
-impl simdnbt::Serialize for Style {
-    fn to_compound(self) -> NbtCompound {
-        let mut compound = NbtCompound::new();
-        if let Some(color) = self.color {
-            compound.insert(
-                "color",
-                NbtTag::String(
-                    format!("#{:02X}{:02X}{:02X}", color.r(), color.g(), color.b()).into(),
-                ),
-            );
-        }
-        if let Some(font) = self.font {
-            compound.insert("font", font);
-        }
-
-        // I think sometimes some default styles are applied (e.g. italic text).
-        // Therefore the property must be explicitly set to false.
-        if let Some(bold) = self.bold {
-            compound.insert("bold", bold);
-        }
-        if let Some(italic) = self.underlined {
-            compound.insert("italic", italic);
-        }
-        if let Some(underlined) = self.underlined {
-            compound.insert("underlined", underlined);
-        }
-        if let Some(strikethrough) = self.strikethrough {
-            compound.insert("strikethrough", strikethrough);
-        }
-        if let Some(obfuscated) = self.obfuscated {
-            compound.insert("obfuscated", obfuscated);
-        }
-
-        if let Some(shadow_color) = self.shadow_color {
-            compound.insert(
-                "shadow_color",
-                NbtTag::String(
-                    format!(
-                        "#{:02X}{:02X}{:02X}{:02X}",
-                        shadow_color.r(),
-                        shadow_color.g(),
-                        shadow_color.b(),
-                        shadow_color.a()
-                    )
-                    .into(),
-                ),
-            );
-        }
-
-        if let Some(insertion) = self.insertion {
-            compound.insert("insertion", insertion);
-        }
-        if let Some(hover_event) = self.hover_event {
-            compound.insert("hover_event", hover_event);
-        }
-        if let Some(click_event) = self.click_event {
-            compound.insert("click_event", click_event);
-        }
-        compound
-    }
-}
-
 // ===== ClickEvent ======
 
 #[derive(Clone, PartialEq, Debug, Serialize, Deserialize, Eq, Hash)]
@@ -213,37 +147,6 @@ pub enum ClickEvent {
     // todo: show_dialog, custom
     // ShowDialog,
     // Custom,
-}
-
-impl simdnbt::Serialize for ClickEvent {
-    fn to_compound(self) -> owned::NbtCompound {
-        match self {
-            Self::OpenUrl { url } => NbtCompound::from_values(vec![
-                ("action".into(), "open_url".into()),
-                ("url".into(), url.to_nbt_tag()),
-            ]),
-            Self::OpenFile { path } => NbtCompound::from_values(vec![
-                ("action".into(), "open_file".into()),
-                ("path".into(), path.to_nbt_tag()),
-            ]),
-            Self::RunCommand { command } => NbtCompound::from_values(vec![
-                ("action".into(), "run_command".into()),
-                ("command".into(), command.to_nbt_tag()),
-            ]),
-            Self::SuggestCommand { command } => NbtCompound::from_values(vec![
-                ("action".into(), "suggest_command".into()),
-                ("command".into(), command.to_nbt_tag()),
-            ]),
-            Self::ChangePage { page } => NbtCompound::from_values(vec![
-                ("action".into(), "change_page".into()),
-                ("page".into(), page.to_nbt_tag()),
-            ]),
-            Self::CopyToClipboard { value } => NbtCompound::from_values(vec![
-                ("action".into(), "copy_to_clipboard".into()),
-                ("value".into(), value.to_nbt_tag()),
-            ]),
-        }
-    }
 }
 
 // ===== HoverEvent ======
@@ -264,17 +167,6 @@ impl HoverEvent {
     pub fn show_text(text: impl Into<Component>) -> Self {
         Self::ShowText {
             value: vec![text.into()],
-        }
-    }
-}
-
-impl simdnbt::Serialize for HoverEvent {
-    fn to_compound(self) -> owned::NbtCompound {
-        match self {
-            Self::ShowText { value } => NbtCompound::from_values(vec![
-                ("action".into(), "show_text".into()),
-                ("value".into(), value.to_nbt_tag()),
-            ]),
         }
     }
 }

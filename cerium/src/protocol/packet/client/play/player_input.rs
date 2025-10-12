@@ -1,19 +1,14 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_input", 0x2A)]
 pub struct PlayerInputPacket {
     pub flags: u8,
 }
 
+impl Packet for PlayerInputPacket {}
 impl ClientPacket for PlayerInputPacket {}
 
 impl Decode for PlayerInputPacket {
@@ -21,12 +16,5 @@ impl Decode for PlayerInputPacket {
         Ok(Self {
             flags: r.read_u8()?,
         })
-    }
-}
-
-impl Encode for PlayerInputPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_u8(this.flags)?;
-        Ok(())
     }
 }

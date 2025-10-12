@@ -28,6 +28,7 @@ async fn main() {
             event.set_world(world.clone());
             event.set_position((0.5, 75.0, 0.5));
 
+            // Uuugly!
             let player = event.get_player();
             tokio::spawn({
                 let entity = entity.clone();

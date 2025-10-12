@@ -1,0 +1,18 @@
+use crate::protocol::{
+    DataType,
+    decode::{DecodeError, PacketRead},
+    encode::{EncodeError, PacketWrite},
+};
+
+#[derive(Debug)]
+pub struct ArmorTrim {}
+
+impl DataType for ArmorTrim {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
+        todo!()
+    }
+
+    fn encode<W: PacketWrite>(_w: &mut W, _this: &Self) -> Result<(), EncodeError> {
+        todo!()
+    }
+}

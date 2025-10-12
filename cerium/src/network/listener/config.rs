@@ -1,5 +1,4 @@
-use bytes::Bytes;
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 
 use crate::protocol::{
     ProtocolState,
@@ -15,7 +14,7 @@ use crate::registry::{DimensionType, REGISTRIES};
 use crate::{entity::Player, event::player::PlayerConfigEvent, network::client::ClientConnection};
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?).await,
         0x01 => handle_cookie_response(client).await,
@@ -91,6 +90,7 @@ async fn handle_acknowledge_finish_config(
     packet: AcknowledgeFinishConfigPacket,
 ) {
     let _ = packet;
+
     *client.state.lock().await = ProtocolState::Play;
 
     let player = Arc::new(Player::new(client.clone(), client.server.clone()).await);

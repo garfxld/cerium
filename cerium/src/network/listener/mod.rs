@@ -1,6 +1,6 @@
 use crate::network::client::ClientConnection;
 use crate::protocol::{ProtocolState, decode::DecodeError};
-use bytes::Bytes;
+use std::io::Cursor;
 use std::sync::Arc;
 
 mod config;
@@ -13,7 +13,7 @@ impl ClientConnection {
     pub async fn handle_packet(
         self: Arc<Self>,
         id: i32,
-        data: &mut Bytes,
+        data: &mut Cursor<&[u8]>,
     ) -> Result<(), DecodeError> {
         let state = *self.state.lock().await;
         match state {

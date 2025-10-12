@@ -1,4 +1,6 @@
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Biome {
     has_precipitation: bool,
     temperature: f32,
@@ -8,7 +10,7 @@ pub struct Biome {
     effects: BiomeEffects,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct BiomeEffects {
     fog_color: i32,
     water_color: i32,
@@ -33,36 +35,21 @@ struct BiomeEffects {
     music_volume: f32,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct Particle {
     options: ParticleOptions,
     probability: f32,
 }
 
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct ParticleOptions {
     #[serde(rename = "type")]
     r#type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     value: Option<i32>,
 }
-use simdnbt::{
-    ToNbtTag,
-    owned::{NbtCompound, NbtTag},
-};
 
-impl ToNbtTag for ParticleOptions {
-    fn to_nbt_tag(self) -> simdnbt::owned::NbtTag {
-        let mut values = vec![("type".into(), NbtTag::String(self.r#type.clone().into()))];
-        if let Some(value) = self.value {
-            values.push(("value".into(), NbtTag::Int(value)));
-        }
-
-        NbtTag::Compound(NbtCompound::from_values(values))
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct MoodSound {
     sound: String,
     tick_delay: i32,
@@ -70,13 +57,13 @@ struct MoodSound {
     offset: f64,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct AdditionsSound {
     sound: String,
     tick_chance: f64,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, simdnbt::Serialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 struct _Music {
     sound: String,
     min_delay: i32,

@@ -1,19 +1,14 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("ping_request", 0x01)]
 pub struct PingRequestPacket {
     pub timestamp: i64,
 }
 
+impl Packet for PingRequestPacket {}
 impl ClientPacket for PingRequestPacket {}
 
 impl Decode for PingRequestPacket {
@@ -21,12 +16,5 @@ impl Decode for PingRequestPacket {
         Ok(Self {
             timestamp: r.read_i64()?,
         })
-    }
-}
-
-impl Encode for PingRequestPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_i64(this.timestamp)?;
-        Ok(())
     }
 }

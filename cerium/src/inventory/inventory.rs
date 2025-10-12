@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use crate::inventory::item::ItemStack;
+use crate::item::ItemStack;
 
 #[derive(Debug)]
 pub struct PlayerInventory {
@@ -38,7 +38,7 @@ impl PlayerInventory {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::inventory::Material;
+    use crate::item::Material;
 
     #[test]
     pub fn test_player_inventory() {

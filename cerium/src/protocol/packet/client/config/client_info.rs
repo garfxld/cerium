@@ -1,15 +1,9 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("client_information", 0x0D)]
 pub struct ClientInfoPacket {
     locale: String, // 16
     view_distance: u8,
@@ -21,6 +15,7 @@ pub struct ClientInfoPacket {
     particle_status: i32,
 }
 
+impl Packet for ClientInfoPacket {}
 impl ClientPacket for ClientInfoPacket {}
 
 impl Decode for ClientInfoPacket {
@@ -36,19 +31,5 @@ impl Decode for ClientInfoPacket {
             allow_server_listings: r.read_bool()?,
             particle_status:       r.read_varint()?,
         })
-    }
-}
-
-impl Encode for ClientInfoPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_string(this.locale)?;
-        w.write_u8(this.view_distance)?;
-        w.write_varint(this.chat_mode)?;
-        w.write_u8(this.displayed_skin_parts)?;
-        w.write_varint(this.main_hand)?;
-        w.write_bool(this.enable_text_filtering)?;
-        w.write_bool(this.allow_server_listings)?;
-        w.write_varint(this.particle_status)?;
-        Ok(())
     }
 }

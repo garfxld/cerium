@@ -1,28 +1,18 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    read::PacketRead,
-    write::PacketWrite,
+    encode::{Encode, EncodeError, PacketWrite},
+    packet::{Packet, ServerPacket},
 };
 
 #[derive(Debug, Clone)]
-#[packet("login_compression", 0x03)]
 pub struct SetCompressionPacket {
     pub threshold: i32,
 }
 
-impl Decode for SetCompressionPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            threshold: r.read_varint()?,
-        })
-    }
-}
+impl Packet for SetCompressionPacket {}
+impl ServerPacket for SetCompressionPacket {}
 
 impl Encode for SetCompressionPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
         w.write_varint(this.threshold)?;
         Ok(())
     }

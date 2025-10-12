@@ -1,15 +1,9 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("container_click", 0x11)]
 pub struct ClickContainerPacket {
     pub window_id: i32,
     pub state_id: i32,
@@ -20,6 +14,7 @@ pub struct ClickContainerPacket {
     pub carried_item: HashedSlot,
 }
 
+impl Packet for ClickContainerPacket {}
 impl ClientPacket for ClickContainerPacket {}
 
 impl Decode for ClickContainerPacket {
@@ -34,13 +29,6 @@ impl Decode for ClickContainerPacket {
             changed_slots: r.read_array(ChangedSlot::decode)?,
             carried_item:  HashedSlot::decode(r)?,
         })
-    }
-}
-
-impl Encode for ClickContainerPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        todo!();
-        Ok(())
     }
 }
 

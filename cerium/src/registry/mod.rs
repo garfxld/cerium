@@ -2,7 +2,7 @@
 
 use crate::util::Identifier;
 use indexmap::{IndexMap, map::Iter};
-use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use std::{
     collections::HashMap,
     hash::{Hash, Hasher},
@@ -40,7 +40,7 @@ pub use wolf_variant::*;
 #[derive(Debug)]
 pub struct DynamicRegistry<T>
 where
-    T: DeserializeOwned,
+    T: Serialize + DeserializeOwned,
 {
     registry_id: Identifier,
     entries: IndexMap<RegistryKey<T>, T>,
@@ -48,7 +48,7 @@ where
 
 impl<T> DynamicRegistry<T>
 where
-    T: DeserializeOwned,
+    T: Serialize + DeserializeOwned,
     RegistryKey<T>: Eq + Hash,
 {
     pub fn create(name: String, data: String) -> Self {

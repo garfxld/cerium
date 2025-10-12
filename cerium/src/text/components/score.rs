@@ -1,13 +1,14 @@
-use serde::{Deserialize, Serialize};
-use simdnbt::owned;
-
 use crate::text::{Component, ParentComponent, StyledComponent, style::Style};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ScoreComponent {
     name: String,
     objective: String,
+    #[serde(flatten)]
     style: Style,
+    #[serde(rename = "extra", skip_serializing_if = "Vec::is_empty", default)]
     children: Vec<Component>,
 }
 
@@ -48,25 +49,5 @@ impl ParentComponent for ScoreComponent {
 impl From<ScoreComponent> for Component {
     fn from(value: ScoreComponent) -> Self {
         Component::Score(value)
-    }
-}
-
-impl simdnbt::Serialize for ScoreComponent {
-    fn to_compound(self) -> owned::NbtCompound {
-        let mut compound = owned::NbtCompound::new();
-
-        let mut score = owned::NbtCompound::new();
-        score.insert("name", self.name);
-        score.insert("objective", self.objective);
-
-        compound.insert("score", score);
-
-        // Style + Children
-        compound.extend(self.style.to_compound());
-        if !self.children.is_empty() {
-            compound.insert("extra", self.children);
-        }
-
-        compound
     }
 }

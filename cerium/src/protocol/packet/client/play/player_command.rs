@@ -1,21 +1,16 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_command", 0x29)]
 pub struct PlayerCommandPacket {
     pub entity_id: i32,
     pub action_id: i32,
     pub jump_boost: i32,
 }
 
+impl Packet for PlayerCommandPacket {}
 impl ClientPacket for PlayerCommandPacket {}
 
 impl Decode for PlayerCommandPacket {
@@ -25,14 +20,5 @@ impl Decode for PlayerCommandPacket {
             action_id: r.read_varint()?,
             jump_boost: r.read_varint()?,
         })
-    }
-}
-
-impl Encode for PlayerCommandPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_varint(this.entity_id)?;
-        w.write_varint(this.action_id)?;
-        w.write_varint(this.jump_boost)?;
-        Ok(())
     }
 }

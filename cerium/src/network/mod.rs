@@ -1,5 +1,5 @@
 pub mod client;
 
-mod listener;
+pub(crate) mod listener;
 mod reader;
 mod writer;

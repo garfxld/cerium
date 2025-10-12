@@ -150,6 +150,8 @@ pub mod server {
         mod remove_entities;
         mod disconnect;
         mod system_chat_message;
+        mod set_container_slot;
+        mod set_container_content;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -167,6 +169,8 @@ pub mod server {
         pub use remove_entities::RemoveEntitiesPacket;
         pub use disconnect::DisconnectPacket;
         pub use system_chat_message::SystemChatMessagePacket;
+        pub use set_container_slot::SetContainerSlotPacket;
+        pub use set_container_content::SetContainerContentPacket;
     }
 
     pub use handshake::*;
@@ -182,19 +186,22 @@ pub use client::*;
 pub use server::*;
 
 
-use crate::protocol::{decode::Decode, encode::Encode};
+use crate::protocol::{decode::Decode, encode::Encode, ProtocolState};
 
 
-pub trait Packet where Self: Debug + Clone + Decode + Encode {
-    const ID: i32;
-    const RESOURCE_ID: &'static str;
+pub trait Packet where Self: Debug + Clone{
+
 }
 
-pub trait ClientPacket where Self: Packet {
+/// Marks a [`Packet`] as one coming from the client.
+pub trait ClientPacket where Self: Packet + Decode {
 }
 
-pub trait ServerPacket where Self: Packet {
+/// Marks a [`Packet`] as one coming from the server.
+pub trait ServerPacket where Self: Packet + Encode {
 }
+
+
 
 
 #[derive(Debug, Clone)]

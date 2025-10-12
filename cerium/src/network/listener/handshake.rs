@@ -1,15 +1,16 @@
-use crate::protocol::{
-    ProtocolState,
-    decode::{Decode, DecodeError},
-    packet::HandshakePacket,
-};
-use bytes::Bytes;
-use std::sync::Arc;
+use std::{io::Cursor, sync::Arc};
 
-use crate::network::client::ClientConnection;
+use crate::{
+    network::client::ClientConnection,
+    protocol::{
+        ProtocolState,
+        decode::{Decode, DecodeError},
+        packet::HandshakePacket,
+    },
+};
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Bytes) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_handshake(client, HandshakePacket::decode(data)?).await,
         _ => return Err(DecodeError::UnkownPacket(id)),

@@ -1,19 +1,14 @@
-use cerium_protocol_macros::packet;
-
 use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    packet::ClientPacket,
-    read::PacketRead,
-    write::PacketWrite,
+    decode::{Decode, DecodeError, PacketRead},
+    packet::{ClientPacket, Packet},
 };
 
 #[derive(Debug, Clone)]
-#[packet("move_player_status_only", 0x20)]
 pub struct PlayerMovementFlagsPacket {
     pub flags: u8,
 }
 
+impl Packet for PlayerMovementFlagsPacket {}
 impl ClientPacket for PlayerMovementFlagsPacket {}
 
 impl Decode for PlayerMovementFlagsPacket {
@@ -21,12 +16,5 @@ impl Decode for PlayerMovementFlagsPacket {
         Ok(Self {
             flags: r.read_u8()?,
         })
-    }
-}
-
-impl Encode for PlayerMovementFlagsPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_u8(this.flags)?;
-        Ok(())
     }
 }

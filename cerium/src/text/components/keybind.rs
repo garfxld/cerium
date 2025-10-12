@@ -1,12 +1,13 @@
-use serde::{Deserialize, Serialize};
-use simdnbt::owned;
-
 use crate::text::{Component, ParentComponent, StyledComponent, style::Style};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, PartialEq, Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct KeybindComponent {
     keybind: String,
+    #[serde(flatten)]
     style: Style,
+    #[serde(rename = "extra", skip_serializing_if = "Vec::is_empty", default)]
     children: Vec<Component>,
 }
 
@@ -42,20 +43,5 @@ impl ParentComponent for KeybindComponent {
 impl From<KeybindComponent> for Component {
     fn from(value: KeybindComponent) -> Self {
         Component::Keybind(value)
-    }
-}
-
-impl simdnbt::Serialize for KeybindComponent {
-    fn to_compound(self) -> owned::NbtCompound {
-        let mut compound = owned::NbtCompound::new();
-        compound.insert("keybind", self.keybind);
-
-        // Style + Children
-        compound.extend(self.style.to_compound());
-        if !self.children.is_empty() {
-            compound.insert("extra", self.children);
-        }
-
-        compound
     }
 }

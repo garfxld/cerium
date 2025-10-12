@@ -1,8 +1,5 @@
-use std::{
-    future::Future,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{future::Future, sync::Arc, time::Duration};
+use tokio::time::{Interval, interval};
 
 use crate::Server;
 
@@ -12,28 +9,24 @@ pub trait Tickable {
 
 pub struct Ticker {
     server: Arc<Server>,
-    last_tick: Instant,
+    interval: Interval,
 }
 
 impl Ticker {
     pub fn new(server: Arc<Server>) -> Self {
         Self {
             server,
-            last_tick: Instant::now(),
+            interval: interval(Duration::from_millis(50)),
         }
     }
 
     pub async fn tick(&mut self) {
-        if self.last_tick.elapsed() > Duration::from_millis(20) {
-            return;
-        }
+        self.interval.tick().await;
 
         let server = Arc::clone(&self.server);
 
         for player in &*server.players.lock().await {
             player.tick().await;
         }
-
-        self.last_tick = Instant::now();
     }
 }

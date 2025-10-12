@@ -6,6 +6,7 @@ edition = "2024"
 build = "build/build.rs"
 
 [dependencies]
+cerium-nbt = { workspace = true }
 async-compression = { workspace = true }
 bytes = { workspace = true }
 rand = { workspace = true }
@@ -14,13 +15,12 @@ thiserror = { workspace = true }
 tokio = { workspace = true }
 ureq = { workspace = true }
 uuid = { workspace = true }
-simdnbt = { workspace = true }
 paste = { workspace = true }
-cerium-protocol-macros = { workspace = true }
 rustc-hash = { workspace = true }
 bitflags = { workspace = true }
 indexmap = { workspace = true }
 serde_json = { workspace = true }
+phf = { workspace = true }
 
 # Logging
 log = { workspace = true }

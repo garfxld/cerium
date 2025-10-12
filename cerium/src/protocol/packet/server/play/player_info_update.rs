@@ -1,35 +1,27 @@
 use bitflags::bitflags;
-use cerium_protocol_macros::packet;
 use uuid::Uuid;
 
-use crate::auth::Property;
-use crate::protocol::{
-    decode::{Decode, DecodeError},
-    encode::{Encode, EncodeError},
-    read::PacketRead,
-    write::PacketWrite,
+use crate::{
+    auth::Property,
+    protocol::{
+        encode::{Encode, EncodeError, PacketWrite},
+        packet::{Packet, ServerPacket},
+    },
 };
 
 #[derive(Debug, Clone)]
-#[packet("player_info_update", 0x3F)]
 pub struct PlayerInfoUpdatePacket {
     pub actions: u8,
     pub players: Vec<PlayerEntry>,
 }
 
-impl Decode for PlayerInfoUpdatePacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            actions: r.read_u8()?,
-            players: r.read_array(PlayerEntry::decode)?,
-        })
-    }
-}
+impl Packet for PlayerInfoUpdatePacket {}
+impl ServerPacket for PlayerInfoUpdatePacket {}
 
 impl Encode for PlayerInfoUpdatePacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
         w.write_u8(this.actions)?;
-        w.write_array(this.players, PlayerEntry::encode)?;
+        w.write_array(&this.players, PlayerEntry::encode)?;
         Ok(())
     }
 }
@@ -54,25 +46,16 @@ pub struct PlayerEntry {
     pub player_actions: Vec<PlayerAction>,
 }
 
-impl Decode for PlayerEntry {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Ok(Self {
-            uuid: r.read_uuid()?,
-            player_actions: todo!(),
-        })
-    }
-}
-
 impl Encode for PlayerEntry {
-    fn encode<W: PacketWrite>(w: &mut W, this: Self) -> Result<(), EncodeError> {
-        w.write_uuid(this.uuid)?;
-        w.write_unprefixed_array(this.player_actions, |buffer, value| match value {
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_uuid(&this.uuid)?;
+        w.write_unprefixed_array(&this.player_actions, |buffer, value| match value {
             PlayerAction::AddPlayer { name, properties } => {
                 buffer.write_string(name)?;
                 buffer.write_array(properties, Property::encode)?;
                 Ok(())
             }
-            PlayerAction::UpdateListed { listed } => buffer.write_bool(listed),
+            PlayerAction::UpdateListed { listed } => buffer.write_bool(*listed),
             _ => todo!(),
         });
         Ok(())
