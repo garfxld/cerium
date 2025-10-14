@@ -9,8 +9,7 @@ use cerium::text::{
 };
 use cerium::world::{Block, World};
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let server = Server::new();
 
     let world = World::new(&DimensionType::OVERWORLD);
@@ -36,10 +35,9 @@ async fn main() {
                     send_text(player).await;
                 }
             });
-        })
-        .await;
+        });
 
-    server.bind("127.0.0.1:25565").await.unwrap();
+    server.bind("127.0.0.1:25565").unwrap();
 }
 
 async fn send_text(player: Arc<Player>) {

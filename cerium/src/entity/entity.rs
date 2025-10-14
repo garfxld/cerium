@@ -29,7 +29,7 @@ impl Entity {
 
     /// Generates a new unique entity id.
     pub fn generate_id() -> i32 {
-        static CURRENT_ID: AtomicI32 = AtomicI32::new(0);
+        static CURRENT_ID: AtomicI32 = AtomicI32::new(1);
         CURRENT_ID.fetch_add(1, Ordering::Relaxed)
     }
 
@@ -58,16 +58,14 @@ impl Entity {
         // todo: teleport
     }
 
-    pub async fn show_for(&self, player: Arc<Player>) {
-        player.send_packet::<SpawnEntityPacket>(self.into()).await;
+    pub fn show_for(&self, player: Arc<Player>) {
+        player.send_packet::<SpawnEntityPacket>(self.into());
     }
 
-    pub async fn hide_for(&self, player: Arc<Player>) {
-        player
-            .send_packet(RemoveEntitiesPacket {
-                entity_ids: vec![self.id()],
-            })
-            .await;
+    pub fn hide_for(&self, player: Arc<Player>) {
+        player.send_packet(RemoveEntitiesPacket {
+            entity_ids: vec![self.id()],
+        });
     }
 }
 

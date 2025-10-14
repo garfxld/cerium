@@ -1,11 +1,14 @@
-use crate::protocol::{
-    decode::{Decode, DecodeError, PacketRead},
-    packet::{ClientPacket, Packet},
+use crate::{
+    entity::Hand,
+    protocol::{
+        decode::{Decode, DecodeError, PacketRead},
+        packet::{ClientPacket, Packet},
+    },
 };
 
 #[derive(Debug, Clone)]
 pub struct UseItemOnPacket {
-    pub hand: i32, // VarInt Enum (Hand)
+    pub hand: Hand,
     pub position: i64,
     pub face: i32, // VarInt Enum?
     pub cursor_x: f32,
@@ -23,7 +26,7 @@ impl Decode for UseItemOnPacket {
     #[rustfmt::skip]
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
-            hand:             r.read_varint()?,
+            hand:             Hand::decode(r)?,
             position:         r.read_i64()?,
             face:             r.read_varint()?,
             cursor_x:         r.read_f32()?,

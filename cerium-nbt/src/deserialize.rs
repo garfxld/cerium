@@ -1,5 +1,6 @@
 use std::io::Read;
 
+use bytes::Buf;
 use serde::{
     Deserialize,
     de::{self, DeserializeSeed, IntoDeserializer as _, MapAccess, SeqAccess, Visitor},
@@ -11,25 +12,25 @@ use crate::{
 };
 
 #[allow(unused)]
-pub fn from_bytes_named<'a, T: Deserialize<'a>>(r: impl Read) -> Result<T> {
+pub fn from_bytes_named<'a, T: Deserialize<'a>>(r: impl Buf) -> Result<T> {
     let mut deserializer = Deserializer::new(r, true);
     T::deserialize(&mut deserializer)
 }
 
 #[allow(unused)]
-pub fn from_bytes_unnamed<'a, T: Deserialize<'a>>(r: impl Read) -> Result<T> {
+pub fn from_bytes_unnamed<'a, T: Deserialize<'a>>(r: impl Buf) -> Result<T> {
     let mut deserializer = Deserializer::new(r, false);
     T::deserialize(&mut deserializer)
 }
 
-pub struct Deserializer<R: Read> {
+pub struct Deserializer<R: Buf> {
     reader: R,
     named: bool,
     tag_to_deserialize_stack: Option<u8>,
     in_list: bool,
 }
 
-impl<R: Read> Deserializer<R> {
+impl<R: Buf> Deserializer<R> {
     pub fn new(input: R, named: bool) -> Self {
         Deserializer {
             reader: input,
@@ -54,27 +55,16 @@ macro_rules! read_number_be {
 #[allow(unused)]
 pub trait ReadExt
 where
-    Self: Read,
+    Self: Buf,
 {
-    read_number_be!(get_u8_be, u8);
-    read_number_be!(get_i8_be, i8);
-    read_number_be!(get_u16_be, u16);
-    read_number_be!(get_i16_be, i16);
-    read_number_be!(get_u32_be, u32);
-    read_number_be!(get_i32_be, i32);
-    read_number_be!(get_u64_be, u64);
-    read_number_be!(get_i64_be, i64);
-    read_number_be!(get_f32_be, f32);
-    read_number_be!(get_f64_be, f64);
-
     fn read_boxed_slice(&mut self, count: usize) -> Result<Box<[u8]>> {
         let mut buf = vec![0u8; count];
-        self.read_exact(&mut buf).map_err(Error::Incomplete)?;
+        self.copy_to_slice(&mut buf);
         Ok(buf.into())
     }
 }
 
-impl<R: Read> ReadExt for R {}
+impl<R: Buf> ReadExt for R {}
 
 macro_rules! unsupported_type {
     ($ty:ty) => {
@@ -91,7 +81,7 @@ macro_rules! unsupported_type {
     };
 }
 
-impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
+impl<'de, R: Buf> de::Deserializer<'de> for &mut Deserializer<R> {
     type Error = Error;
 
     serde::forward_to_deserialize_any! { i8 i16 i32 i64 f32 f64 char str string unit unit_struct seq tuple tuple_struct bytes newtype_struct byte_buf }
@@ -112,14 +102,14 @@ impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
             )),
             LIST_ID | INT_ARRAY_ID | LONG_ARRAY_ID | BYTE_ARRAY_ID => {
                 let list_type = match tag_to_deserialize {
-                    LIST_ID => self.reader.get_u8_be()?,
+                    LIST_ID => self.reader.try_get_u8().unwrap(),
                     INT_ARRAY_ID => INT_ID,
                     LONG_ARRAY_ID => LONG_ID,
                     BYTE_ARRAY_ID => BYTE_ID,
                     _ => unreachable!(),
                 };
 
-                let remaining_values = self.reader.get_i32_be()?;
+                let remaining_values = self.reader.try_get_i32().unwrap();
                 if remaining_values < 0 {
                     return Err(Error::NegativeLength(remaining_values));
                 }
@@ -153,7 +143,7 @@ impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
         V: Visitor<'de>,
     {
         if self.tag_to_deserialize_stack.unwrap() == BYTE_ID {
-            let value = self.reader.get_u8_be()?;
+            let value = self.reader.try_get_u8().unwrap();
             if value != 0 {
                 return visitor.visit_bool(true);
             }
@@ -166,7 +156,7 @@ impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
         V: Visitor<'de>,
     {
         if self.in_list {
-            let value = self.reader.get_u8_be()?;
+            let value = self.reader.try_get_u8().unwrap();
             visitor.visit_u8::<Error>(value)
         } else {
             Err(Error::UnsupportedType(
@@ -198,14 +188,14 @@ impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
                 )));
             }
         } else {
-            let next_byte = self.reader.get_u8_be()?;
+            let next_byte = self.reader.try_get_u8().unwrap();
             if next_byte != COMPOUND_ID {
                 return Err(Error::MissingRootCompound(next_byte));
             }
 
             if self.named {
                 // Consume struct name, similar to get_nbt_string but without cesu8::from_java_cesu8
-                let length = self.reader.get_u16_be()? as usize;
+                let length = self.reader.try_get_u16().unwrap() as usize;
                 let _ = self.reader.read_boxed_slice(length)?;
             }
         }
@@ -264,21 +254,21 @@ impl<'de, R: Read> de::Deserializer<'de> for &mut Deserializer<R> {
     }
 }
 
-pub fn get_nbt_string<R: Read>(bytes: &mut R) -> Result<String> {
-    let length = bytes.get_u16_be()? as usize;
+pub fn get_nbt_string<R: Buf>(bytes: &mut R) -> Result<String> {
+    let length = bytes.try_get_u16().unwrap() as usize;
     let bytes = bytes.read_boxed_slice(length)?;
     Ok(String::from_utf8(bytes.to_vec()).unwrap())
 }
 
-struct CompoundAccess<'a, R: Read> {
+struct CompoundAccess<'a, R: Buf> {
     de: &'a mut Deserializer<R>,
 }
 
-impl<'de, R: Read> MapAccess<'de> for CompoundAccess<'_, R> {
+impl<'de, R: Buf> MapAccess<'de> for CompoundAccess<'_, R> {
     type Error = Error;
 
     fn next_key_seed<K: DeserializeSeed<'de>>(&mut self, seed: K) -> Result<Option<K::Value>> {
-        let tag = self.de.reader.get_u8_be()?;
+        let tag = self.de.reader.try_get_u8().unwrap();
         self.de.tag_to_deserialize_stack = Some(tag);
 
         if tag == END_ID {
@@ -296,11 +286,11 @@ impl<'de, R: Read> MapAccess<'de> for CompoundAccess<'_, R> {
     }
 }
 
-struct MapKey<'a, R: Read> {
+struct MapKey<'a, R: Buf> {
     de: &'a mut Deserializer<R>,
 }
 
-impl<'de, R: Read> de::Deserializer<'de> for MapKey<'_, R> {
+impl<'de, R: Buf> de::Deserializer<'de> for MapKey<'_, R> {
     type Error = Error;
 
     serde::forward_to_deserialize_any! {
@@ -314,13 +304,13 @@ impl<'de, R: Read> de::Deserializer<'de> for MapKey<'_, R> {
     }
 }
 
-struct ListAccess<'a, R: Read> {
+struct ListAccess<'a, R: Buf> {
     de: &'a mut Deserializer<R>,
     remaining_values: usize,
     list_type: u8,
 }
 
-impl<'de, R: Read> SeqAccess<'de> for ListAccess<'_, R> {
+impl<'de, R: Buf> SeqAccess<'de> for ListAccess<'_, R> {
     type Error = Error;
 
     fn size_hint(&self) -> Option<usize> {

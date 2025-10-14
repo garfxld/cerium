@@ -33,13 +33,11 @@ impl Encode for SpawnEntityPacket {
         w.write_f64(this.x)?;
         w.write_f64(this.y)?;
         w.write_f64(this.z)?;
-        w.write_u8(this.pitch)?;
-        w.write_u8(this.yaw)?;
-        w.write_u8(this.head_yaw)?;
+        w.write_u8(0)?; // Velocity
+        w.write_i8(this.pitch as i8)?;
+        w.write_i8(this.yaw as i8)?;
+        w.write_i8(this.head_yaw as i8)?;
         w.write_varint(this.data)?;
-        w.write_i16(this.velocity_x)?;
-        w.write_i16(this.velocity_y)?;
-        w.write_i16(this.velocity_z)?;
         Ok(())
     }
 }

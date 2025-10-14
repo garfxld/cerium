@@ -1,4 +1,4 @@
-use crate::network::client::ClientConnection;
+use crate::network::client::Connection;
 use crate::protocol::{ProtocolState, decode::DecodeError};
 use std::io::Cursor;
 use std::sync::Arc;
@@ -9,13 +9,13 @@ mod login;
 mod play;
 mod status;
 
-impl ClientConnection {
+impl Connection {
     pub async fn handle_packet(
         self: Arc<Self>,
         id: i32,
         data: &mut Cursor<&[u8]>,
     ) -> Result<(), DecodeError> {
-        let state = *self.state.lock().await;
+        let state = self.state().await;
         match state {
             ProtocolState::Handshake => handshake::handle_packet(self, id, data).await,
             ProtocolState::Status => status::handle_packet(self, id, data).await,

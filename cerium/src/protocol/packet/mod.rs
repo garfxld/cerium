@@ -1,4 +1,4 @@
-#![allow(unused, ambiguous_glob_reexports)]
+#![allow(ambiguous_glob_reexports)]
 #![cfg_attr(rustfmt, rustfmt_skip)] // prevent packet defenitions from re-ordering
 
 pub mod client {
@@ -127,10 +127,12 @@ pub mod server {
         mod known_packs;
         mod registry_data;
         mod finish_config;
+        mod feature_flags;
 
         pub use known_packs::KnownPacksPacket;
         pub use registry_data::*;
         pub use finish_config::FinishConfigPacket;
+        pub use feature_flags::FeatureFlagsPacket;
     }
 
     pub mod play {
@@ -173,7 +175,6 @@ pub mod server {
         pub use set_container_content::SetContainerContentPacket;
     }
 
-    pub use handshake::*;
     pub use status::*;
     pub use login::*;
     pub use config::*;
@@ -186,10 +187,10 @@ pub use client::*;
 pub use server::*;
 
 
-use crate::protocol::{decode::Decode, encode::Encode, ProtocolState};
+use crate::protocol::{decode::Decode, encode::Encode};
 
 
-pub trait Packet where Self: Debug + Clone{
+pub trait Packet where Self: Debug + Clone {
 
 }
 

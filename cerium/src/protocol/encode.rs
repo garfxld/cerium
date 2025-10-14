@@ -1,23 +1,6 @@
+use bytes::BufMut;
 use std::any::TypeId;
-
 use thiserror::Error;
-
-#[derive(Error, Debug)]
-pub enum EncodeError {
-    #[error("{0}")]
-    Encode(String),
-    #[error("{0}")]
-    IoError(std::io::Error),
-}
-
-pub trait Encode
-where
-    Self: Sized,
-{
-    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<()>;
-}
-
-use bytes::{BufMut, BytesMut};
 use uuid::Uuid;
 
 use crate::{
@@ -26,7 +9,7 @@ use crate::{
         packet::{
             ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
             DisconnectPacket, EncryptionRequestPacket, EntityPositionPacket,
-            EntityPositionRotationPacket, FinishConfigPacket, GameEventPacket,
+            EntityPositionRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket,
             LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, Packet, PlayerInfoUpdatePacket,
             PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket,
             ServerPacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket,
@@ -39,6 +22,21 @@ use crate::{
     util::Identifier,
 };
 use cerium_nbt::{Nbt, NbtTag};
+
+#[derive(Error, Debug)]
+pub enum EncodeError {
+    #[error("{0}")]
+    Encode(String),
+    #[error("std::io::Error - {0}")]
+    IoError(std::io::Error),
+}
+
+pub trait Encode
+where
+    Self: Sized,
+{
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<()>;
+}
 
 type Result<T> = core::result::Result<T, EncodeError>;
 
@@ -108,7 +106,7 @@ macro_rules! write_impl {
     };
 }
 
-impl PacketWrite for BytesMut {
+impl<B: BufMut> PacketWrite for B {
     write_impl!(u8);
     write_impl!(i8);
     write_impl!(u16);
@@ -284,7 +282,7 @@ where
         // _ if type_id == TypeId::of::<AddResourcePackPacket>() => 0x09,
         // _ if type_id == TypeId::of::<StoreCookiePacket>() => 0x0A,
         // _ if type_id == TypeId::of::<TransferPacket>() => 0x0B,
-        // _ if type_id == TypeId::of::<FeatureFlagsPacket>() => 0x0C,
+        _ if type_id == TypeId::of::<FeatureFlagsPacket>() => 0x0C,
         // _ if type_id == TypeId::of::<UpdateTagsPacket>() => 0x0D,
         _ if type_id == TypeId::of::<KnownPacksPacket>() => 0x0E,
         // _ if type_id == TypeId::of::<CustomReportDetailsPacket>() => 0x0F,

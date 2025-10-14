@@ -1,5 +1,6 @@
-use std::io::{Read, Write};
+use std::io::Write;
 
+use bytes::Buf;
 use serde::{
     Serialize,
     ser::{self, SerializeSeq},
@@ -37,35 +38,35 @@ impl NbtTag {
         unsafe { *(self as *const Self as *const u8) }
     }
 
-    pub fn deserialize_data<R: Read>(reader: &mut R, tag_id: u8) -> Result<NbtTag, Error> {
+    pub fn deserialize_data<R: Buf>(reader: &mut R, tag_id: u8) -> Result<NbtTag, Error> {
         match tag_id {
             END_ID => Ok(NbtTag::End),
             BYTE_ID => {
-                let byte = reader.get_i8_be()?;
+                let byte = reader.try_get_i8().unwrap();
                 Ok(NbtTag::Byte(byte))
             }
             SHORT_ID => {
-                let short = reader.get_i16_be()?;
+                let short = reader.try_get_i16().unwrap();
                 Ok(NbtTag::Short(short))
             }
             INT_ID => {
-                let int = reader.get_i32_be()?;
+                let int = reader.try_get_i32().unwrap();
                 Ok(NbtTag::Int(int))
             }
             LONG_ID => {
-                let long = reader.get_i64_be()?;
+                let long = reader.try_get_i64().unwrap();
                 Ok(NbtTag::Long(long))
             }
             FLOAT_ID => {
-                let float = reader.get_f32_be()?;
+                let float = reader.try_get_f32().unwrap();
                 Ok(NbtTag::Float(float))
             }
             DOUBLE_ID => {
-                let double = reader.get_f64_be()?;
+                let double = reader.try_get_f64().unwrap();
                 Ok(NbtTag::Double(double))
             }
             BYTE_ARRAY_ID => {
-                let len = reader.get_i32_be()?;
+                let len = reader.try_get_i32().unwrap();
                 if len < 0 {
                     return Err(Error::NegativeLength(len));
                 }
@@ -75,8 +76,8 @@ impl NbtTag {
             }
             STRING_ID => Ok(NbtTag::String(get_nbt_string(reader)?)),
             LIST_ID => {
-                let tag_type_id = reader.get_u8_be()?;
-                let len = reader.get_i32_be()?;
+                let tag_type_id = reader.try_get_u8().unwrap();
+                let len = reader.try_get_i32().unwrap();
                 if len < 0 {
                     return Err(Error::NegativeLength(len));
                 }
@@ -91,7 +92,7 @@ impl NbtTag {
             }
             COMPOUND_ID => Ok(NbtTag::Compound(NbtCompound::deserialize_content(reader)?)),
             INT_ARRAY_ID => {
-                let len = reader.get_i32_be()?;
+                let len = reader.try_get_i32().unwrap();
                 if len < 0 {
                     return Err(Error::NegativeLength(len));
                 }
@@ -99,13 +100,13 @@ impl NbtTag {
                 let len = len as usize;
                 let mut int_array = Vec::with_capacity(len);
                 for _ in 0..len {
-                    let int = reader.get_i32_be()?;
+                    let int = reader.try_get_i32().unwrap();
                     int_array.push(int);
                 }
                 Ok(NbtTag::IntArray(int_array))
             }
             LONG_ARRAY_ID => {
-                let len = reader.get_i32_be()?;
+                let len = reader.try_get_i32().unwrap();
                 if len < 0 {
                     return Err(Error::NegativeLength(len));
                 }
@@ -113,7 +114,7 @@ impl NbtTag {
                 let len = len as usize;
                 let mut long_array = Vec::with_capacity(len);
                 for _ in 0..len {
-                    let long = reader.get_i64_be()?;
+                    let long = reader.try_get_i64().unwrap();
                     long_array.push(long);
                 }
                 Ok(NbtTag::LongArray(long_array))
@@ -530,7 +531,7 @@ impl ser::Serializer for Serializer {
         Ok(StructVariantSerializer {
             variant: variant.to_string(),
             children: vec![],
-            current_key: None,
+            // current_key: None,
         })
     }
 }
@@ -663,7 +664,7 @@ impl ser::SerializeStruct for MapSerializer {
 pub struct StructVariantSerializer {
     variant: String,
     children: Vec<(String, NbtTag)>,
-    current_key: Option<String>,
+    // current_key: Option<String>,
 }
 
 impl ser::SerializeStructVariant for StructVariantSerializer {

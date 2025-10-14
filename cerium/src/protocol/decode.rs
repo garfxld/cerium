@@ -1,9 +1,9 @@
-use std::io::Read;
+use bytes::Buf;
 use thiserror::Error;
+use uuid::Uuid;
 
 use crate::{text::Component, util::Identifier};
 use cerium_nbt::Nbt;
-use uuid::Uuid;
 
 pub trait Decode
 where
@@ -16,6 +16,8 @@ where
 pub enum DecodeError {
     #[error("{0}")]
     Decode(String),
+    #[error("Not enough bytes to read. (Requested: {1}, Available: {0})")]
+    NotEnoughBytes(usize, usize),
     #[error("Unknown Packet: {0}")]
     UnkownPacket(i32),
 }
@@ -69,6 +71,8 @@ pub trait PacketRead {
     where
         F: FnMut(&mut Self) -> Result<T>;
 
+    fn read_bytes(&mut self, max: i32) -> Result<Vec<u8>>;
+
     fn read_boxed_slice(&mut self) -> Result<Box<[u8]>>;
 
     fn read_component(&mut self) -> Result<Component>;
@@ -78,15 +82,14 @@ macro_rules! read_impl {
     ($ty:ty) => {
         paste::paste! {
             fn [<read_ $ty>](&mut self) -> Result<$ty> {
-                let mut buf = [0u8; std::mem::size_of::<$ty>()];
-                self.read_exact(&mut buf).unwrap();
-                Ok($ty::from_be_bytes(buf))
+                self.[<try_get_ $ty>]()
+                    .map_err(|e| DecodeError::NotEnoughBytes(e.available, e.requested))
             }
         }
     };
 }
 
-impl<R: Read> PacketRead for R {
+impl<R: Buf> PacketRead for R {
     read_impl!(u8);
     read_impl!(i8);
     read_impl!(u16);
@@ -111,8 +114,9 @@ impl<R: Read> PacketRead for R {
 
     fn read_string_limited<const MAX: usize>(&mut self) -> Result<String> {
         let length = self.read_varint()? as usize;
+
         let mut buf = vec![0u8; length];
-        self.read_exact(&mut buf).unwrap();
+        self.copy_to_slice(&mut buf);
 
         String::from_utf8(buf).map_err(|e| DecodeError::Decode(e.to_string()))
     }
@@ -170,12 +174,22 @@ impl<R: Read> PacketRead for R {
         Ok(list)
     }
 
+    fn read_bytes(&mut self, max: i32) -> Result<Vec<u8>> {
+        let mut len = self.remaining();
+        if max != -1 {
+            len = std::cmp::min(len, max as usize);
+        }
+
+        let mut buf = vec![0u8; len as usize];
+        self.copy_to_slice(&mut buf);
+        Ok(buf)
+    }
+
     fn read_boxed_slice(&mut self) -> Result<Box<[u8]>> {
         let length = self.read_varint()?;
+
         let mut buf = vec![0u8; length as usize];
-
-        self.read_exact(&mut buf).unwrap();
-
+        self.copy_to_slice(&mut buf);
         Ok(buf.into())
     }
 

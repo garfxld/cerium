@@ -7,11 +7,14 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use tokio::net::{
-    TcpStream,
-    tcp::{OwnedReadHalf, OwnedWriteHalf},
+use tokio::sync::{Mutex, RwLock, mpsc};
+use tokio::{
+    net::{
+        TcpStream,
+        tcp::{OwnedReadHalf, OwnedWriteHalf},
+    },
+    sync::mpsc::{Receiver, Sender},
 };
-use tokio::sync::Mutex;
 
 use crate::{
     Server,
@@ -20,7 +23,8 @@ use crate::{
     network::{reader::StreamReader, writer::StreamWriter},
     protocol::{
         ProtocolState,
-        packet::{Packet, server::play},
+        encode::{EncodeError, packet_id},
+        packet::{DisconnectPacket, Packet},
     },
     text::Component,
 };
@@ -29,114 +33,199 @@ use crate::{
     protocol::{encode::PacketWrite as _, packet::ServerPacket},
 };
 
-pub struct ClientConnection {
+pub struct Connection {
     addr: SocketAddr,
     sreader: Mutex<StreamReader<OwnedReadHalf>>,
     swriter: Mutex<StreamWriter<OwnedWriteHalf>>,
-
-    pub state: Mutex<ProtocolState>,
-    pub game_profile: Mutex<Option<GameProfile>>,
-    pub key_store: Arc<KeyStore>,
-    pub verify_token: Mutex<[u8; 4]>,
-    pub player: Mutex<Option<Arc<Player>>>,
-    pub closed: AtomicBool,
-    pub server: Arc<Server>,
+    packet_tx: Sender<BytesMut>,
+    state: RwLock<ProtocolState>,
+    pub(crate) game_profile: Mutex<Option<GameProfile>>,
+    pub(crate) key_store: Arc<KeyStore>,
+    pub(crate) verify_token: Mutex<[u8; 4]>,
+    pub(crate) player: Mutex<Option<Arc<Player>>>,
+    closed: AtomicBool,
+    server: Arc<Server>,
 }
 
-impl ClientConnection {
-    pub fn new(addr: SocketAddr, stream: TcpStream, server: Arc<Server>) -> Self {
+impl Connection {
+    pub fn new(
+        addr: SocketAddr,
+        stream: TcpStream,
+        server: Arc<Server>,
+    ) -> (Arc<Self>, Receiver<BytesMut>) {
         let (rstream, wstream) = stream.into_split();
+        let (tx, rx) = mpsc::channel(128);
 
-        Self {
+        let connection = Arc::new(Self {
             addr,
             sreader: Mutex::new(StreamReader::new(rstream)),
             swriter: Mutex::new(StreamWriter::new(wstream)),
-
-            state: Mutex::new(ProtocolState::Handshake),
+            packet_tx: tx,
+            state: RwLock::new(ProtocolState::Handshake),
             game_profile: Mutex::new(None),
             key_store: server.key_store(),
             verify_token: Mutex::new([0; 4]),
             player: Mutex::new(None),
             closed: AtomicBool::new(false),
             server,
-        }
+        });
+
+        (connection, rx)
     }
 
-    pub fn addr(&self) -> SocketAddr {
-        self.addr
+    pub async fn accept(addr: SocketAddr, stream: TcpStream, server: Arc<Server>) {
+        let (conn, mut rx) = Connection::new(addr, stream, server.clone());
+
+        let rtask = server.handle().spawn({
+            let conn = conn.clone();
+            async move {
+                conn.read_loop().await;
+            }
+        });
+        let wtask = server.handle().spawn(async move {
+            conn.write_loop(&mut rx).await;
+        });
+
+        tokio::try_join!(rtask, wtask).unwrap();
+
+        server.players.lock().await.retain(|p| p.addr() != addr);
+    }
+
+    pub async fn set_compression(&self, threshold: i32) {
+        self.swriter.lock().await.set_compression(threshold);
+        self.sreader.lock().await.set_compression(threshold);
+    }
+
+    pub async fn set_encryption(&self, shared_secret: &[u8]) {
+        self.sreader.lock().await.set_encryption(shared_secret);
+        self.swriter.lock().await.set_encryption(shared_secret);
     }
 
     pub async fn read_loop(self: Arc<Self>) {
         let this = self.clone();
         while !this.closed() {
             let this = this.clone();
-
             let packet = {
-                let mut decoder = self.sreader.lock().await;
-                match decoder.read_packet().await {
+                match this.sreader.lock().await.read_packet().await {
                     Ok(v) => v,
                     Err(_) => break,
                 }
             };
-            let mut data = Cursor::new(packet.data());
 
-            if let Err(e) = this.handle_packet(packet.id(), &mut data).await {
-                log::error!("error: {}", e);
+            if let Err(e) = this
+                .handle_packet(packet.id(), &mut Cursor::new(packet.data()))
+                .await
+            {
+                log::error!("Packet handling error: {}", e);
                 break;
-            };
+            }
         }
     }
 
-    pub async fn set_encryption(&self, shared_secret: &[u8]) {
-        log::debug!("set_encryption {:?}", shared_secret);
-        self.sreader.lock().await.set_encryption(shared_secret);
-        self.swriter.lock().await.set_encryption(shared_secret);
+    pub async fn write_loop(self: Arc<Self>, rx: &mut Receiver<BytesMut>) {
+        while !self.closed() {
+            let Some(data) = rx.recv().await else {
+                self.close();
+                break;
+            };
+
+            self.write_packet(data).await;
+        }
     }
 
-    pub async fn set_compression(&self, threshold: i32) {
-        log::debug!("set_compression {}", threshold);
-        self.sreader.lock().await.set_compression(threshold);
-        self.swriter.lock().await.set_compression(threshold);
+    pub async fn set_state(&self, state: ProtocolState) {
+        *self.state.write().await = state;
     }
 
-    async fn state(&self) -> ProtocolState {
-        *self.state.lock().await
+    pub async fn state(&self) -> ProtocolState {
+        *self.state.read().await
     }
 
-    pub async fn send_packet<P>(&self, packet: P)
+    pub fn addr(&self) -> SocketAddr {
+        self.addr
+    }
+
+    pub fn send_packet<P>(&self, packet: P)
     where
         P: Packet + ServerPacket + 'static,
     {
-        let mut data = BytesMut::new();
-        let packet_id = crate::protocol::encode::packet_id::<P>(&self.state().await);
-        let Some(packet_id) = packet_id else {
-            panic!(
-                "Failed to find packet id for Packet '{}'.",
-                std::any::type_name_of_val(&packet)
-            );
+        let data = match self.encode_packet(packet) {
+            Ok(v) => v,
+            Err(_) => {
+                return;
+            }
         };
 
-        data.write_varint(packet_id).unwrap();
-        P::encode(&mut data, &packet).unwrap();
-
-        let mut swriter = self.swriter.lock().await;
-        if let Err(_) = swriter.write_packet(&data.to_vec()).await {
+        // Enqueue packet
+        if let Err(_) = self.packet_tx.try_send(data) {
+            log::warn!("Failed to enqueue packet. ({})", std::any::type_name::<P>());
             self.close();
-        };
-    }
-
-    pub async fn kick(&self, reason: Component) {
-        match *self.state.lock().await {
-            ProtocolState::Play => self.send_packet(play::DisconnectPacket { reason }).await,
-            _ => todo!(),
         }
     }
 
+    pub async fn send_packet_now<P>(&self, packet: P)
+    where
+        P: Packet + ServerPacket + 'static,
+    {
+        let data = match self.encode_packet(packet) {
+            Ok(v) => v,
+            Err(_) => {
+                return;
+            }
+        };
+
+        // Write the packet immediately
+        self.write_packet(data).await;
+    }
+
+    fn encode_packet<P>(&self, packet: P) -> Result<BytesMut, EncodeError>
+    where
+        P: Packet + ServerPacket + 'static,
+    {
+        let state = self.state.try_read().unwrap();
+
+        let Some(packet_id) = packet_id::<P>(&state) else {
+            log::error!(
+                "Failed to resolve ID for packet. ({})",
+                std::any::type_name::<P>()
+            );
+            self.close();
+            return Err(EncodeError::Encode("".to_string()));
+        };
+
+        let mut data = BytesMut::new();
+        data.write_varint(packet_id)?;
+        P::encode(&mut data, &packet)?;
+        Ok(data)
+    }
+
+    async fn write_packet(&self, data: BytesMut) {
+        let mut swriter = self.swriter.lock().await;
+
+        if let Err(err) = swriter.write_packet(&data).await {
+            log::error!("Failed to send packet: {}", err);
+            self.close();
+            return;
+        }
+    }
+
+    pub fn kick(&self, reason: Component) {
+        match *self.state.try_read().unwrap() {
+            ProtocolState::Login => {} // LoginDisconnectPacket { reason: todo!() },
+            _ => self.send_packet(DisconnectPacket { reason }),
+        }
+        self.close();
+    }
+
+    pub fn server(&self) -> &Arc<Server> {
+        &self.server
+    }
+
     pub fn closed(&self) -> bool {
-        self.closed.load(Ordering::Relaxed)
+        self.closed.load(Ordering::Acquire)
     }
 
     pub fn close(&self) {
-        self.closed.store(true, Ordering::Relaxed);
+        self.closed.store(true, Ordering::Release);
     }
 }

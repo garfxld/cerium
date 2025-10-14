@@ -5,14 +5,14 @@ use crate::protocol::{
 
 #[derive(Debug, Clone)]
 pub struct ClientInfoPacket {
-    locale: String, // 16
-    view_distance: u8,
-    chat_mode: i32,
-    displayed_skin_parts: u8,
-    main_hand: i32,
-    enable_text_filtering: bool,
-    allow_server_listings: bool,
-    particle_status: i32,
+    pub locale: String, // 16
+    pub view_distance: u8,
+    pub chat_mode: i32,
+    pub displayed_skin_parts: u8,
+    pub main_hand: i32,
+    pub enable_text_filtering: bool,
+    pub allow_server_listings: bool,
+    pub particle_status: i32,
 }
 
 impl Packet for ClientInfoPacket {}

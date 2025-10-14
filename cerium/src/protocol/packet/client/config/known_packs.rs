@@ -21,9 +21,9 @@ impl Decode for KnownPacksPacket {
 
 #[derive(Debug, Clone)]
 pub struct KnownPacks {
-    namespace: String,
-    id: String,
-    version: String,
+    pub namespace: String,
+    pub id: String,
+    pub version: String,
 }
 
 impl Decode for KnownPacks {

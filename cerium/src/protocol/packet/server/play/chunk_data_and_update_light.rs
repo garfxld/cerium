@@ -38,7 +38,7 @@ impl Encode for ChunkData {
     fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
         w.write_array(&this.heightmaps, Heightmap::encode)?;
         w.write_array(&this.data, |b, v| b.write_u8(*v))?;
-        w.write_array(&this.block_entities, BlockEntity::encode);
+        w.write_array(&this.block_entities, BlockEntity::encode)?;
         Ok(())
     }
 }
@@ -47,7 +47,7 @@ impl Encode for ChunkData {
 pub struct LightData {}
 
 impl Encode for LightData {
-    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(w: &mut W, _this: &Self) -> Result<(), EncodeError> {
         let num_sections = 26;
 
         w.write_varint(1)?;
@@ -62,7 +62,7 @@ impl Encode for LightData {
         let light_array = vec![0xFF; 2048];
         w.write_varint(num_sections as i32)?;
         for _ in 0..num_sections {
-            w.write_array(&light_array.clone(), |w, v| w.write_u8(*v));
+            w.write_array(&light_array.clone(), |w, v| w.write_u8(*v))?;
         }
         w.write_varint(0)?;
 

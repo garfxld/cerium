@@ -3,8 +3,7 @@ use cerium::event::player::{PlayerConfigEvent, PlayerEvent as _};
 use cerium::registry::DimensionType;
 use cerium::world::{BlockState, World};
 
-#[tokio::main]
-async fn main() {
+fn main() {
     let server = Server::new();
 
     let world = World::new(&DimensionType::OVERWORLD);
@@ -24,8 +23,7 @@ async fn main() {
 
             event.set_world(world.clone());
             event.set_position((0.5, 71., 0.5));
-        })
-        .await;
+        });
 
-    server.bind("127.0.0.1:25565").await.unwrap();
+    server.bind("127.0.0.1:25565").unwrap();
 }

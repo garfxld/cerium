@@ -18,7 +18,7 @@ Yet another high-performance Minecraft server library written in Rust.
     - [x] Server list ping
     - [x] Encryption
     - [x] Compression
-    - [x] Joining a world *(still very basic)*
+    - [x] Joining a world
     - [x] Registries
 - World
     - [ ] Blocks
@@ -38,15 +38,45 @@ Yet another high-performance Minecraft server library written in Rust.
 Of course, more features are planned for the future.
 
 
+## Examples
+
+- Debug World
+- Flat World
+- Entity
+- Text
+
 ## Running
 
 ```sh
-cargo r --example flat_world
+cargo r --example debug_world
 ```
 
+```rust
+fn main() {
+    let server = Server::new();
 
-## Examples
+    let world = World::new(&DimensionType::OVERWORLD);
 
-### Debug World
+    for (ix, pos) in (0..27946).enumerate() {
+        let bz = (pos / 168) + 1;
+        let bx = (pos % 168) + 1;
 
-<img src="thumbnail.png" width="800" alt="Debug World">
+        let block = BlockState::from_id(ix as i32).unwrap();
+        world.set_block((bz * 2) - 1, 70, (bx * 2) - 1, block);
+    }
+
+    server
+        .events()
+        .subscribe(move |event: &mut PlayerConfigEvent| {
+            println!("PlayerConfigEvent ({})", event.get_player().name());
+
+            event.set_world(world.clone());
+            event.set_position((0.5, 71., 0.5));
+        });
+
+    server.bind("127.0.0.1:25565").unwrap();
+}
+
+```
+
+<img src="thumbnail.png" alt="Debug World">

@@ -18,7 +18,7 @@ impl Decode for PluginMessagePacket {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {
             identifier: r.read_identifier()?,
-            data:       r.read_array(|r| r.read_u8())?,
+            data:       r.read_bytes(-1)?,
         })
     }
 }

@@ -26,7 +26,8 @@ macro_rules! write_number_be {
     ($name:ident, $type:ty) => {
         fn $name(&mut self, value: $type) -> Result<()> {
             let buf = value.to_be_bytes();
-            self.write_all(&buf).map_err(Error::Incomplete)?;
+            self.write_all(&buf)
+                .map_err(|e| Error::Incomplete(e.to_string()))?;
             Ok(())
         }
     };
@@ -67,7 +68,8 @@ where
     write_number_be!(write_f64_be, f64);
 
     fn write_slice(&mut self, value: &[u8]) -> Result<()> {
-        self.write_all(value).map_err(Error::Incomplete)?;
+        self.write_all(value)
+            .map_err(|e| Error::Incomplete(e.to_string()))?;
         Ok(())
     }
 }

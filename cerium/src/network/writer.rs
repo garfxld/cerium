@@ -19,7 +19,7 @@ where
     inner: BufWriter<W>,
 
     cipher: Option<Encryptor>,
-    threshold: i32,
+    pub threshold: i32,
 }
 
 impl<W> StreamWriter<W>

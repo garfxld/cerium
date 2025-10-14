@@ -57,7 +57,7 @@ impl Encode for PlayerEntry {
             }
             PlayerAction::UpdateListed { listed } => buffer.write_bool(*listed),
             _ => todo!(),
-        });
+        })?;
         Ok(())
     }
 }

@@ -12,7 +12,7 @@ impl Packet for ClientTickEndPacket {}
 impl ClientPacket for ClientTickEndPacket {}
 
 impl Decode for ClientTickEndPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

@@ -12,7 +12,7 @@ impl Packet for StatusRequestPacket {}
 impl ClientPacket for StatusRequestPacket {}
 
 impl Decode for StatusRequestPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

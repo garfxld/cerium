@@ -36,7 +36,7 @@ pub enum Error {
     #[error("NBT doesn't support this type: {0}")]
     UnsupportedType(String),
     #[error("NBT reading was cut short: {0}")]
-    Incomplete(std::io::Error),
+    Incomplete(String),
     #[error("Serde error: {0}")]
     SerdeError(String),
     #[error("The root tag of the NBT file is not a compound tag. Received tag id: {0}")]

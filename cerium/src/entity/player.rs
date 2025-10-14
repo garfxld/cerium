@@ -11,11 +11,10 @@ use crate::{
     auth::GameProfile,
     entity::{Entity, EntityType, GameMode},
     inventory::PlayerInventory,
-    network::client::ClientConnection,
+    network::client::Connection,
     protocol::packet::{
-        ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
-        GameEventPacket, Packet, ServerPacket, SystemChatMessagePacket, UnloadChunkPacket,
-        server::play::KeepAlivePacket,
+        ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, GameEventPacket, Packet,
+        ServerPacket, SystemChatMessagePacket, UnloadChunkPacket, server::play::KeepAlivePacket,
     },
     text::Component,
     tickable::Tickable,
@@ -26,47 +25,47 @@ use crate::{
 type SyncChunk = Arc<Mutex<Chunk>>;
 
 pub struct ChunkQueue {
-    queue: VecDeque<SyncChunk>,
-    chunks_per_tick: i32,
+    pub queue: VecDeque<SyncChunk>,
+    pub target_cpt: f32,
+    pub pending_chunks: f32,
+    pub max_lead: i32,
+    pub lead: i32,
 }
 
 impl ChunkQueue {
     pub fn new() -> Self {
-        ChunkQueue {
+        Self {
             queue: VecDeque::new(),
-            chunks_per_tick: 16,
+            target_cpt: 9.,
+            pending_chunks: 0.,
+            max_lead: 1,
+            lead: 0,
         }
     }
 
-    pub fn set_cpt(&mut self, chunks_per_tick: i32) {
-        self.chunks_per_tick = chunks_per_tick;
-    }
-
-    pub fn queue(&mut self, chunk: SyncChunk) {
+    pub fn enqueue(&mut self, chunk: SyncChunk) {
         self.queue.push_back(chunk);
     }
 
-    pub fn drain(&mut self) -> Box<[SyncChunk]> {
-        let size = self.queue.len().min(self.chunks_per_tick as usize);
-        let chunks: Vec<SyncChunk> = self.queue.drain(0..size).collect();
-        chunks.into_boxed_slice()
+    pub fn dequeue(&mut self) -> Option<SyncChunk> {
+        self.queue.pop_front()
     }
 }
 
 pub struct Player {
-    connection: Arc<ClientConnection>,
+    connection: Arc<Connection>,
     game_profile: GameProfile,
     entity: Arc<Entity>,
     world: Mutex<Option<Arc<World>>>,
     position: Mutex<Option<Position>>,
-    pub(crate) chunk_queue: tokio::sync::Mutex<ChunkQueue>,
     last_keep_alive: tokio::sync::Mutex<Instant>,
     inventory: Arc<PlayerInventory>,
     game_mode: Mutex<GameMode>,
+    pub chunk_queue: Mutex<ChunkQueue>,
 }
 
 impl Player {
-    pub async fn new(connection: Arc<ClientConnection>, _server: Arc<Server>) -> Self {
+    pub async fn new(connection: Arc<Connection>, _server: Arc<Server>) -> Self {
         let game_profile = connection.game_profile.lock().await.clone().unwrap();
         Self {
             connection,
@@ -74,10 +73,10 @@ impl Player {
             entity: Entity::new(EntityType::Player),
             world: Mutex::new(None),
             position: Mutex::new(None),
-            chunk_queue: tokio::sync::Mutex::new(ChunkQueue::new()),
             last_keep_alive: tokio::sync::Mutex::new(Instant::now()),
             inventory: Arc::new(PlayerInventory::new()),
             game_mode: Mutex::new(GameMode::Survival),
+            chunk_queue: Mutex::new(ChunkQueue::new()),
         }
     }
 
@@ -123,8 +122,7 @@ impl Player {
         self.send_packet(GameEventPacket {
             event: 4,
             value: game_mode as i32 as f32,
-        })
-        .await;
+        });
 
         // todo: update client abilites
     }
@@ -137,54 +135,52 @@ impl Player {
         self.send_packet(SystemChatMessagePacket {
             content: message.into(),
             overlay: false,
-        })
-        .await;
+        });
     }
 
-    pub async fn kick(&self, reason: impl Into<Component>) {
-        self.connection.kick(reason.into()).await;
+    pub fn kick(&self, reason: impl Into<Component>) {
+        self.connection.kick(reason.into());
     }
 
-    pub async fn send_packet<P>(&self, packet: P)
+    pub fn send_packet<P>(&self, packet: P)
     where
         P: Packet + ServerPacket + 'static,
     {
-        log::debug!("sending: {}", std::any::type_name_of_val(&packet));
-        self.connection.send_packet(packet).await;
+        self.connection.send_packet(packet);
     }
 
-    pub(crate) async fn load_chunks(&self) {
+    pub(crate) fn load_chunks(&self) {
         let chunk = Chunk::to_chunk_pos(self.position());
         let view_distance = 32;
 
         let world = self.world();
         let chunks = Chunk::chunks_in_range(chunk, view_distance);
-        println!("loading {:?} chunks", chunks.len());
+
         for (cx, cz) in chunks {
             let chunk = match world.get_chunk(cx, cz) {
                 Some(chunk) => chunk,
                 None => world.load_chunk(cx, cz),
             };
 
-            self.send_chunk(chunk).await;
+            self.send_chunk(chunk);
         }
+
+        self.send_pending_chunks();
     }
 
-    pub(crate) async fn update_chunks(&self, new_chunk: (i32, i32), old_chunk: (i32, i32)) {
+    pub(crate) fn update_chunks(&self, new_chunk: (i32, i32), old_chunk: (i32, i32)) {
         let view_distance = 32;
 
-        Chunk::difference(new_chunk, old_chunk, view_distance, async |cx, cz| {
-            self.load_chunk(cx, cz).await;
-        })
-        .await;
+        Chunk::difference(new_chunk, old_chunk, view_distance, |cx, cz| {
+            self.load_chunk(cx, cz);
+        });
 
-        Chunk::difference(old_chunk, new_chunk, view_distance, async |cx, cz| {
-            self.unload_chunk(cx, cz).await;
-        })
-        .await;
+        Chunk::difference(old_chunk, new_chunk, view_distance, |cx, cz| {
+            self.unload_chunk(cx, cz);
+        });
     }
 
-    async fn load_chunk(&self, cx: i32, cz: i32) {
+    fn load_chunk(&self, cx: i32, cz: i32) {
         let world = self.world();
 
         let chunk = match world.get_chunk(cx, cz) {
@@ -192,48 +188,58 @@ impl Player {
             None => world.load_chunk(cx, cz),
         };
 
-        self.send_chunk(chunk).await;
+        self.send_chunk(chunk);
     }
 
-    async fn unload_chunk(&self, cx: i32, cz: i32) {
+    fn unload_chunk(&self, cx: i32, cz: i32) {
         self.send_packet(UnloadChunkPacket {
             chunk_x: cx,
             chunk_z: cz,
-        })
-        .await;
+        });
     }
 
-    async fn send_chunk(&self, chunk: SyncChunk) {
-        self.chunk_queue.lock().await.queue(chunk);
+    fn send_chunk(&self, chunk: SyncChunk) {
+        let mut queue = self.chunk_queue.lock().unwrap();
+        queue.enqueue(chunk);
     }
 
-    // works for now
-    async fn flush_chunks(&self) {
-        let mut queue = self.chunk_queue.lock().await;
+    fn send_pending_chunks(&self) {
+        let mut queue = self.chunk_queue.lock().unwrap();
 
-        let chunks = queue.drain();
-        let size = chunks.len();
-
-        if size < 1 {
+        if queue.queue.is_empty() || queue.lead >= queue.max_lead {
             return;
         }
-        self.send_packet(ChunkBatchStartPacket {}).await;
 
-        for chunk in chunks {
+        queue.pending_chunks = (queue.pending_chunks + queue.target_cpt).min(64.);
+        if queue.pending_chunks < 1. {
+            return;
+        }
+
+        self.connection.send_packet(ChunkBatchStartPacket {});
+
+        // let mut batch_size = 0;
+        while queue.pending_chunks >= 1.
+            && let Some(chunk) = queue.dequeue()
+        {
             let packet: ChunkDataAndUpdateLightPacket = {
                 let chunk = &*chunk.lock().unwrap();
                 chunk.into()
             };
-            self.send_packet(packet).await;
+
+            self.send_packet(packet);
+
+            queue.pending_chunks -= 1.;
+            // batch_size += 1;
         }
-        self.send_packet(ChunkBatchFinishedPacket {
-            batch_size: size as i32,
-        })
-        .await;
+
+        // Absolutely no idea why the client sets chunks-per-tick to very low values when sending this packet multiple times.
+        // While testing the chunks-per-tick drop from around 5 to near zero.
+        // self.send_packet(ChunkBatchFinishedPacket { batch_size });
+        // queue.lead += 1;
     }
 
     async fn keep_alive(&self) {
-        self.send_packet(KeepAlivePacket { keep_alive_id: 0 }).await
+        self.send_packet(KeepAlivePacket { keep_alive_id: 0 });
     }
 }
 
@@ -245,6 +251,6 @@ impl Tickable for Player {
             *last_keep_alive = Instant::now();
         }
 
-        self.flush_chunks().await;
+        self.send_pending_chunks();
     }
 }

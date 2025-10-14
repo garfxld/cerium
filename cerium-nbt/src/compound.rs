@@ -1,12 +1,9 @@
-use std::io::{Read, Write};
+use std::io::Write;
 
+use bytes::Buf;
 use serde::Serialize;
 
-use crate::{
-    END_ID, Error, NbtTag,
-    deserialize::{ReadExt, get_nbt_string},
-    serialize::WriteExt,
-};
+use crate::{END_ID, Error, NbtTag, deserialize::get_nbt_string, serialize::WriteExt};
 
 #[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct NbtCompound {
@@ -27,25 +24,13 @@ impl NbtCompound {
         }
     }
 
-    pub fn deserialize_content<R: Read>(reader: &mut R) -> Result<NbtCompound, Error> {
+    pub fn deserialize_content<R: Buf>(reader: &mut R) -> Result<NbtCompound, Error> {
         let mut compound = NbtCompound::new();
 
         loop {
-            let tag_id = match reader.get_u8_be() {
+            let tag_id = match reader.try_get_u8() {
                 Ok(id) => id,
-                Err(err) => match err {
-                    Error::Incomplete(err) => match err.kind() {
-                        std::io::ErrorKind::UnexpectedEof => {
-                            break;
-                        }
-                        _ => {
-                            return Err(Error::Incomplete(err));
-                        }
-                    },
-                    _ => {
-                        return Err(err);
-                    }
-                },
+                Err(err) => return Err(Error::Incomplete(err.to_string())),
             };
             if tag_id == END_ID {
                 break;

@@ -171,10 +171,9 @@ impl Chunk {
     }
 
     /// Calulates difference between chunks
-    pub async fn difference<F, Fut>(lhs: (i32, i32), rhs: (i32, i32), range: i32, callback: F)
+    pub fn difference<F>(lhs: (i32, i32), rhs: (i32, i32), range: i32, callback: F)
     where
-        F: Fn(i32, i32) -> Fut,
-        Fut: Future<Output = ()>,
+        F: Fn(i32, i32),
     {
         let start_x = lhs.0 - range;
         let end_x = lhs.0 + range;
@@ -184,7 +183,7 @@ impl Chunk {
         for x in start_x..=end_x {
             for z in start_z..=end_z {
                 if (x - rhs.0).abs() > range || (z - rhs.1).abs() > range {
-                    callback(x, z).await;
+                    callback(x, z);
                 }
             }
         }

@@ -12,7 +12,7 @@ impl Packet for AcknowledgeFinishConfigPacket {}
 impl ClientPacket for AcknowledgeFinishConfigPacket {}
 
 impl Decode for AcknowledgeFinishConfigPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

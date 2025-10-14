@@ -2,7 +2,7 @@ use std::{io::Cursor, sync::Arc};
 
 use crate::{
     auth::{self, GameProfile},
-    network::client::ClientConnection,
+    network::client::Connection,
     protocol::{
         ProtocolState,
         decode::{Decode as _, DecodeError},
@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
+pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_login_start(client, LoginStartPacket::decode(data)?).await,
         0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data)?).await,
@@ -26,7 +26,7 @@ pub async fn handle_packet(client: Arc<ClientConnection>, id: i32, data: &mut Cu
     Ok(())
 }
 
-async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPacket) {
+async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
     *client.game_profile.lock().await = Some(GameProfile {
         uuid: packet.uuid,
         name: packet.name,
@@ -35,8 +35,12 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
 
     let threshold = 256;
 
-    client.send_packet(SetCompressionPacket { threshold }).await;
-    client.set_compression(threshold).await;
+    if true {
+        client
+            .send_packet_now(SetCompressionPacket { threshold })
+            .await;
+        client.set_compression(threshold).await;
+    }
 
     // todo: check for online mode
     if true {
@@ -44,28 +48,21 @@ async fn handle_login_start(client: Arc<ClientConnection>, packet: LoginStartPac
         let verify_token: [u8; 4] = rand::random();
         *client.verify_token.lock().await = verify_token;
 
-        client
-            .send_packet(EncryptionRequestPacket {
-                server_id: "".to_owned(),
-                public_key: client.key_store.public_key_der.clone(),
-                verify_token: Box::new(verify_token),
-                should_authenticate: true,
-            })
-            .await;
+        client.send_packet(EncryptionRequestPacket {
+            server_id: "".to_owned(),
+            public_key: client.key_store.public_key_der.clone(),
+            verify_token: Box::new(verify_token),
+            should_authenticate: true,
+        });
     } else {
         // offline mode
-        client
-            .send_packet(LoginSuccessPacket::from(
-                client.game_profile.lock().await.clone().unwrap(),
-            ))
-            .await;
+        client.send_packet(LoginSuccessPacket::from(
+            client.game_profile.lock().await.clone().unwrap(),
+        ));
     }
 }
 
-async fn handle_encryption_response(
-    client: Arc<ClientConnection>,
-    packet: EncryptionResponsePacket,
-) {
+async fn handle_encryption_response(client: Arc<Connection>, packet: EncryptionResponsePacket) {
     let shared_secret = client.key_store.decrypt(&packet.shared_secret).unwrap();
 
     // enable encryption
@@ -80,20 +77,18 @@ async fn handle_encryption_response(
 
     *client_game_profile = Some(game_profile.clone());
 
-    client
-        .send_packet(LoginSuccessPacket::from(game_profile.clone()))
-        .await;
+    client.send_packet(LoginSuccessPacket::from(game_profile.clone()));
 }
 
-async fn handle_plugin_response(client: Arc<ClientConnection>) {
+async fn handle_plugin_response(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_login_acknowledged(client: Arc<ClientConnection>, packet: LoginAcknowledgePacket) {
+async fn handle_login_acknowledged(client: Arc<Connection>, packet: LoginAcknowledgePacket) {
     let _ = packet;
-    *client.state.lock().await = ProtocolState::Config;
+    client.set_state(ProtocolState::Config).await;
 }
 
-async fn handle_cookie_response(client: Arc<ClientConnection>) {
+async fn handle_cookie_response(client: Arc<Connection>) {
     let _ = client;
 }

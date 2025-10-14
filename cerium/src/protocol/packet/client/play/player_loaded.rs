@@ -12,7 +12,7 @@ impl Packet for PlayerLoadedPacket {}
 impl ClientPacket for PlayerLoadedPacket {}
 
 impl Decode for PlayerLoadedPacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

@@ -12,7 +12,7 @@ impl Packet for LoginAcknowledgePacket {}
 impl ClientPacket for LoginAcknowledgePacket {}
 
 impl Decode for LoginAcknowledgePacket {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+    fn decode<R: PacketRead>(_r: &mut R) -> Result<Self, DecodeError> {
         Ok(Self {})
     }
 }

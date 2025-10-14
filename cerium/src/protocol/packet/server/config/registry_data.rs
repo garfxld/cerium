@@ -1,5 +1,5 @@
 use serde::{Serialize, de::DeserializeOwned};
-use std::{collections::HashMap, fmt::Debug};
+use std::fmt::Debug;
 
 use crate::{
     protocol::{
@@ -9,7 +9,7 @@ use crate::{
     registry::DynamicRegistry,
     util::Identifier,
 };
-use cerium_nbt::{Nbt, ToNbt, to_nbt_compound};
+use cerium_nbt::{Nbt, to_nbt_compound};
 
 #[derive(Debug, Clone)]
 pub struct RegistryDataPacket {

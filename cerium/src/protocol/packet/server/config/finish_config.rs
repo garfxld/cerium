@@ -12,7 +12,7 @@ impl Packet for FinishConfigPacket {}
 impl ServerPacket for FinishConfigPacket {}
 
 impl Encode for FinishConfigPacket {
-    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+    fn encode<W: PacketWrite>(_w: &mut W, _this: &Self) -> Result<(), EncodeError> {
         Ok(())
     }
 }

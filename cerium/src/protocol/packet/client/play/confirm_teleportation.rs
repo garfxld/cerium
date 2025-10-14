@@ -5,7 +5,7 @@ use crate::protocol::{
 
 #[derive(Debug, Clone)]
 pub struct ConfirmTeleportationPacket {
-    teleport_id: i32,
+    pub teleport_id: i32,
 }
 
 impl Packet for ConfirmTeleportationPacket {}
