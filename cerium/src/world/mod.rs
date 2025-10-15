@@ -1,10 +1,7 @@
 pub mod heightmap;
 pub mod palette;
 
-use std::{
-    collections::HashMap,
-    sync::{Arc, Mutex, RwLock},
-};
+use std::{collections::HashMap, sync::Arc};
 
 mod chunk;
 pub use chunk::Chunk;
@@ -17,6 +14,7 @@ pub use block::{Block, BlockState};
 
 mod block_entity;
 pub use block_entity::BlockEntity;
+use parking_lot::{Mutex, RwLock};
 
 use crate::registry::{DimensionType, REGISTRIES, RegistryKey};
 
@@ -40,12 +38,12 @@ impl World {
     }
 
     pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Arc<Mutex<Chunk>>> {
-        let chunks = self.chunks.read().unwrap();
+        let chunks = self.chunks.read();
         chunks.get(&(chunk_x, chunk_z)).cloned()
     }
 
     pub fn load_chunk(&self, chunk_x: i32, chunk_z: i32) -> Arc<Mutex<Chunk>> {
-        let mut chunks = self.chunks.write().unwrap();
+        let mut chunks = self.chunks.write();
 
         let chunk = Arc::new(Mutex::new(Chunk::new(
             chunk_x,
@@ -65,7 +63,7 @@ impl World {
             panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        BlockState::from_id(chunk.lock().unwrap().get_block(x, y, z) as i32).unwrap()
+        BlockState::from_id(chunk.lock().get_block(x, y, z) as i32).unwrap()
     }
 
     pub fn set_block<B>(&self, x: i32, y: i32, z: i32, block: B)
@@ -79,7 +77,7 @@ impl World {
             Some(chunk) => chunk,
             None => self.load_chunk(cx, cz),
         };
-        chunk.lock().unwrap().set_block(x, y, z, block.as_ref());
+        chunk.lock().set_block(x, y, z, block.as_ref());
     }
 
     pub fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
@@ -90,7 +88,7 @@ impl World {
             panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        chunk.lock().unwrap().get_biome(x, y, z)
+        chunk.lock().get_biome(x, y, z)
     }
 
     pub fn set_biome(&self, x: i32, y: i32, z: i32, biome: i32) {
@@ -101,15 +99,15 @@ impl World {
             Some(chunk) => chunk,
             None => self.load_chunk(cx, cz),
         };
-        chunk.lock().unwrap().set_biome(x, y, z, biome);
+        chunk.lock().set_biome(x, y, z, biome);
     }
 
     pub fn spawn_entity(&self, entity: Arc<Entity>) {
-        self.entities.write().unwrap().push(entity);
+        self.entities.write().push(entity);
     }
 
     pub fn entities(&self) -> Vec<Arc<Entity>> {
-        self.entities.read().unwrap().iter().cloned().collect()
+        self.entities.read().iter().cloned().collect()
     }
 }
 

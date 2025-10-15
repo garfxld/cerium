@@ -22,6 +22,7 @@ thiserror = "2.0.16"
 uuid = { version = "1.17.0", features = ["v4", "serde"] }
 indexmap = { version = "2.10.0", features = ["serde"] }
 rustc-hash = "2.1.1"
+parking_lot = "0.12.5"
 
 # Logging
 log = "0.4.27"

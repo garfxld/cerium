@@ -9,12 +9,11 @@ use crate::protocol::{
     packet::{
         ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
         ClientTickEndPacket, CloseContainerPacket, ConfirmTeleportationPacket,
-        EntityPositionPacket, EntityPositionRotationPacket, InteractPacket,
-        PickItemFromBlockPacket, PlayerAbilitiesPacket, PlayerActionPacket, PlayerCommandPacket,
-        PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
-        PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
-        PlayerSessionPacket, SetCenterChunkPacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
-        SwingArmPacket, UseItemOnPacket,
+        EntityPositionPacket, InteractPacket, PickItemFromBlockPacket, PlayerAbilitiesPacket,
+        PlayerActionPacket, PlayerCommandPacket, PlayerInputPacket, PlayerLoadedPacket,
+        PlayerMovementFlagsPacket, PlayerPositionAndRotationPacket, PlayerPositionPacket,
+        PlayerRotationPacket, PlayerSessionPacket, SetCenterChunkPacket, SetCreativeModeSlotPacket,
+        SetHeldItemPacket, SwingArmPacket, UseItemOnPacket,
         client::play::{KeepAlivePacket, PingRequestPacket},
     },
 };
@@ -72,7 +71,7 @@ async fn handle_player_session(player: Arc<Player>, packet: PlayerSessionPacket)
 
 async fn handle_chunk_batch_received(player: Arc<Player>, packet: ChunkBatchReceivedPacket) {
     println!("{}", packet.chunks_per_tick);
-    let mut queue = player.chunk_queue.lock().unwrap();
+    let mut queue = player.chunk_queue.lock();
     queue.lead -= 1;
     queue.target_cpt = if packet.chunks_per_tick.is_nan() {
         0.01
@@ -116,17 +115,47 @@ async fn handle_keep_alive(player: Arc<Player>, packet: KeepAlivePacket) {
     let _ = packet;
 }
 
-async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacket) {
-    let old_position = player.position();
-    let old_chunk = Chunk::to_chunk_pos(old_position);
+// ===== Position & Movement ======
 
+async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacket) {
     let new_position = Position::new(
         packet.x,
         packet.feet_y,
         packet.z,
-        old_position.yaw(),
-        old_position.pitch(),
+        player.position().yaw(),
+        player.position().pitch(),
     );
+    handle_movement(player, new_position).await;
+}
+
+async fn handle_player_position_and_rotation(
+    player: Arc<Player>,
+    packet: PlayerPositionAndRotationPacket,
+) {
+    let new_position = Position::new(packet.x, packet.feet_y, packet.z, packet.yaw, packet.pitch);
+    handle_movement(player, new_position).await;
+}
+
+async fn handle_player_rotation(player: Arc<Player>, packet: PlayerRotationPacket) {
+    let new_position = Position::new(
+        player.position().x(),
+        player.position().y(),
+        player.position().z(),
+        packet.yaw,
+        packet.pitch,
+    );
+    handle_movement(player, new_position).await;
+}
+
+async fn handle_movement(player: Arc<Player>, new_position: Position) {
+    let old_position = player.position();
+
+    if old_position == new_position {
+        return;
+    }
+
+    let old_chunk = Chunk::to_chunk_pos(old_position);
+
     let new_chunk = Chunk::to_chunk_pos(new_position);
 
     player.set_position(new_position);
@@ -149,45 +178,6 @@ async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacke
         delta_z: delta_z as i16,
         on_ground: false,
     });
-}
-
-async fn handle_player_position_and_rotation(
-    player: Arc<Player>,
-    packet: PlayerPositionAndRotationPacket,
-) {
-    let old_position = player.position();
-    let old_chunk = Chunk::to_chunk_pos(old_position);
-
-    let new_position = Position::new(packet.x, packet.feet_y, packet.z, packet.yaw, packet.pitch);
-    let new_chunk = Chunk::to_chunk_pos(new_position);
-
-    player.set_position(new_position);
-    if old_chunk != new_chunk {
-        player.send_packet(SetCenterChunkPacket {
-            chunk_x: new_chunk.0,
-            chunk_z: new_chunk.1,
-        });
-        player.update_chunks(new_chunk, old_chunk);
-    }
-
-    let delta_x = new_position.x().mul_add(4096., -(old_position.x() * 4096.)) as i16;
-    let delta_y = new_position.y().mul_add(4096., -(old_position.y() * 4096.)) as i16;
-    let delta_z = new_position.z().mul_add(4096., -(old_position.z() * 4096.)) as i16;
-
-    player.send_packet(EntityPositionRotationPacket {
-        entitiy_id: 0,
-        delta_x: delta_x as i16,
-        delta_y: delta_y as i16,
-        delta_z: delta_z as i16,
-        yaw: (packet.yaw * 256. / 360.) as u8,
-        pitch: (packet.pitch * 256. / 360.) as u8,
-        on_ground: false,
-    });
-}
-
-async fn handle_player_rotation(player: Arc<Player>, packet: PlayerRotationPacket) {
-    let _ = player;
-    let _ = packet;
 }
 
 async fn handle_interact(player: Arc<Player>, packet: InteractPacket) {

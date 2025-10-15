@@ -22,8 +22,10 @@ impl Connection {
             ProtocolState::Login => login::handle_packet(self, id, data).await,
             ProtocolState::Config => config::handle_packet(self, id, data).await,
             ProtocolState::Play => {
-                let player = self.player.lock().await;
-                let player = player.clone().unwrap();
+                let player = {
+                    let player = self.player.lock();
+                    player.clone().unwrap()
+                };
 
                 play::handle_packet(player, id, data).await
             }

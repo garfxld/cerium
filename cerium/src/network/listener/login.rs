@@ -27,7 +27,7 @@ pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&
 }
 
 async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
-    *client.game_profile.lock().await = Some(GameProfile {
+    *client.game_profile.lock() = Some(GameProfile {
         uuid: packet.uuid,
         name: packet.name,
         properties: vec![],
@@ -46,7 +46,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
     if true {
         // online mode
         let verify_token: [u8; 4] = rand::random();
-        *client.verify_token.lock().await = verify_token;
+        *client.verify_token.lock() = verify_token;
 
         client.send_packet(EncryptionRequestPacket {
             server_id: "".to_owned(),
@@ -57,7 +57,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
     } else {
         // offline mode
         client.send_packet(LoginSuccessPacket::from(
-            client.game_profile.lock().await.clone().unwrap(),
+            client.game_profile.lock().clone().unwrap(),
         ));
     }
 }
@@ -68,7 +68,7 @@ async fn handle_encryption_response(client: Arc<Connection>, packet: EncryptionR
     // enable encryption
     client.set_encryption(&shared_secret).await;
 
-    let mut client_game_profile = client.game_profile.lock().await;
+    let mut client_game_profile = client.game_profile.lock();
 
     let username = &client_game_profile.clone().unwrap().name;
     let hash = &client.key_store.digest_secret(&shared_secret);

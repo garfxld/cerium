@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use parking_lot::Mutex;
 
 use crate::item::ItemStack;
 
@@ -27,11 +27,11 @@ impl PlayerInventory {
     }
 
     pub fn set_item_stack(&self, slot: i32, item: ItemStack) {
-        self.content.lock().unwrap().insert(slot as usize, item);
+        self.content.lock().insert(slot as usize, item);
     }
 
     pub fn get_item_stack(&self, slot: i32) -> Option<ItemStack> {
-        self.content.lock().unwrap().get(slot as usize).cloned()
+        self.content.lock().get(slot as usize).cloned()
     }
 }
 

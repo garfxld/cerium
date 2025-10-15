@@ -23,6 +23,7 @@ bitflags = { workspace = true }
 indexmap = { workspace = true }
 serde_json = { workspace = true }
 phf = { workspace = true }
+parking_lot = { workspace = true }
 
 # Logging
 log = { workspace = true }

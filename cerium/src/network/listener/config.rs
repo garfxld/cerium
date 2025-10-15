@@ -79,10 +79,10 @@ async fn handle_acknowledge_finish_config(
 
     let player = Arc::new(Player::new(client.clone(), client.server().clone()).await);
     {
-        let mut players = client.server().players.lock().await;
+        let mut players = client.server().players.lock();
         players.push(player.clone());
 
-        let mut guard = client.player.lock().await;
+        let mut guard = client.player.lock();
         *guard = Some(player.clone());
     }
 
@@ -145,7 +145,7 @@ async fn handle_acknowledge_finish_config(
         flags: 0,
     });
 
-    let game_profile = client.game_profile.lock().await.clone().unwrap();
+    let game_profile = client.game_profile.lock().clone().unwrap();
 
     client.send_packet(PlayerInfoUpdatePacket {
         actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),

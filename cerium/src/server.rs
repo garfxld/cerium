@@ -1,9 +1,11 @@
+use parking_lot::Mutex;
 use std::sync::{
     Arc,
     atomic::{AtomicBool, Ordering},
 };
 use tokio::{
-    net::{TcpListener, ToSocketAddrs}, runtime::{Handle, Runtime}, sync::Mutex
+    net::{TcpListener, ToSocketAddrs},
+    runtime::{Handle, Runtime},
 };
 
 use crate::{
@@ -102,7 +104,7 @@ impl Server {
     pub fn runtime(&self) -> &Runtime {
         &self.runtime
     }
-    
+
     pub fn handle(&self) -> &Handle {
         &self.handle
     }

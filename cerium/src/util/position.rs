@@ -62,7 +62,7 @@ impl Position {
 
     pub const fn with_x(&self, x: f64) -> Self {
         Self {
-            x: x,
+            x,
             y: self.y,
             z: self.z,
             yaw: self.yaw,
@@ -73,7 +73,7 @@ impl Position {
     pub const fn with_y(&self, y: f64) -> Self {
         Self {
             x: self.x,
-            y: y,
+            y,
             z: self.z,
             yaw: self.yaw,
             pitch: self.pitch,
@@ -84,9 +84,29 @@ impl Position {
         Self {
             x: self.x,
             y: self.y,
-            z: z,
+            z,
             yaw: self.yaw,
             pitch: self.pitch,
+        }
+    }
+
+    pub const fn with_yaw(&self, yaw: f32) -> Self {
+        Self {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            yaw,
+            pitch: self.pitch,
+        }
+    }
+
+    pub const fn with_pitch(&self, pitch: f32) -> Self {
+        Self {
+            x: self.x,
+            y: self.y,
+            z: self.z,
+            yaw: self.yaw,
+            pitch,
         }
     }
 }

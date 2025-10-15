@@ -1,7 +1,8 @@
+use parking_lot::Mutex;
 use std::{
     collections::VecDeque,
     net::SocketAddr,
-    sync::{Arc, Mutex},
+    sync::Arc,
     time::{Duration, Instant},
 };
 use uuid::Uuid;
@@ -58,25 +59,27 @@ pub struct Player {
     entity: Arc<Entity>,
     world: Mutex<Option<Arc<World>>>,
     position: Mutex<Option<Position>>,
-    last_keep_alive: tokio::sync::Mutex<Instant>,
+    last_keep_alive: Mutex<Instant>,
     inventory: Arc<PlayerInventory>,
     game_mode: Mutex<GameMode>,
-    pub chunk_queue: Mutex<ChunkQueue>,
+    pub(crate) chunk_queue: Mutex<ChunkQueue>,
+    // teleport_id: AtomicI32,
 }
 
 impl Player {
     pub async fn new(connection: Arc<Connection>, _server: Arc<Server>) -> Self {
-        let game_profile = connection.game_profile.lock().await.clone().unwrap();
+        let game_profile = connection.game_profile.lock().clone().unwrap();
         Self {
             connection,
             game_profile,
             entity: Entity::new(EntityType::Player),
             world: Mutex::new(None),
             position: Mutex::new(None),
-            last_keep_alive: tokio::sync::Mutex::new(Instant::now()),
+            last_keep_alive: Mutex::new(Instant::now()),
             inventory: Arc::new(PlayerInventory::new()),
             game_mode: Mutex::new(GameMode::Survival),
             chunk_queue: Mutex::new(ChunkQueue::new()),
+            // teleport_id: AtomicI32::default(),
         }
     }
 
@@ -93,15 +96,15 @@ impl Player {
     }
 
     pub fn world(&self) -> Arc<World> {
-        self.world.lock().unwrap().clone().unwrap()
+        self.world.lock().clone().unwrap()
     }
 
     pub fn position(&self) -> Position {
-        (*self.position.lock().unwrap()).unwrap()
+        (*self.position.lock()).unwrap()
     }
 
     pub fn game_mode(&self) -> GameMode {
-        *self.game_mode.lock().unwrap()
+        *self.game_mode.lock()
     }
 
     pub fn id(&self) -> i32 {
@@ -109,15 +112,15 @@ impl Player {
     }
 
     pub(crate) fn set_world(&self, world: Arc<World>) {
-        (*self.world.lock().unwrap()) = Some(world)
+        (*self.world.lock()) = Some(world)
     }
 
     pub(crate) fn set_position(&self, position: Position) {
-        (*self.position.lock().unwrap()) = Some(position)
+        (*self.position.lock()) = Some(position)
     }
 
     pub async fn set_game_mode(&self, game_mode: GameMode) {
-        *self.game_mode.lock().unwrap() = game_mode;
+        *self.game_mode.lock() = game_mode;
 
         self.send_packet(GameEventPacket {
             event: 4,
@@ -199,12 +202,12 @@ impl Player {
     }
 
     fn send_chunk(&self, chunk: SyncChunk) {
-        let mut queue = self.chunk_queue.lock().unwrap();
+        let mut queue = self.chunk_queue.lock();
         queue.enqueue(chunk);
     }
 
     fn send_pending_chunks(&self) {
-        let mut queue = self.chunk_queue.lock().unwrap();
+        let mut queue = self.chunk_queue.lock();
 
         if queue.queue.is_empty() || queue.lead >= queue.max_lead {
             return;
@@ -222,7 +225,7 @@ impl Player {
             && let Some(chunk) = queue.dequeue()
         {
             let packet: ChunkDataAndUpdateLightPacket = {
-                let chunk = &*chunk.lock().unwrap();
+                let chunk = &*chunk.lock();
                 chunk.into()
             };
 
@@ -238,16 +241,20 @@ impl Player {
         // queue.lead += 1;
     }
 
-    async fn keep_alive(&self) {
+    fn keep_alive(&self) {
         self.send_packet(KeepAlivePacket { keep_alive_id: 0 });
     }
+
+    // fn next_teleport_id(&self) -> i32 {
+    //     self.teleport_id.fetch_add(1, Ordering::Release)
+    // }
 }
 
 impl Tickable for Player {
-    async fn tick(self: &Arc<Self>) {
-        let mut last_keep_alive = self.last_keep_alive.lock().await;
+    fn tick(self: &Arc<Self>) {
+        let mut last_keep_alive = self.last_keep_alive.lock();
         if last_keep_alive.elapsed() > Duration::from_secs(20) {
-            self.keep_alive().await;
+            self.keep_alive();
             *last_keep_alive = Instant::now();
         }
 

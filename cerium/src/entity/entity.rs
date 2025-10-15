@@ -1,7 +1,8 @@
 use std::sync::{
-    Arc, Mutex,
+    Arc,
     atomic::{AtomicI32, Ordering},
 };
+use parking_lot::Mutex;
 use uuid::Uuid;
 
 use crate::{
@@ -46,14 +47,14 @@ impl Entity {
     }
 
     pub fn position(&self) -> Position {
-        self.position.lock().unwrap().clone()
+        self.position.lock().clone()
     }
 
     pub fn set_position<P>(&self, position: P)
     where
         P: Into<Position>,
     {
-        *self.position.lock().unwrap() = position.into();
+        *self.position.lock() = position.into();
 
         // todo: teleport
     }

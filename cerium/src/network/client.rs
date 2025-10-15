@@ -1,4 +1,5 @@
 use bytes::BytesMut;
+use parking_lot::{Mutex, RwLock};
 use std::{
     io::Cursor,
     net::SocketAddr,
@@ -7,7 +8,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
     },
 };
-use tokio::sync::{Mutex, RwLock, mpsc};
+use tokio::sync::mpsc;
 use tokio::{
     net::{
         TcpStream,
@@ -35,8 +36,8 @@ use crate::{
 
 pub struct Connection {
     addr: SocketAddr,
-    sreader: Mutex<StreamReader<OwnedReadHalf>>,
-    swriter: Mutex<StreamWriter<OwnedWriteHalf>>,
+    sreader: tokio::sync::Mutex<StreamReader<OwnedReadHalf>>,
+    swriter: tokio::sync::Mutex<StreamWriter<OwnedWriteHalf>>,
     packet_tx: Sender<BytesMut>,
     state: RwLock<ProtocolState>,
     pub(crate) game_profile: Mutex<Option<GameProfile>>,
@@ -58,8 +59,8 @@ impl Connection {
 
         let connection = Arc::new(Self {
             addr,
-            sreader: Mutex::new(StreamReader::new(rstream)),
-            swriter: Mutex::new(StreamWriter::new(wstream)),
+            sreader: tokio::sync::Mutex::new(StreamReader::new(rstream)),
+            swriter: tokio::sync::Mutex::new(StreamWriter::new(wstream)),
             packet_tx: tx,
             state: RwLock::new(ProtocolState::Handshake),
             game_profile: Mutex::new(None),
@@ -88,7 +89,7 @@ impl Connection {
 
         tokio::try_join!(rtask, wtask).unwrap();
 
-        server.players.lock().await.retain(|p| p.addr() != addr);
+        server.players.lock().retain(|p| p.addr() != addr);
     }
 
     pub async fn set_compression(&self, threshold: i32) {
@@ -106,11 +107,12 @@ impl Connection {
         while !this.closed() {
             let this = this.clone();
             let packet = {
-                match this.sreader.lock().await.read_packet().await {
+                let mut reader = this.sreader.lock().await;
+                match reader.read_packet().await {
                     Ok(v) => v,
                     Err(_) => break,
                 }
-            };
+            }; // reader (MutexGuard) dropped here
 
             if let Err(e) = this
                 .handle_packet(packet.id(), &mut Cursor::new(packet.data()))
@@ -134,11 +136,11 @@ impl Connection {
     }
 
     pub async fn set_state(&self, state: ProtocolState) {
-        *self.state.write().await = state;
+        *self.state.write() = state;
     }
 
     pub async fn state(&self) -> ProtocolState {
-        *self.state.read().await
+        *self.state.read()
     }
 
     pub fn addr(&self) -> SocketAddr {

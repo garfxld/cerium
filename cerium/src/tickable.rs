@@ -1,10 +1,10 @@
-use std::{future::Future, sync::Arc, time::Duration};
+use std::{sync::Arc, time::Duration};
 use tokio::time::{Interval, interval};
 
 use crate::Server;
 
 pub trait Tickable {
-    fn tick(self: &Arc<Self>) -> impl Future<Output = ()> + Send;
+    fn tick(self: &Arc<Self>);
 }
 
 pub struct Ticker {
@@ -25,8 +25,8 @@ impl Ticker {
 
         let server = Arc::clone(&self.server);
 
-        for player in &*server.players.lock().await {
-            player.tick().await;
+        for player in &*server.players.lock() {
+            player.tick();
         }
     }
 }
