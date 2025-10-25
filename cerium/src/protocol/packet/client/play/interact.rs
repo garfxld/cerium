@@ -26,7 +26,7 @@ impl Decode for InteractPacket {
         let entity_id = r.read_varint()?;
         let r#type = InteractType::decode(r)?;
 
-        let (target_x, target_y, target_z) = if r#type == InteractType::Interact {
+        let (target_x, target_y, target_z) = if r#type == InteractType::InteractAt {
             (
                 Some(r.read_f32()?),
                 Some(r.read_f32()?),
@@ -42,7 +42,7 @@ impl Decode for InteractPacket {
             target_x,
             target_y,
             target_z,
-            hand: matches!(r#type, InteractType::Interact | InteractType::Attack)
+            hand: matches!(r#type, InteractType::Interact | InteractType::InteractAt)
                 .then_some(Hand::decode(r)?),
             sneak_key_pressed: r.read_bool()?,
         })

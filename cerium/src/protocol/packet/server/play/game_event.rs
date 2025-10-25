@@ -9,6 +9,13 @@ pub struct GameEventPacket {
     pub value: f32,
 }
 
+impl GameEventPacket {
+    pub const START_WAITING_FOR_CHUNKS: GameEventPacket = GameEventPacket {
+        event: 13,
+        value: 0.,
+    };
+}
+
 impl Packet for GameEventPacket {}
 impl ServerPacket for GameEventPacket {}
 

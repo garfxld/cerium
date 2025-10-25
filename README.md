@@ -26,10 +26,14 @@ Yet another high-performance Minecraft server library written in Rust.
     - [ ] Block Interactions
     - [ ] Light API
     - [ ] Chunk Generation API
+    - [ ] Batching
+- Entity
+    - [ ] Entity API
+    - [ ] Entity Metadata
 - [ ] Item/Inventory API
 - [ ] Commands
 - [x] Text components
-- [ ] Event system (WIP)
+- [ ] Event system
 - [ ] Resource Pack Support
 - [ ] Advancements
 - [ ] Proxy Support
@@ -42,7 +46,7 @@ Of course, more features are planned for the future.
 
 - Debug World
 - Flat World
-- Entity
+- Npc
 - Text
 
 ## Running
@@ -68,8 +72,6 @@ fn main() {
     server
         .events()
         .subscribe(move |event: &mut PlayerConfigEvent| {
-            println!("PlayerConfigEvent ({})", event.get_player().name());
-
             event.set_world(world.clone());
             event.set_position((0.5, 71., 0.5));
         });

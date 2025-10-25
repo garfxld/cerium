@@ -23,24 +23,17 @@ fn main() {
     server
         .events()
         .subscribe(move |event: &mut PlayerConfigEvent| {
-            println!("PlayerConfigEvent ({})", event.get_player().name());
-
             event.set_world(world.clone());
             event.set_position((0.5, 71., 0.5));
 
             let player = event.get_player();
-            tokio::spawn({
-                let player = player.clone();
-                async move {
-                    send_text(player).await;
-                }
-            });
+            send_text(player.clone());
         });
 
     server.bind("127.0.0.1:25565").unwrap();
 }
 
-async fn send_text(player: Arc<Player>) {
+fn send_text(player: Arc<Player>) {
     let component = Component::empty()
         .child(Component::text("HOWDY!").bold().color(NamedColor::Red))
         .child(Component::new_line())
@@ -49,5 +42,5 @@ async fn send_text(player: Arc<Player>) {
 
     println!("{}", serde_json::to_string(&component).unwrap());
 
-    player.send_message(component).await;
+    player.send_message(component);
 }

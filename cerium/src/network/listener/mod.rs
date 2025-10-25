@@ -15,8 +15,7 @@ impl Connection {
         id: i32,
         data: &mut Cursor<&[u8]>,
     ) -> Result<(), DecodeError> {
-        let state = self.state().await;
-        match state {
+        match self.state() {
             ProtocolState::Handshake => handshake::handle_packet(self, id, data).await,
             ProtocolState::Status => status::handle_packet(self, id, data).await,
             ProtocolState::Login => login::handle_packet(self, id, data).await,

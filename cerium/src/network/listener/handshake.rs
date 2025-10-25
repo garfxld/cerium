@@ -25,5 +25,5 @@ async fn handle_handshake(client: Arc<Connection>, packet: HandshakePacket) {
         3 => unimplemented!("Not yet implemented."),
         _ => panic!("Invalid next intent"),
     };
-    client.set_state(state).await;
+    client.set_state(state);
 }

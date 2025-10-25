@@ -1,3 +1,5 @@
+use bitflags::bitflags;
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Position {
     x: f64,
@@ -11,6 +13,7 @@ impl Position {
     pub const ZERO: Position = Position::new(0., 0., 0., 0., 0.);
 
     pub const fn new(x: f64, y: f64, z: f64, yaw: f32, pitch: f32) -> Self {
+        let yaw = Self::fix_yaw(yaw);
         Self {
             x,
             y,
@@ -109,6 +112,16 @@ impl Position {
             pitch,
         }
     }
+
+    const fn fix_yaw(yaw: f32) -> f32 {
+        let mut yaw = yaw % 360.0;
+        if yaw < -180.0 {
+            yaw += 360.0;
+        } else if yaw > 180.0 {
+            yaw -= 360.0;
+        }
+        yaw
+    }
 }
 
 impl<A> From<(A, A, A)> for Position
@@ -138,5 +151,24 @@ where
             yaw: value.3.into(),
             pitch: value.4.into(),
         }
+    }
+}
+
+bitflags! {
+    #[derive(Debug, Clone)]
+    pub struct TeleportFlags: i32 {
+        const NONE       = 0x0000;
+
+        const X          = 0x0001;
+        const Y          = 0x0002;
+        const Z          = 0x0004;
+        const YAW        = 0x0008;
+        const PITCH      = 0x0010;
+
+        const VELOCITY_X = 0x0020;
+        const VELOCITY_Y = 0x0040;
+        const VELOCITY_Z = 0x0080;
+        
+        const ROTATE     = 0x0100;
     }
 }

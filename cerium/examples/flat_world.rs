@@ -1,5 +1,5 @@
 use cerium::Server;
-use cerium::event::player::{PlayerConfigEvent, PlayerEvent as _};
+use cerium::event::player::PlayerConfigEvent;
 use cerium::registry::DimensionType;
 use cerium::world::{Block, World};
 
@@ -17,7 +17,6 @@ fn main() {
     server
         .events()
         .subscribe(move |event: &mut PlayerConfigEvent| {
-            println!("PlayerConfigEvent ({})", event.get_player().name());
             event.set_world(world.clone());
             event.set_position((0.5, 75.0, 0.5));
         });

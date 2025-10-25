@@ -1,7 +1,9 @@
 use std::{io::Cursor, sync::Arc};
 
+use crate::entity::EntityLike as _;
 use crate::event::player::PlayerSpawnEvent;
 use crate::registry::{DimensionType, REGISTRIES};
+use crate::util::{Position, TeleportFlags, Viewable};
 use crate::{entity::Player, event::player::PlayerConfigEvent, network::client::Connection};
 use crate::{
     protocol::{
@@ -9,9 +11,8 @@ use crate::{
         decode::{Decode as _, DecodeError},
         packet::{
             AcknowledgeFinishConfigPacket, ClientInfoPacket, FeatureFlagsPacket,
-            FinishConfigPacket, GameEventPacket, LoginPacket, PlayerAction, PlayerEntry,
-            PlayerInfoFlags, PlayerInfoUpdatePacket, PluginMessagePacket, RegistryDataPacket,
-            SetCenterChunkPacket, SyncPlayerPositionPacket, client, server,
+            FinishConfigPacket, GameEventPacket, LoginPacket, PluginMessagePacket,
+            RegistryDataPacket, SetCenterChunkPacket, client, server,
         },
     },
     util::Identifier,
@@ -75,9 +76,9 @@ async fn handle_acknowledge_finish_config(
 ) {
     let _ = packet;
 
-    client.set_state(ProtocolState::Play).await;
+    client.set_state(ProtocolState::Play);
 
-    let player = Arc::new(Player::new(client.clone(), client.server().clone()).await);
+    let player = Arc::new(Player::new(client.clone(), client.server().clone()));
     {
         let mut players = client.server().players.lock();
         players.push(player.clone());
@@ -122,7 +123,7 @@ async fn handle_acknowledge_finish_config(
             .unwrap_or(0) as i32,
         dimension_name: "minecraft:overworld".to_owned(),
         hashed_seed: 93522819,
-        game_mode: 1,
+        game_mode: 0,
         previous_game_mode: -1,
         is_debug: false,
         is_flat: false,
@@ -132,39 +133,9 @@ async fn handle_acknowledge_finish_config(
         enforces_secure_chat: false,
     });
 
-    client.send_packet(SyncPlayerPositionPacket {
-        teleport_id: 0,
-        x: position.x(),
-        y: position.y(),
-        z: position.z(),
-        velocity_x: 0.,
-        velocity_y: 0.,
-        velocity_z: 0.,
-        yaw: position.yaw(),
-        pitch: position.pitch(),
-        flags: 0,
-    });
+    player.synchronize_position(position, Position::ZERO, TeleportFlags::empty());
 
-    let game_profile = client.game_profile.lock().clone().unwrap();
-
-    client.send_packet(PlayerInfoUpdatePacket {
-        actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),
-        players: vec![PlayerEntry {
-            uuid: game_profile.uuid,
-            player_actions: vec![
-                PlayerAction::AddPlayer {
-                    name: game_profile.name.clone(),
-                    properties: game_profile.properties.clone(),
-                },
-                PlayerAction::UpdateListed { listed: true },
-            ],
-        }],
-    });
-
-    client.send_packet(GameEventPacket {
-        event: 13,
-        value: 0.,
-    });
+    client.send_packet(GameEventPacket::START_WAITING_FOR_CHUNKS);
 
     client.send_packet(SetCenterChunkPacket {
         chunk_x: 0.into(),
@@ -174,6 +145,24 @@ async fn handle_acknowledge_finish_config(
     client.server().events().fire(&mut PlayerSpawnEvent {
         player: player.clone(),
     });
+
+    let online_players = &*client.server().players.lock();
+
+    // Add player to tab for already playing players.
+    for online_player in online_players {
+        online_player.send_packet(player.add_to_list_packet());
+        if *online_player != player {
+            player.add_viewer(online_player.clone());
+        }
+    }
+
+    // Add already playing player to tab for player.
+    for online_player in online_players {
+        if *online_player == player {
+            continue;
+        }
+        online_player.add_viewer(player.clone());
+    }
 
     player.load_chunks();
 }

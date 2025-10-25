@@ -83,12 +83,20 @@ impl Connection {
                 conn.read_loop().await;
             }
         });
-        let wtask = server.handle().spawn(async move {
-            conn.write_loop(&mut rx).await;
+        let wtask = server.handle().spawn({
+            let conn = conn.clone();
+            async move {
+                conn.write_loop(&mut rx).await;
+            }
         });
 
         tokio::try_join!(rtask, wtask).unwrap();
 
+        let player = conn.player.lock();
+        if player.is_some() {
+            let player = player.clone().unwrap();
+            player.despawn();
+        }
         server.players.lock().retain(|p| p.addr() != addr);
     }
 
@@ -135,11 +143,11 @@ impl Connection {
         }
     }
 
-    pub async fn set_state(&self, state: ProtocolState) {
+    pub fn set_state(&self, state: ProtocolState) {
         *self.state.write() = state;
     }
 
-    pub async fn state(&self) -> ProtocolState {
+    pub fn state(&self) -> ProtocolState {
         *self.state.read()
     }
 

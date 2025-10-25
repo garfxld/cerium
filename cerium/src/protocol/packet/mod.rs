@@ -68,7 +68,7 @@ pub mod client {
         pub use confirm_teleportation::ConfirmTeleportationPacket;
         pub use player_position_and_rotation::PlayerPositionAndRotationPacket;
         pub use player_position::PlayerPositionPacket;
-        pub use player_input::PlayerInputPacket;
+        pub use player_input::*;
         pub use player_loaded::PlayerLoadedPacket;
         pub use close_container::CloseContainerPacket;
         pub use click_container::ClickContainerPacket;
@@ -79,7 +79,7 @@ pub mod client {
         pub use player_abilities::PlayerAbilitiesPacket;
         pub use pick_item_from_block::PickItemFromBlockPacket;
         pub use set_held_item::SetHeldItemPacket;
-        pub use player_command::PlayerCommandPacket;
+        pub use player_command::*;
         pub use chat_command::ChatCommandPacket;
         pub use player_session::PlayerSessionPacket;
         pub use player_movement_flags::PlayerMovementFlagsPacket;
@@ -154,6 +154,12 @@ pub mod server {
         mod system_chat_message;
         mod set_container_slot;
         mod set_container_content;
+        mod entity_rotation;
+        mod set_head_rotation;
+        mod entity_animation;
+        mod set_entity_metadata;
+        mod player_abilities;
+        mod player_info_remove;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -173,6 +179,12 @@ pub mod server {
         pub use system_chat_message::SystemChatMessagePacket;
         pub use set_container_slot::SetContainerSlotPacket;
         pub use set_container_content::SetContainerContentPacket;
+        pub use entity_rotation::EntityRotationPacket;
+        pub use set_head_rotation::SetHeadRotationPacket;
+        pub use entity_animation::EntityAnimationPacket;
+        pub use set_entity_metadata::SetEntityMetadataPacket;
+        pub use player_abilities::*;
+        pub use player_info_remove::PlayerInfoRemovePacket;
     }
 
     pub use status::*;

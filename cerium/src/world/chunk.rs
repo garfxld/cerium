@@ -129,7 +129,9 @@ impl Chunk {
     }
 
     pub fn to_chunk_pos(position: Position) -> (i32, i32) {
-        ((position.x() / 16.0) as i32, (position.z() / 16.0) as i32)
+        let chunk_x = (position.x() / 16.0).floor() as i32;
+        let chunk_z = (position.z() / 16.0).floor() as i32;
+        (chunk_x, chunk_z)
     }
 
     // This implementation comes from [Minestom](https://github.com/Minestom/Minestom/blob/7620f3320988e766cb8e34dd640b5a23911fa7e8/src/main/java/net/minestom/server/coordinate/ChunkRange.java#L48),

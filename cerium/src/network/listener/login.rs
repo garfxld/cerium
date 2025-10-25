@@ -43,7 +43,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
     }
 
     // todo: check for online mode
-    if true {
+    if false {
         // online mode
         let verify_token: [u8; 4] = rand::random();
         *client.verify_token.lock() = verify_token;
@@ -86,7 +86,7 @@ async fn handle_plugin_response(client: Arc<Connection>) {
 
 async fn handle_login_acknowledged(client: Arc<Connection>, packet: LoginAcknowledgePacket) {
     let _ = packet;
-    client.set_state(ProtocolState::Config).await;
+    client.set_state(ProtocolState::Config);
 }
 
 async fn handle_cookie_response(client: Arc<Connection>) {
