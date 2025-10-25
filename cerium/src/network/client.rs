@@ -126,7 +126,7 @@ impl Connection {
                 .handle_packet(packet.id(), &mut Cursor::new(packet.data()))
                 .await
             {
-                log::error!("Packet handling error: {}", e);
+                log::error!("Failed to handle packet: {}", e);
                 break;
             }
         }

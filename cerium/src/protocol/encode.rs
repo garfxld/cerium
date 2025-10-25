@@ -5,20 +5,9 @@ use uuid::Uuid;
 
 use crate::{
     protocol::{
-        ProtocolState,
         packet::{
-            ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
-            DisconnectPacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket,
-            EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket,
-            FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket,
-            LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket,
-            PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket,
-            RemoveEntitiesPacket, ServerPacket, SetCenterChunkPacket, SetCompressionPacket,
-            SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket,
-            SetHeadRotationPacket, SpawnEntityPacket, StatusResponsePacket,
-            SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
-            server::{KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket},
-        },
+            server::{CloseContainerPacket, KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket}, ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket, SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket
+        }, ProtocolState
     },
     text::Component,
     util::Identifier,
@@ -317,9 +306,9 @@ where
         // _ if type_id == TypeId::of::<ClearTitlesPacket>() => 0x0E,
         // _ if type_id == TypeId::of::<CommandSuggestionsPacket>() => 0x0F,
         // _ if type_id == TypeId::of::<CommandsPacket>() => 0x10,
-        // _ if type_id == TypeId::of::<ContainerClosePacket>() => 0x11,
-        // _ if type_id == TypeId::of::<ContainerSetContentPacket>() => 0x12,
-        _ if type_id == TypeId::of::<SetContainerContentPacket>() => 0x13,
+        _ if type_id == TypeId::of::<CloseContainerPacket>() => 0x11,
+        _ if type_id == TypeId::of::<SetContainerContentPacket>() => 0x12,
+        // _ if type_id == TypeId::of::<SetContainerData() => 0x13,
         _ if type_id == TypeId::of::<SetContainerSlotPacket>() => 0x14,
         // _ if type_id == TypeId::of::<CookieRequestPacket>() => 0x15,
         // _ if type_id == TypeId::of::<CooldownPacket>() => 0x16,

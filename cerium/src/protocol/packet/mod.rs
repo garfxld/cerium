@@ -63,6 +63,7 @@ pub mod client {
         mod ping_request;
         mod keep_alive;
         mod interact;
+        mod change_recipe_book_settings;
 
         pub use client_tick_end::ClientTickEndPacket;
         pub use confirm_teleportation::ConfirmTeleportationPacket;
@@ -88,6 +89,7 @@ pub mod client {
         pub use ping_request::PingRequestPacket;
         pub use keep_alive::KeepAlivePacket;
         pub use interact::InteractPacket;
+        pub use change_recipe_book_settings::ChangeRecipeBookSettingsPacket;
     }
  
     pub use handshake::*;

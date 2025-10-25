@@ -42,8 +42,11 @@ impl Decode for InteractPacket {
             target_x,
             target_y,
             target_z,
-            hand: matches!(r#type, InteractType::Interact | InteractType::InteractAt)
-                .then_some(Hand::decode(r)?),
+            hand: if matches!(r#type, InteractType::Interact | InteractType::InteractAt) {
+                Some(Hand::decode(r)?)
+            } else {
+                None
+            },
             sneak_key_pressed: r.read_bool()?,
         })
     }

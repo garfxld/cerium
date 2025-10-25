@@ -1,4 +1,5 @@
 use parking_lot::Mutex;
+use rustc_hash::FxHashMap;
 use std::sync::{
     Arc,
     atomic::{AtomicI32, Ordering},
@@ -6,7 +7,7 @@ use std::sync::{
 
 use crate::{
     entity::Player,
-    inventory::InventoryType,
+    inventory::{InventoryType, Slot},
     item::{ItemStack, Material},
     protocol::packet::{
         OpenScreenPacket, SetContainerContentPacket, SetContainerSlotPacket,
@@ -20,16 +21,16 @@ pub struct Inventory {
     id: i32,
     ty: InventoryType,
     title: Component,
-    content: Mutex<Vec<ItemStack>>,
+    content: Mutex<FxHashMap<i32, ItemStack>>,
     viewers: Mutex<Vec<Arc<Player>>>,
 }
 
 impl Inventory {
     pub fn new(ty: InventoryType, title: impl Into<Component>) -> Arc<Self> {
         let size = ty.size();
-        let mut content = Vec::with_capacity(size as usize);
-        for _ in 0..size {
-            content.push(ItemStack::EMPTY);
+        let mut content = FxHashMap::with_capacity_and_hasher(size as usize, Default::default());
+        for ix in 0..size {
+            content.insert(ix, ItemStack::EMPTY);
         }
 
         Arc::new(Self {
@@ -73,14 +74,14 @@ impl Inventory {
     /// Adds an [`ItemStack`] to the first available slot in the inventory.
     pub fn add_item_stack(&self, stack: ItemStack) {
         let mut content = self.content.lock();
-        for (ix, stck) in content.clone().iter().enumerate() {
+        for (ix, stck) in content.clone().iter() {
             if stck.material() == Material::Air {
-                content.insert(ix, stack.clone());
+                content.insert(*ix, stack.clone());
 
                 self.send_packet_to_viewers(SetContainerSlotPacket {
                     window_id: self.id(),
                     state_id: 0,
-                    slot: ix as i16,
+                    slot: *ix as i16,
                     slot_data: stack.into(),
                 });
                 break;
@@ -90,7 +91,7 @@ impl Inventory {
 
     /// Inserts an [`ItemStack`] into a given slot and overwrites the previous data.
     pub fn set_item_stack(&self, slot: i32, stack: ItemStack) {
-        self.content.lock().insert(slot as usize, stack.clone());
+        self.content.lock().insert(slot, stack.clone());
 
         self.send_packet_to_viewers(SetContainerSlotPacket {
             window_id: self.id(),
@@ -104,18 +105,25 @@ impl Inventory {
     pub fn get_item_stack(&self, slot: i32) -> ItemStack {
         self.content
             .lock()
-            .get(slot as usize)
+            .get(&slot)
             .cloned()
             .unwrap_or(ItemStack::EMPTY)
     }
 
     fn refresh_contents(&self, player: Arc<Player>) {
         let content = self.content.lock().clone();
-
+        println!(
+            "{:?}",
+            content
+                .clone()
+                .into_iter()
+                .map(|(_, s)| s.into())
+                .collect::<Vec<Slot>>()
+        );
         player.send_packet(SetContainerContentPacket {
             window_id: self.id(),
             state_id: 0,
-            slot_data: content.into_iter().map(|s| s.into()).collect(),
+            slot_data: content.into_iter().map(|(_, s)| s.into()).collect(),
             carried_item: ItemStack::EMPTY.into(),
         });
     }

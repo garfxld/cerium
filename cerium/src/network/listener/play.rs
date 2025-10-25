@@ -2,13 +2,14 @@ use std::io::Cursor;
 use std::sync::Arc;
 
 use crate::{
-    entity::{EntityLike as _, GameMode, Hand, Player},
+    entity::{EntityAnimation, EntityLike as _, GameMode, Hand, Player},
     item::ItemStack,
     protocol::{
         decode::{Decode as _, DecodeError},
         packet::{
-            ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
-            ClientTickEndPacket, ConfirmTeleportationPacket, EntityAnimationPacket, InteractPacket,
+            ChangeRecipeBookSettingsPacket, ChatCommandPacket, ChunkBatchReceivedPacket,
+            ClickContainerPacket, ClientInfoPacket, ClientTickEndPacket,
+            ConfirmTeleportationPacket, EntityAnimationPacket, InteractPacket,
             PickItemFromBlockPacket, PlayerActionPacket, PlayerCommand, PlayerCommandPacket,
             PlayerInputFlags, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
             PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
@@ -47,6 +48,7 @@ pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Cursor<&[u8]
         0x29 => handle_player_command(player, PlayerCommandPacket::decode(data)?).await,
         0x2A => handle_player_input(player, PlayerInputPacket::decode(data)?).await,
         0x2B => handle_player_loaded(player, PlayerLoadedPacket::decode(data)?).await,
+        0x2D => hande_change_recipe_book_settings(player, ChangeRecipeBookSettingsPacket::decode(data)?).await,
         0x34 => handle_set_held_item(player, SetHeldItemPacket::decode(data)?).await,
         0x37 => handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?).await,
         0x3C => handle_swing_arm(player, SwingArmPacket::decode(data)?).await,
@@ -192,7 +194,7 @@ async fn handle_ping_request(player: Arc<Player>, packet: PingRequestPacket) {
 }
 
 async fn handle_player_abilities(player: Arc<Player>, packet: PlayerAbilitiesPacket) {
-    let can_fly = player.can_fly() || player.game_mode() == GameMode::Creative;
+    let can_fly = player.allow_flying() || player.game_mode() == GameMode::Creative;
 
     if can_fly {
         let flying = (packet.flags & 0x02) != 0;
@@ -222,6 +224,14 @@ async fn handle_player_loaded(player: Arc<Player>, packet: PlayerLoadedPacket) {
     let _ = packet;
 }
 
+async fn hande_change_recipe_book_settings(
+    player: Arc<Player>,
+    packet: ChangeRecipeBookSettingsPacket,
+) {
+    let _ = player;
+    let _ = packet;
+}
+
 async fn handle_set_held_item(player: Arc<Player>, packet: SetHeldItemPacket) {
     let _ = player;
     let _ = packet;
@@ -238,7 +248,11 @@ async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeM
 async fn handle_swing_arm(player: Arc<Player>, packet: SwingArmPacket) {
     player.send_packet_to_viewers(EntityAnimationPacket {
         entity_id: player.id(),
-        animation: if packet.hand == Hand::Left { 0 } else { 3 },
+        animation: if packet.hand == Hand::Left {
+            EntityAnimation::SwingMainArm
+        } else {
+            EntityAnimation::SwingOffhand
+        },
     });
 }
 

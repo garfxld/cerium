@@ -3,7 +3,8 @@
 Yet another high-performance Minecraft server library written in Rust.
 
 > [!CAUTION]
-> This repository is still in a very, very, very early stage of development.
+> This repository is still in a very, very, very early stage of development. I'm a student so don't expect frequent updates.
+
 
 ## Goals
 
@@ -12,44 +13,31 @@ Yet another high-performance Minecraft server library written in Rust.
 - Easy to use
 
 
-## Roadmap
+## Usage
 
-- Protocol
-    - [x] Server list ping
-    - [x] Encryption
-    - [x] Compression
-    - [x] Joining a world
-    - [x] Registries
-- World
-    - [ ] Blocks
-    - [ ] Entities
-    - [ ] Block Interactions
-    - [ ] Light API
-    - [ ] Chunk Generation API
-    - [ ] Batching
-- Entity
-    - [ ] Entity API
-    - [ ] Entity Metadata
-- [ ] Item/Inventory API
-- [ ] Commands
-- [x] Text components
-- [ ] Event system
-- [ ] Resource Pack Support
-- [ ] Advancements
-- [ ] Proxy Support
-- [ ] Scoreboards
+The project is still very experimental so you would need to add it as a git dependency.
+To add it to you project add the following line in your `Cargo.toml`:
+```
+cerium = { git = "https://github.com/garfxld/cerium.git" }
+```
 
-Of course, more features are planned for the future.
+You can use one of the examples to quick-start a project.
 
 
 ## Examples
 
-- Debug World
-- Flat World
-- Npc
-- Text
+There are some simple (and maybe not fully functional) examples in the [examples](/cerium/examples/) directory in the `cerium` crate.
 
-## Running
+### List of Examples
+
+- [debug_world.rs](/cerium/examples/debug_world.rs)
+- [flat_world.rs](/cerium/examples/flat_world.rs)
+- [inventory.rs](/cerium/examples/inventory.rs)
+- [npc.rs](/cerium/examples/npc.rs)
+- [text.rs](/cerium/examples/text.rs)
+
+
+### Running
 
 ```sh
 cargo r --example debug_world
@@ -82,3 +70,40 @@ fn main() {
 ```
 
 <img src="thumbnail.png" alt="Debug World">
+
+
+## Roadmap
+
+- Protocol
+    - [x] Server List Ping
+    - [x] Encryption
+    - [x] Compression
+    - [x] Joining a World
+    - [x] Registries
+    - [ ] All Packets
+- World
+    - [ ] Blocks
+    - [ ] Entities
+    - [ ] Block Interactions
+    - [ ] Light API
+    - [ ] Chunk Generation API
+    - [ ] Batching
+- Entity
+    - [ ] Entity API
+    - [ ] Entity Metadata
+- Inventory/Item
+    - [x] Open Inventory
+    - [x] Close Inventory
+    - [x] Set Slot Content
+    - [ ] Click Slot
+    - [x] Create ItemStack
+- [x] Text components
+- [ ] Command System
+- [ ] Event System
+- [ ] Resource Pack Support
+- [ ] Advancements
+- [ ] Proxy Support
+- [ ] Scoreboards
+
+Of course, more features are planned for the future.
+ 

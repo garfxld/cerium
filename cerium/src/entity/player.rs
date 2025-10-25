@@ -19,8 +19,8 @@ use crate::{
     network::client::Connection,
     protocol::packet::{
         ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, EntityPositionRotationPacket,
-        EntityRotationPacket, GameEventPacket, Packet, PlayerAbilitiesFlag, PlayerAction,
-        PlayerEntry, PlayerInfoFlags, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, ServerPacket,
+        EntityRotationPacket, GameEventPacket, Packet, PlayerAbilities, PlayerAction, PlayerEntry,
+        PlayerInfoFlags, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, ServerPacket,
         SetCenterChunkPacket, SetHeadRotationPacket, SyncPlayerPositionPacket,
         SystemChatMessagePacket, UnloadChunkPacket,
         server::{PlayerAbilitiesPacket, play::KeepAlivePacket},
@@ -72,7 +72,7 @@ pub struct Player {
     pub(crate) chunk_queue: Mutex<ChunkQueue>,
     teleport_id: AtomicI32,
     flying: AtomicBool,
-    can_fly: AtomicBool,
+    allow_flying: AtomicBool,
     invurnable: AtomicBool,
     flying_speed: Mutex<f32>,
     fov_modifier: Mutex<f32>,
@@ -94,7 +94,7 @@ impl Player {
             chunk_queue: Mutex::new(ChunkQueue::new()),
             teleport_id: AtomicI32::default(),
             flying: AtomicBool::default(),
-            can_fly: AtomicBool::default(),
+            allow_flying: AtomicBool::default(),
             invurnable: AtomicBool::default(),
             flying_speed: Mutex::new(0.05),
             fov_modifier: Mutex::new(0.1),
@@ -115,10 +115,6 @@ impl Player {
         *self.game_mode.lock()
     }
 
-    pub(crate) fn set_world(&self, world: Arc<World>) {
-        (*self.world.lock()) = Some(world)
-    }
-
     pub(crate) fn set_position(&self, position: Position) {
         self.entity.set_position(position);
     }
@@ -133,7 +129,7 @@ impl Player {
             value: game_mode as i32 as f32,
         });
 
-        self.set_can_fly(game_mode == GameMode::Creative || game_mode == GameMode::Spectator);
+        self.set_allow_flying(game_mode == GameMode::Creative || game_mode == GameMode::Spectator);
         if game_mode != GameMode::Creative && game_mode != GameMode::Spectator {
             self.set_flying(false);
         }
@@ -202,7 +198,7 @@ impl Player {
         &self.server
     }
 
-    // Inventory
+    // ===== Inventory ======
 
     /// Returns the player's inventory.
     ///
@@ -245,7 +241,7 @@ impl Player {
         self.open_inventory.lock().clone()
     }
 
-    // Chunking
+    // ===== World ======
 
     pub(crate) fn update_chunks(&self, new_chunk: (i32, i32), old_chunk: (i32, i32)) {
         let view_distance = 8;
@@ -317,7 +313,11 @@ impl Player {
         // queue.lead += 1;
     }
 
-    // Position
+    pub(crate) fn set_world(&self, world: Arc<World>) {
+        (*self.world.lock()) = Some(world)
+    }
+
+    // ===== Position & Movement ======
 
     pub fn refresh_position(&self, new_position: Position) {
         let old_position = self.position();
@@ -423,14 +423,51 @@ impl Player {
         self.teleport_id.fetch_add(1, Ordering::Release)
     }
 
-    pub fn set_can_fly(&self, value: bool) {
-        self.can_fly.store(value, Ordering::Release);
+    // ===== Abilities ======
+
+    /// Returns if the player is invurnable.
+    pub fn invurnable(&self) -> bool {
+        self.invurnable.load(Ordering::Acquire)
     }
 
-    pub fn can_fly(&self) -> bool {
-        self.can_fly.load(Ordering::Acquire)
+    pub fn set_invurnable(&self, value: bool) {
+        self.invurnable.store(value, Ordering::Release);
     }
 
+    /// Returns the flying speed of the player.
+    pub fn flying_speed(&self) -> f32 {
+        *self.flying_speed.lock()
+    }
+
+    pub fn set_flying_speed(&self, value: f32) {
+        {
+            *self.flying_speed.lock() = value;
+        }
+        self.refresh_abilities();
+    }
+
+    /// Returns the fov modifier of the player.
+    pub fn fov_modifier(&self) -> f32 {
+        *self.fov_modifier.lock()
+    }
+
+    pub fn set_fov_modifier(&self, value: f32) {
+        {
+            *self.fov_modifier.lock() = value;
+        }
+        self.refresh_abilities();
+    }
+
+    /// Returns if the player is allowed to fly.
+    pub fn allow_flying(&self) -> bool {
+        self.allow_flying.load(Ordering::Acquire)
+    }
+
+    pub fn set_allow_flying(&self, value: bool) {
+        self.allow_flying.store(value, Ordering::Release);
+    }
+
+    /// Returns if the player is currently flying.
     pub fn flying(&self) -> bool {
         self.flying.load(Ordering::Acquire)
     }
@@ -452,48 +489,16 @@ impl Player {
         self.flying.store(value, Ordering::Release);
     }
 
-    // Abilities
-
-    pub fn invurnable(&self) -> bool {
-        self.invurnable.load(Ordering::Acquire)
-    }
-
-    pub fn set_invurnable(&self, value: bool) {
-        self.invurnable.store(value, Ordering::Release);
-    }
-
-    pub fn flying_speed(&self) -> f32 {
-        *self.flying_speed.lock()
-    }
-
-    pub fn set_flying_speed(&self, value: f32) {
-        {
-            *self.flying_speed.lock() = value;
-        }
-        self.refresh_abilities();
-    }
-
-    pub fn fov_modifier(&self) -> f32 {
-        *self.fov_modifier.lock()
-    }
-
-    pub fn set_fov_modifier(&self, value: f32) {
-        {
-            *self.fov_modifier.lock() = value;
-        }
-        self.refresh_abilities();
-    }
-
     pub fn refresh_abilities(&self) {
-        let mut flags = PlayerAbilitiesFlag::empty();
+        let mut flags = PlayerAbilities::empty();
         if self.invurnable() {
-            flags |= PlayerAbilitiesFlag::INVURNABLE;
+            flags |= PlayerAbilities::INVURNABLE;
         }
         if self.flying() {
-            flags |= PlayerAbilitiesFlag::FLYING;
+            flags |= PlayerAbilities::FLYING;
         }
-        if self.can_fly() {
-            flags |= PlayerAbilitiesFlag::ALLOW_FLYING;
+        if self.allow_flying() {
+            flags |= PlayerAbilities::ALLOW_FLYING;
         }
 
         self.send_packet(PlayerAbilitiesPacket {
@@ -508,6 +513,7 @@ impl Player {
         self.send_packet(self.entity.metadata_packet());
     }
 
+    /// Returns if the player is sprinting.
     pub fn is_sprinting(&self) -> bool {
         self.entity.is_sprinting()
     }
@@ -517,6 +523,7 @@ impl Player {
         self.send_packet(self.entity.metadata_packet());
     }
 
+    /// Returns if the player is sneaking.
     pub fn is_sneaking(&self) -> bool {
         self.entity.is_sneaking()
     }

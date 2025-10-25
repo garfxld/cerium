@@ -7,7 +7,7 @@ use crate::protocol::{
 
 #[derive(Debug, Clone)]
 pub struct PlayerAbilitiesPacket {
-    pub flags: PlayerAbilitiesFlag,
+    pub flags: PlayerAbilities,
     pub flying_speed: f32,
     pub fov_modifier: f32,
 }
@@ -26,7 +26,7 @@ impl Encode for PlayerAbilitiesPacket {
 
 bitflags! {
     #[derive(Debug, Clone)]
-    pub struct PlayerAbilitiesFlag: u8 {
+    pub struct PlayerAbilities: u8 {
         const INVURNABLE = 0x01;
         const FLYING = 0x02;
         const ALLOW_FLYING = 0x04;
