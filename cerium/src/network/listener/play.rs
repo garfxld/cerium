@@ -8,13 +8,15 @@ use crate::{
         decode::{Decode as _, DecodeError},
         packet::{
             ChatCommandPacket, ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket,
-            ClientTickEndPacket, CloseContainerPacket, ConfirmTeleportationPacket,
-            EntityAnimationPacket, InteractPacket, PickItemFromBlockPacket, PlayerActionPacket,
-            PlayerCommand, PlayerCommandPacket, PlayerInputFlags, PlayerInputPacket,
-            PlayerLoadedPacket, PlayerMovementFlagsPacket, PlayerPositionAndRotationPacket,
-            PlayerPositionPacket, PlayerRotationPacket, PlayerSessionPacket, PluginMessagePacket,
-            SetCreativeModeSlotPacket, SetHeldItemPacket, SwingArmPacket, UseItemOnPacket,
-            client::play::{KeepAlivePacket, PingRequestPacket, PlayerAbilitiesPacket},
+            ClientTickEndPacket, ConfirmTeleportationPacket, EntityAnimationPacket, InteractPacket,
+            PickItemFromBlockPacket, PlayerActionPacket, PlayerCommand, PlayerCommandPacket,
+            PlayerInputFlags, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
+            PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
+            PlayerSessionPacket, PluginMessagePacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
+            SwingArmPacket, UseItemOnPacket,
+            client::play::{
+                CloseContainerPacket, KeepAlivePacket, PingRequestPacket, PlayerAbilitiesPacket,
+            },
         },
     },
     util::{Position, Viewable},
@@ -94,13 +96,26 @@ async fn handle_client_info(player: Arc<Player>, packet: ClientInfoPacket) {
 }
 
 async fn handle_click_container(player: Arc<Player>, packet: ClickContainerPacket) {
-    let _ = player;
-    let _ = packet;
+    if packet.slot == -1 {
+        return;
+    }
+
+    if packet.window_id == 0 {
+        // todo
+
+        return;
+    }
+
+    let Some(_inventory) = player.get_open_inventory() else {
+        return;
+    };
+
+    // todo
 }
 
 async fn handle_close_container(player: Arc<Player>, packet: CloseContainerPacket) {
-    let _ = player;
     let _ = packet;
+    player.close_inventory();
 }
 
 async fn handle_plugin_message(player: Arc<Player>, packet: PluginMessagePacket) {

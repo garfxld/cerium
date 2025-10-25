@@ -160,6 +160,8 @@ pub mod server {
         mod set_entity_metadata;
         mod player_abilities;
         mod player_info_remove;
+        mod open_screen;
+        mod close_container;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -185,6 +187,8 @@ pub mod server {
         pub use set_entity_metadata::SetEntityMetadataPacket;
         pub use player_abilities::*;
         pub use player_info_remove::PlayerInfoRemovePacket;
+        pub use open_screen::OpenScreenPacket;
+        pub use close_container::CloseContainerPacket;
     }
 
     pub use status::*;

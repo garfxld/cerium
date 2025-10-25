@@ -1,5 +1,6 @@
 use cerium::Server;
-use cerium::event::player::PlayerConfigEvent;
+use cerium::entity::GameMode;
+use cerium::event::player::{PlayerConfigEvent, PlayerEvent, PlayerSpawnEvent};
 use cerium::registry::DimensionType;
 use cerium::world::{BlockState, World};
 
@@ -21,6 +22,9 @@ fn main() {
         .subscribe(move |event: &mut PlayerConfigEvent| {
             event.set_world(world.clone());
             event.set_position((0.5, 71., 0.5));
+        })
+        .subscribe(move |event: &mut PlayerSpawnEvent| {
+            event.get_player().set_game_mode(GameMode::Creative);
         });
 
     server.bind("127.0.0.1:25565").unwrap();

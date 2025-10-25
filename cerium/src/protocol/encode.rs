@@ -5,9 +5,20 @@ use uuid::Uuid;
 
 use crate::{
     protocol::{
+        ProtocolState,
         packet::{
-            server::{KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket}, ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, Packet, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket, SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket
-        }, ProtocolState
+            ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
+            DisconnectPacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket,
+            EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket,
+            FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket,
+            LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket,
+            PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket,
+            RemoveEntitiesPacket, ServerPacket, SetCenterChunkPacket, SetCompressionPacket,
+            SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket,
+            SetHeadRotationPacket, SpawnEntityPacket, StatusResponsePacket,
+            SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
+            server::{KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket},
+        },
     },
     text::Component,
     util::Identifier,
@@ -346,7 +357,7 @@ where
         _ if type_id == TypeId::of::<EntityRotationPacket>() => 0x36,
         // _ if type_id == TypeId::of::<MoveVehiclePacket>() => 0x37,
         // _ if type_id == TypeId::of::<OpenBookPacket>() => 0x38,
-        // _ if type_id == TypeId::of::<OpenScreenPacket>() => 0x39,
+        _ if type_id == TypeId::of::<OpenScreenPacket>() => 0x39,
         // _ if type_id == TypeId::of::<OpenSignEditorPacket>() => 0x3A,
         // _ if type_id == TypeId::of::<PingPacket>() => 0x3B,
         // _ if type_id == TypeId::of::<PongResponsePacket>() => 0x3C,

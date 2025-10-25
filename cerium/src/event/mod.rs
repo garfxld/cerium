@@ -1,6 +1,7 @@
 mod events;
 pub use events::Events;
 
+pub mod inventory;
 pub mod player;
 
 pub trait Event: Send {}
@@ -24,3 +25,9 @@ impl ServerListPingEvent {
 }
 
 impl Event for ServerListPingEvent {}
+
+pub trait Cancellable: Event {
+    fn set_cancelled(&mut self, value: bool);
+
+    fn is_cancelled(&self) -> bool;
+}

@@ -1,57 +1,176 @@
 use parking_lot::Mutex;
+use std::sync::{
+    Arc,
+    atomic::{AtomicI32, Ordering},
+};
 
-use crate::item::ItemStack;
+use crate::{
+    entity::Player,
+    inventory::InventoryType,
+    item::{ItemStack, Material},
+    protocol::packet::{
+        OpenScreenPacket, SetContainerContentPacket, SetContainerSlotPacket,
+        server::CloseContainerPacket,
+    },
+    text::Component,
+    util::Viewable,
+};
 
-#[derive(Debug)]
-pub struct PlayerInventory {
-    size: i32,
+pub struct Inventory {
+    id: i32,
+    ty: InventoryType,
+    title: Component,
     content: Mutex<Vec<ItemStack>>,
+    viewers: Mutex<Vec<Arc<Player>>>,
 }
 
-impl PlayerInventory {
-    pub fn new() -> Self {
-        const SIZE: i32 = 54;
-        let mut content = Vec::with_capacity(SIZE as usize);
-        for _ in 0..SIZE {
+impl Inventory {
+    pub fn new(ty: InventoryType, title: impl Into<Component>) -> Arc<Self> {
+        let size = ty.size();
+        let mut content = Vec::with_capacity(size as usize);
+        for _ in 0..size {
             content.push(ItemStack::EMPTY);
         }
 
-        Self {
-            size: SIZE,
+        Arc::new(Self {
+            id: Self::generate_id(),
+            ty,
+            title: title.into(),
             content: Mutex::new(content),
+            viewers: Mutex::new(vec![]),
+        })
+    }
+
+    fn generate_id() -> i32 {
+        static CURRENT_ID: AtomicI32 = AtomicI32::new(1);
+        CURRENT_ID
+            .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |i| {
+                Some(if i + 1 >= 128 { 1 } else { i + 1 })
+            })
+            .unwrap()
+    }
+
+    /// Returns the id of the inventory.
+    pub fn id(&self) -> i32 {
+        self.id
+    }
+
+    /// Returns the type of the inventory.
+    pub fn r#type(&self) -> InventoryType {
+        self.ty
+    }
+
+    /// Returns the title of the inventory.
+    pub fn title(&self) -> Component {
+        self.title.clone()
+    }
+
+    /// Returns the size of the inventory.
+    pub fn size(&self) -> i32 {
+        self.ty.size()
+    }
+
+    /// Adds an [`ItemStack`] to the first available slot in the inventory.
+    pub fn add_item_stack(&self, stack: ItemStack) {
+        let mut content = self.content.lock();
+        for (ix, stck) in content.clone().iter().enumerate() {
+            if stck.material() == Material::Air {
+                content.insert(ix, stack.clone());
+
+                self.send_packet_to_viewers(SetContainerSlotPacket {
+                    window_id: self.id(),
+                    state_id: 0,
+                    slot: ix as i16,
+                    slot_data: stack.into(),
+                });
+                break;
+            }
         }
     }
 
-    pub fn size(&self) -> i32 {
-        self.size
+    /// Inserts an [`ItemStack`] into a given slot and overwrites the previous data.
+    pub fn set_item_stack(&self, slot: i32, stack: ItemStack) {
+        self.content.lock().insert(slot as usize, stack.clone());
+
+        self.send_packet_to_viewers(SetContainerSlotPacket {
+            window_id: self.id(),
+            state_id: 0,
+            slot: slot as i16,
+            slot_data: stack.into(),
+        });
     }
 
-    pub fn set_item_stack(&self, slot: i32, item: ItemStack) {
-        self.content.lock().insert(slot as usize, item);
+    /// Returns the [`ItemStack`] in the current slot.
+    pub fn get_item_stack(&self, slot: i32) -> ItemStack {
+        self.content
+            .lock()
+            .get(slot as usize)
+            .cloned()
+            .unwrap_or(ItemStack::EMPTY)
     }
 
-    pub fn get_item_stack(&self, slot: i32) -> Option<ItemStack> {
-        self.content.lock().get(slot as usize).cloned()
+    fn refresh_contents(&self, player: Arc<Player>) {
+        let content = self.content.lock().clone();
+
+        player.send_packet(SetContainerContentPacket {
+            window_id: self.id(),
+            state_id: 0,
+            slot_data: content.into_iter().map(|s| s.into()).collect(),
+            carried_item: ItemStack::EMPTY.into(),
+        });
+    }
+}
+
+impl Viewable for Inventory {
+    fn add_viewer(&self, player: Arc<Player>) {
+        self.viewers.lock().push(player.clone());
+
+        player.send_packet(OpenScreenPacket {
+            window_id: self.id(),
+            window_type: self.r#type().id(),
+            window_title: self.title(),
+        });
+        self.refresh_contents(player);
+    }
+
+    fn remove_viewer(&self, player: Arc<Player>) {
+        self.viewers.lock().retain(|other| *other != player);
+
+        player.send_packet(CloseContainerPacket {
+            window_id: self.id(),
+        });
+    }
+
+    fn viewers(&self) -> Vec<Arc<Player>> {
+        self.viewers.lock().clone()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::item::Material;
 
     #[test]
-    pub fn test_player_inventory() {
-        let inventory = PlayerInventory::new();
-        inventory.set_item_stack(9, ItemStack::of(Material::AcaciaBoat));
+    #[rustfmt::skip]
+    fn test_set_item_stack() {
+        let inventory = Inventory::new(InventoryType::Generic9x6, "");
+        inventory.set_item_stack(1, ItemStack::EMPTY);
+        inventory.set_item_stack(22, ItemStack::new(Material::AcaciaBoat, 1));
 
-        assert_eq!(
-            inventory.get_item_stack(9).map(|v| v.material()),
-            Some(Material::AcaciaBoat)
-        );
-        assert_eq!(
-            inventory.get_item_stack(10).map(|v| v.material()),
-            Some(Material::Air)
-        );
+        assert_eq!(inventory.get_item_stack(0).material(), Material::Air);
+        assert_eq!(inventory.get_item_stack(1).material(), Material::Air);
+        assert_eq!(inventory.get_item_stack(22).material(), Material::AcaciaBoat);
+    }
+
+    #[test]
+    #[rustfmt::skip]
+    fn test_add_item_stack() {
+        let inventory = Inventory::new(InventoryType::Generic9x6, "");
+        inventory.add_item_stack(ItemStack::EMPTY);
+        inventory.add_item_stack(ItemStack::new(Material::GraniteStairs, 1));
+        inventory.add_item_stack(ItemStack::new(Material::RedCandle, 1));
+
+        assert_eq!(inventory.get_item_stack(0).material(), Material::GraniteStairs);
+        assert_eq!(inventory.get_item_stack(1).material(), Material::RedCandle);
     }
 }

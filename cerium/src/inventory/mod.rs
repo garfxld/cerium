@@ -3,7 +3,13 @@ use std::{any::Any, sync::Arc};
 use rustc_hash::FxHashMap;
 
 mod inventory;
-pub use inventory::PlayerInventory;
+pub use inventory::*;
+
+mod inventory_type;
+pub use inventory_type::*;
+
+mod player_inventory;
+pub use player_inventory::PlayerInventory;
 
 #[derive(Debug, Clone)]
 pub struct Slot {

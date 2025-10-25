@@ -77,6 +77,12 @@ impl ItemStack {
     }
 }
 
+impl From<Material> for ItemStack {
+    fn from(value: Material) -> Self {
+        Self::new(value, 1)
+    }
+}
+
 impl From<Slot> for ItemStack {
     fn from(value: Slot) -> Self {
         if let Some(item_id) = value.item_id {

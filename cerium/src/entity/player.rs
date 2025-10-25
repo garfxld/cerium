@@ -14,7 +14,8 @@ use crate::{
     Server,
     auth::GameProfile,
     entity::{Entity, EntityType, GameMode, entity::EntityLike},
-    inventory::PlayerInventory,
+    event::{Cancellable, inventory::InventoryOpenEvent},
+    inventory::{Inventory, PlayerInventory},
     network::client::Connection,
     protocol::packet::{
         ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, EntityPositionRotationPacket,
@@ -75,6 +76,7 @@ pub struct Player {
     invurnable: AtomicBool,
     flying_speed: Mutex<f32>,
     fov_modifier: Mutex<f32>,
+    open_inventory: Mutex<Option<Arc<Inventory>>>,
     server: Arc<Server>,
 }
 
@@ -96,6 +98,7 @@ impl Player {
             invurnable: AtomicBool::default(),
             flying_speed: Mutex::new(0.05),
             fov_modifier: Mutex::new(0.1),
+            open_inventory: Mutex::new(None),
             server,
         }
     }
@@ -136,10 +139,6 @@ impl Player {
         }
 
         self.refresh_abilities();
-    }
-
-    pub fn inventory(&self) -> &Arc<PlayerInventory> {
-        &self.inventory
     }
 
     pub fn send_message(&self, message: impl Into<Component>) {
@@ -201,6 +200,49 @@ impl Player {
 
     pub fn server(&self) -> &Arc<Server> {
         &self.server
+    }
+
+    // Inventory
+
+    /// Returns the player's inventory.
+    ///
+    /// Note: this is not the open inventory. Use [`Player#get_open_inventory()`] instead.
+    pub fn inventory(&self) -> &Arc<PlayerInventory> {
+        &self.inventory
+    }
+
+    /// Opens an [`Inventory`] for a player.
+    pub fn open_inventory(self: Arc<Self>, inventory: Arc<Inventory>) {
+        let mut event = InventoryOpenEvent {
+            player: self.clone(),
+            inventory: inventory.clone(),
+            cancelled: false,
+        };
+        self.server.events().fire(&mut event);
+
+        if event.is_cancelled() {
+            return;
+        }
+
+        if let Some(inventory) = self.get_open_inventory() {
+            inventory.remove_viewer(self.clone());
+        }
+
+        inventory.add_viewer(self.clone());
+        *self.open_inventory.lock() = Some(inventory);
+    }
+
+    /// Closes the opened inventory if it is open.
+    pub fn close_inventory(self: Arc<Self>) {
+        let inventory = self.open_inventory.lock().clone();
+        if let Some(inventory) = inventory {
+            inventory.remove_viewer(self);
+        }
+    }
+
+    /// Returns the open inventory.
+    pub fn get_open_inventory(&self) -> Option<Arc<Inventory>> {
+        self.open_inventory.lock().clone()
     }
 
     // Chunking
