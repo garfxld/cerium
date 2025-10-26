@@ -1,10 +1,10 @@
 use std::{io::Cursor, sync::Arc};
 
-use crate::entity::EntityLike as _;
+use crate::entity::{EntityLike as _, Player};
 use crate::event::player::PlayerSpawnEvent;
 use crate::registry::{DimensionType, REGISTRIES};
 use crate::util::{Position, TeleportFlags, Viewable};
-use crate::{entity::Player, event::player::PlayerConfigEvent, network::client::Connection};
+use crate::{event::player::PlayerConfigEvent, network::client::Connection};
 use crate::{
     protocol::{
         ProtocolState,
@@ -78,7 +78,7 @@ async fn handle_acknowledge_finish_config(
 
     client.set_state(ProtocolState::Play);
 
-    let player = Arc::new(Player::new(client.clone(), client.server().clone()));
+    let player = Player::new(client.clone(), client.server().clone());
     {
         let mut players = client.server().players.lock();
         players.push(player.clone());
@@ -95,13 +95,13 @@ async fn handle_acknowledge_finish_config(
     client.server().events().fire(&mut event);
 
     if let Some(world) = event.world {
-        player.set_world(world);
+        player.0.set_world(world);
     } else {
         todo!("no world set");
     }
 
     let position = if let Some(position) = event.position {
-        player.set_position(position);
+        player.0.set_position(position);
         position
     } else {
         todo!("no position set");
@@ -150,7 +150,7 @@ async fn handle_acknowledge_finish_config(
 
     // Add player to tab for already playing players.
     for online_player in online_players {
-        online_player.send_packet(player.add_to_list_packet());
+        online_player.send_packet(player.0.add_to_list_packet());
         if *online_player != player {
             player.add_viewer(online_player.clone());
         }
@@ -164,7 +164,7 @@ async fn handle_acknowledge_finish_config(
         online_player.add_viewer(player.clone());
     }
 
-    player.load_chunks();
+    player.0.load_chunks();
 }
 
 async fn handle_keep_alive(client: Arc<Connection>) {

@@ -43,7 +43,7 @@ pub struct Connection {
     pub(crate) game_profile: Mutex<Option<GameProfile>>,
     pub(crate) key_store: Arc<KeyStore>,
     pub(crate) verify_token: Mutex<[u8; 4]>,
-    pub(crate) player: Mutex<Option<Arc<Player>>>,
+    pub(crate) player: Mutex<Option<Player>>,
     closed: AtomicBool,
     server: Arc<Server>,
 }

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{event::player::PlayerEvent, inventory::Inventory};
 
 mod click;
@@ -12,5 +10,5 @@ mod close;
 pub use close::InventoryCloseEvent;
 
 pub trait InventoryEvent: PlayerEvent {
-    fn get_inventory(&self) -> &Arc<Inventory>;
+    fn get_inventory(&self) -> &Inventory;
 }

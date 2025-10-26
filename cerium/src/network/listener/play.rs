@@ -1,5 +1,4 @@
 use std::io::Cursor;
-use std::sync::Arc;
 
 use crate::{
     entity::{EntityAnimation, EntityLike as _, GameMode, Hand, Player},
@@ -24,7 +23,7 @@ use crate::{
 };
 
 #[rustfmt::skip]
-pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
+pub async fn handle_packet(player: Player, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
         0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await,
         0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?).await,
@@ -58,23 +57,23 @@ pub async fn handle_packet(player: Arc<Player>, id: i32, data: &mut Cursor<&[u8]
     Ok(())
 }
 
-async fn handle_confirm_teleportation(player: Arc<Player>, packet: ConfirmTeleportationPacket) {
+async fn handle_confirm_teleportation(player: Player, packet: ConfirmTeleportationPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_chat_command(player: Arc<Player>, packet: ChatCommandPacket) {
+async fn handle_chat_command(player: Player, packet: ChatCommandPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_player_session(player: Arc<Player>, packet: PlayerSessionPacket) {
+async fn handle_player_session(player: Player, packet: PlayerSessionPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_chunk_batch_received(player: Arc<Player>, packet: ChunkBatchReceivedPacket) {
-    let mut queue = player.chunk_queue.lock();
+async fn handle_chunk_batch_received(player: Player, packet: ChunkBatchReceivedPacket) {
+    let mut queue = player.0.chunk_queue.lock();
     queue.lead -= 1;
     queue.target_cpt = if packet.chunks_per_tick.is_nan() {
         0.01
@@ -87,17 +86,17 @@ async fn handle_chunk_batch_received(player: Arc<Player>, packet: ChunkBatchRece
     }
 }
 
-async fn handle_client_tick_end(player: Arc<Player>, packet: ClientTickEndPacket) {
+async fn handle_client_tick_end(player: Player, packet: ClientTickEndPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_client_info(player: Arc<Player>, packet: ClientInfoPacket) {
+async fn handle_client_info(player: Player, packet: ClientInfoPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_click_container(player: Arc<Player>, packet: ClickContainerPacket) {
+async fn handle_click_container(player: Player, packet: ClickContainerPacket) {
     if packet.slot == -1 {
         return;
     }
@@ -115,24 +114,24 @@ async fn handle_click_container(player: Arc<Player>, packet: ClickContainerPacke
     // todo
 }
 
-async fn handle_close_container(player: Arc<Player>, packet: CloseContainerPacket) {
+async fn handle_close_container(player: Player, packet: CloseContainerPacket) {
     let _ = packet;
     player.close_inventory();
 }
 
-async fn handle_plugin_message(player: Arc<Player>, packet: PluginMessagePacket) {
+async fn handle_plugin_message(player: Player, packet: PluginMessagePacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_keep_alive(player: Arc<Player>, packet: KeepAlivePacket) {
+async fn handle_keep_alive(player: Player, packet: KeepAlivePacket) {
     let _ = player;
     let _ = packet;
 }
 
 // ===== Position & Movement ======
 
-async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacket) {
+async fn handle_player_position(player: Player, packet: PlayerPositionPacket) {
     let new_position = Position::new(
         packet.x,
         packet.feet_y,
@@ -144,14 +143,14 @@ async fn handle_player_position(player: Arc<Player>, packet: PlayerPositionPacke
 }
 
 async fn handle_player_position_and_rotation(
-    player: Arc<Player>,
+    player: Player,
     packet: PlayerPositionAndRotationPacket,
 ) {
     let new_position = Position::new(packet.x, packet.feet_y, packet.z, packet.yaw, packet.pitch);
     handle_movement(player, new_position, packet.flags & 1 != 0).await;
 }
 
-async fn handle_player_rotation(player: Arc<Player>, packet: PlayerRotationPacket) {
+async fn handle_player_rotation(player: Player, packet: PlayerRotationPacket) {
     let new_position = Position::new(
         player.position().x(),
         player.position().y(),
@@ -162,7 +161,7 @@ async fn handle_player_rotation(player: Arc<Player>, packet: PlayerRotationPacke
     handle_movement(player, new_position, packet.flags & 1 != 0).await;
 }
 
-async fn handle_movement(player: Arc<Player>, new_position: Position, on_ground: bool) {
+async fn handle_movement(player: Player, new_position: Position, on_ground: bool) {
     let old_position = player.position();
 
     if new_position == old_position {
@@ -173,27 +172,27 @@ async fn handle_movement(player: Arc<Player>, new_position: Position, on_ground:
     player.refresh_on_ground(on_ground);
 }
 
-async fn handle_interact(player: Arc<Player>, packet: InteractPacket) {
+async fn handle_interact(player: Player, packet: InteractPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_player_movement_flags(player: Arc<Player>, packet: PlayerMovementFlagsPacket) {
+async fn handle_player_movement_flags(player: Player, packet: PlayerMovementFlagsPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_pick_item_from_block(player: Arc<Player>, packet: PickItemFromBlockPacket) {
+async fn handle_pick_item_from_block(player: Player, packet: PickItemFromBlockPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_ping_request(player: Arc<Player>, packet: PingRequestPacket) {
+async fn handle_ping_request(player: Player, packet: PingRequestPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_player_abilities(player: Arc<Player>, packet: PlayerAbilitiesPacket) {
+async fn handle_player_abilities(player: Player, packet: PlayerAbilitiesPacket) {
     let can_fly = player.allow_flying() || player.game_mode() == GameMode::Creative;
 
     if can_fly {
@@ -202,12 +201,12 @@ async fn handle_player_abilities(player: Arc<Player>, packet: PlayerAbilitiesPac
     }
 }
 
-async fn handle_player_action(player: Arc<Player>, packet: PlayerActionPacket) {
+async fn handle_player_action(player: Player, packet: PlayerActionPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_player_command(player: Arc<Player>, packet: PlayerCommandPacket) {
+async fn handle_player_command(player: Player, packet: PlayerCommandPacket) {
     match packet.action_id {
         PlayerCommand::StartSprinting => player.set_sprinting(true),
         PlayerCommand::StopSprinting => player.set_sprinting(false),
@@ -215,29 +214,26 @@ async fn handle_player_command(player: Arc<Player>, packet: PlayerCommandPacket)
     }
 }
 
-async fn handle_player_input(player: Arc<Player>, packet: PlayerInputPacket) {
+async fn handle_player_input(player: Player, packet: PlayerInputPacket) {
     player.set_sneaking(packet.flags.contains(PlayerInputFlags::SNEAK));
 }
 
-async fn handle_player_loaded(player: Arc<Player>, packet: PlayerLoadedPacket) {
+async fn handle_player_loaded(player: Player, packet: PlayerLoadedPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn hande_change_recipe_book_settings(
-    player: Arc<Player>,
-    packet: ChangeRecipeBookSettingsPacket,
-) {
+async fn hande_change_recipe_book_settings(player: Player, packet: ChangeRecipeBookSettingsPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_set_held_item(player: Arc<Player>, packet: SetHeldItemPacket) {
+async fn handle_set_held_item(player: Player, packet: SetHeldItemPacket) {
     let _ = player;
     let _ = packet;
 }
 
-async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeModeSlotPacket) {
+async fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSlotPacket) {
     let inventory = player.inventory();
 
     let item_stack = ItemStack::from(packet.clicked_item);
@@ -245,7 +241,7 @@ async fn handle_set_creative_mode_slot(player: Arc<Player>, packet: SetCreativeM
     inventory.set_item_stack(packet.slot as i32, item_stack);
 }
 
-async fn handle_swing_arm(player: Arc<Player>, packet: SwingArmPacket) {
+async fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
     player.send_packet_to_viewers(EntityAnimationPacket {
         entity_id: player.id(),
         animation: if packet.hand == Hand::Left {
@@ -256,7 +252,7 @@ async fn handle_swing_arm(player: Arc<Player>, packet: SwingArmPacket) {
     });
 }
 
-async fn handle_use_item_on(player: Arc<Player>, packet: UseItemOnPacket) {
+async fn handle_use_item_on(player: Player, packet: UseItemOnPacket) {
     let _ = player;
     let _ = packet;
 }

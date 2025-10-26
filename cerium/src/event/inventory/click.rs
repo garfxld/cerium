@@ -1,27 +1,25 @@
-use std::sync::Arc;
-
 use crate::{
     entity::Player,
-    event::{inventory::InventoryEvent, player::PlayerEvent, Cancellable, Event},
+    event::{Cancellable, Event, inventory::InventoryEvent, player::PlayerEvent},
     inventory::Inventory,
 };
 
 pub struct InventoryClickEvent {
-    pub(crate) player: Arc<Player>,
-    pub(crate) inventory: Arc<Inventory>,
+    pub(crate) player: Player,
+    pub(crate) inventory: Inventory,
     pub(crate) cancelled: bool,
 }
 
 impl Event for InventoryClickEvent {}
 
 impl PlayerEvent for InventoryClickEvent {
-    fn get_player(&self) -> &Arc<Player> {
+    fn get_player(&self) -> &Player {
         &self.player
     }
 }
 
 impl InventoryEvent for InventoryClickEvent {
-    fn get_inventory(&self) -> &Arc<Inventory> {
+    fn get_inventory(&self) -> &Inventory {
         &self.inventory
     }
 }

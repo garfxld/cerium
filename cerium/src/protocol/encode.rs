@@ -5,9 +5,24 @@ use uuid::Uuid;
 
 use crate::{
     protocol::{
+        ProtocolState,
         packet::{
-            server::{CloseContainerPacket, KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket}, ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket, SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket
-        }, ProtocolState
+            ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
+            DisconnectPacket, DisplayObjectivePacket, EncryptionRequestPacket,
+            EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket,
+            EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket,
+            LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet,
+            PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket,
+            PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket,
+            SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket,
+            SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket,
+            SetTablistHeaderFooterPacket, SpawnEntityPacket, StatusResponsePacket,
+            SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
+            UpdateObjectivesPacket, UpdateScorePacket,
+            server::{
+                CloseContainerPacket, KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket,
+            },
+        },
     },
     text::Component,
     util::Identifier,
@@ -385,7 +400,7 @@ where
         // _ if type_id == TypeId::of::<SetChunkCacheRadiusPacket>() => 0x5D,
         // _ if type_id == TypeId::of::<SetCursorItemPacket>() => 0x5E,
         // _ if type_id == TypeId::of::<SetDefaultSpawnPositionPacket>() => 0x5F,
-        // _ if type_id == TypeId::of::<SetDisplayObjectivePacket>() => 0x60,
+        _ if type_id == TypeId::of::<DisplayObjectivePacket>() => 0x60,
         _ if type_id == TypeId::of::<SetEntityMetadataPacket>() => 0x61,
         // _ if type_id == TypeId::of::<SetEntityLinkPacket>() => 0x62,
         // _ if type_id == TypeId::of::<SetEntityMotionPacket>() => 0x63,
@@ -393,11 +408,11 @@ where
         // _ if type_id == TypeId::of::<SetExperiencePacket>() => 0x65,
         // _ if type_id == TypeId::of::<SetHealthPacket>() => 0x66,
         // _ if type_id == TypeId::of::<SetHeldSlotPacket>() => 0x67,
-        // _ if type_id == TypeId::of::<SetObjectivePacket>() => 0x68,
+        _ if type_id == TypeId::of::<UpdateObjectivesPacket>() => 0x68,
         // _ if type_id == TypeId::of::<SetPassengersPacket>() => 0x69,
         // _ if type_id == TypeId::of::<SetPlayerInventoryPacket>() => 0x6A,
         // _ if type_id == TypeId::of::<SetPlayerTeamPacket>() => 0x6B,
-        // _ if type_id == TypeId::of::<SetScorePacket>() => 0x6C,
+        _ if type_id == TypeId::of::<UpdateScorePacket>() => 0x6C,
         // _ if type_id == TypeId::of::<SetSimulationDistancePacket>() => 0x6D,
         // _ if type_id == TypeId::of::<SetSubtitleTextPacket>() => 0x6E,
         // _ if type_id == TypeId::of::<SetTimePacket>() => 0x6F,
@@ -409,7 +424,7 @@ where
         // _ if type_id == TypeId::of::<StopSoundPacket>() => 0x75,
         // _ if type_id == TypeId::of::<StoreCookiePacket>() => 0x76,
         _ if type_id == TypeId::of::<SystemChatMessagePacket>() => 0x77,
-        // _ if type_id == TypeId::of::<TabListPacket>() => 0x78,
+        _ if type_id == TypeId::of::<SetTablistHeaderFooterPacket>() => 0x78,
         // _ if type_id == TypeId::of::<TagQueryPacket>() => 0x79,
         // _ if type_id == TypeId::of::<TakeItemEntityPacket>() => 0x7A,
         // _ if type_id == TypeId::of::<TeleportEntityPacket>() => 0x7B,

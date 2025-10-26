@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{entity::Player, event::Event};
 
 mod player_config;
@@ -12,5 +10,5 @@ pub trait PlayerEvent
 where
     Self: Event,
 {
-    fn get_player(&self) -> &Arc<Player>;
+    fn get_player(&self) -> &Player;
 }

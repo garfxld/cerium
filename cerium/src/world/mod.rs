@@ -14,48 +14,88 @@ pub use block::{Block, BlockState};
 
 mod block_entity;
 pub use block_entity::BlockEntity;
-use parking_lot::{Mutex, RwLock};
+use parking_lot::RwLock;
 
 use crate::registry::{DimensionType, REGISTRIES, RegistryKey};
 
 use crate::entity::Entity;
 
-pub struct World {
-    dimension_type: DimensionType,
-    chunks: RwLock<HashMap<(i32, i32), Arc<Mutex<Chunk>>>>,
-    entities: RwLock<Vec<Arc<Entity>>>,
-}
+#[derive(Clone)]
+pub struct World(Arc<InnerWorld>);
 
 impl World {
-    pub fn new(dimension: &RegistryKey<DimensionType>) -> Arc<Self> {
+    pub fn new(dimension: &RegistryKey<DimensionType>) -> Self {
+        Self(Arc::new(InnerWorld::new(dimension)))
+    }
+
+    pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Chunk> {
+        self.0.get_chunk(chunk_x, chunk_z)
+    }
+
+    pub fn load_chunk(&self, chunk_x: i32, chunk_z: i32) -> Chunk {
+        self.0.load_chunk(chunk_x, chunk_z)
+    }
+
+    pub fn get_block(&self, x: i32, y: i32, z: i32) -> &BlockState {
+        self.0.get_block(x, y, z)
+    }
+
+    pub fn set_block<B>(&self, x: i32, y: i32, z: i32, block: B)
+    where
+        B: AsRef<BlockState>,
+    {
+        self.0.set_block(x, y, z, block)
+    }
+
+    pub fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
+        self.0.get_biome(x, y, z)
+    }
+
+    pub fn set_biome(&self, x: i32, y: i32, z: i32, biome: i32) {
+        self.0.set_biome(x, y, z, biome)
+    }
+
+    pub fn spawn_entity(&self, entity: Entity) {
+        self.0.spawn_entity(entity)
+    }
+
+    pub fn entities(&self) -> Vec<Entity> {
+        self.0.entities()
+    }
+}
+
+struct InnerWorld {
+    dimension_type: DimensionType,
+    chunks: RwLock<HashMap<(i32, i32), Chunk>>,
+    entities: RwLock<Vec<Entity>>,
+}
+
+impl InnerWorld {
+    fn new(dimension: &RegistryKey<DimensionType>) -> Self {
         let dimension_type = REGISTRIES.dimension_type.get(dimension).unwrap().clone();
 
-        Arc::new(Self {
+        Self {
             dimension_type,
             chunks: RwLock::new(HashMap::new()),
             entities: RwLock::new(Vec::new()),
-        })
+        }
     }
 
-    pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Arc<Mutex<Chunk>>> {
+    fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Chunk> {
         let chunks = self.chunks.read();
         chunks.get(&(chunk_x, chunk_z)).cloned()
     }
 
-    pub fn load_chunk(&self, chunk_x: i32, chunk_z: i32) -> Arc<Mutex<Chunk>> {
+    fn load_chunk(&self, chunk_x: i32, chunk_z: i32) -> Chunk {
         let mut chunks = self.chunks.write();
 
-        let chunk = Arc::new(Mutex::new(Chunk::new(
-            chunk_x,
-            chunk_z,
-            self.dimension_type.min_y,
-        )));
+        let chunk = Chunk::new(chunk_x, chunk_z, self.dimension_type.min_y);
         chunks.insert((chunk_x, chunk_z), chunk.clone());
 
         chunk
     }
 
-    pub fn get_block(&self, x: i32, y: i32, z: i32) -> &BlockState {
+    fn get_block(&self, x: i32, y: i32, z: i32) -> &BlockState {
         let cx = x / 16;
         let cz = z / 16;
 
@@ -63,10 +103,10 @@ impl World {
             panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        BlockState::from_id(chunk.lock().get_block(x, y, z) as i32).unwrap()
+        BlockState::from_id(chunk.get_block(x, y, z) as i32).unwrap()
     }
 
-    pub fn set_block<B>(&self, x: i32, y: i32, z: i32, block: B)
+    fn set_block<B>(&self, x: i32, y: i32, z: i32, block: B)
     where
         B: AsRef<BlockState>,
     {
@@ -77,10 +117,10 @@ impl World {
             Some(chunk) => chunk,
             None => self.load_chunk(cx, cz),
         };
-        chunk.lock().set_block(x, y, z, block.as_ref());
+        chunk.set_block(x, y, z, block.as_ref());
     }
 
-    pub fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
+    fn get_biome(&self, x: i32, y: i32, z: i32) -> u16 {
         let cx = x / 16;
         let cz = z / 16;
 
@@ -88,10 +128,10 @@ impl World {
             panic!("Chunk ({},{}) is not loaded!", cx, cz);
         });
 
-        chunk.lock().get_biome(x, y, z)
+        chunk.get_biome(x, y, z)
     }
 
-    pub fn set_biome(&self, x: i32, y: i32, z: i32, biome: i32) {
+    fn set_biome(&self, x: i32, y: i32, z: i32, biome: i32) {
         let cx = x / 16;
         let cz = z / 16;
 
@@ -99,14 +139,14 @@ impl World {
             Some(chunk) => chunk,
             None => self.load_chunk(cx, cz),
         };
-        chunk.lock().set_biome(x, y, z, biome);
+        chunk.set_biome(x, y, z, biome);
     }
 
-    pub fn spawn_entity(&self, entity: Arc<Entity>) {
+    pub fn spawn_entity(&self, entity: Entity) {
         self.entities.write().push(entity);
     }
 
-    pub fn entities(&self) -> Vec<Arc<Entity>> {
+    pub fn entities(&self) -> Vec<Entity> {
         self.entities.read().iter().cloned().collect()
     }
 }
@@ -117,7 +157,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_block() {
-        let world = World::new(&DimensionType::OVERWORLD);
+        let world = InnerWorld::new(&DimensionType::OVERWORLD);
 
         world.load_chunk(0, 0);
         world.set_block(0, 0, 0, Block::MangrovePlanks);

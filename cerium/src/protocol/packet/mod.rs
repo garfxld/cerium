@@ -164,6 +164,11 @@ pub mod server {
         mod player_info_remove;
         mod open_screen;
         mod close_container;
+        mod display_objective;
+        mod update_objectives;
+        mod update_score;
+        mod update_teams;
+        mod set_tablist_header_footer;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -191,6 +196,11 @@ pub mod server {
         pub use player_info_remove::PlayerInfoRemovePacket;
         pub use open_screen::OpenScreenPacket;
         pub use close_container::CloseContainerPacket;
+        pub use display_objective::DisplayObjectivePacket;
+        pub use update_objectives::UpdateObjectivesPacket;
+        pub use update_score::UpdateScorePacket;
+        pub use update_teams::*;
+        pub use set_tablist_header_footer::SetTablistHeaderFooterPacket;
     }
 
     pub use status::*;

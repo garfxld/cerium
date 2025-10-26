@@ -25,6 +25,7 @@ fn main() {
         })
         .subscribe(move |event: &mut PlayerSpawnEvent| {
             event.get_player().set_game_mode(GameMode::Creative);
+            event.get_player().set_flying(true);
         });
 
     server.bind("127.0.0.1:25565").unwrap();

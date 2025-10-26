@@ -24,7 +24,7 @@ pub struct Server {
     runtime: tokio::runtime::Runtime,
     handle: tokio::runtime::Handle,
     closed: AtomicBool,
-    pub(crate) players: Arc<Mutex<Vec<Arc<Player>>>>,
+    pub(crate) players: Arc<Mutex<Vec<Player>>>,
     key_store: Arc<KeyStore>,
     events: Events,
 }

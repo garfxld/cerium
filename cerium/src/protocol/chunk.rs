@@ -93,7 +93,7 @@ impl Into<ChunkDataAndUpdateLightPacket> for &Chunk {
     fn into(self) -> ChunkDataAndUpdateLightPacket {
         let mut data = BytesMut::new();
         for section in self.sections() {
-            ChunkSection::encode(&mut data, section).unwrap();
+            ChunkSection::encode(&mut data, &section).unwrap();
         }
 
         let chunk_x = self.x();
@@ -102,7 +102,7 @@ impl Into<ChunkDataAndUpdateLightPacket> for &Chunk {
         let data = ChunkData {
             heightmaps: vec![],
             data: data.to_vec(),
-            block_entities: self.block_entites().into_iter().cloned().collect(),
+            block_entities: self.block_entites(),
         };
         let light = LightData {};
 

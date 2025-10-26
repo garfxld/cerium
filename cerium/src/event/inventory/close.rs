@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use crate::{
     entity::Player,
     event::{Event, inventory::InventoryEvent, player::PlayerEvent},
@@ -7,20 +5,20 @@ use crate::{
 };
 
 pub struct InventoryCloseEvent {
-    pub(crate) player: Arc<Player>,
-    pub(crate) inventory: Arc<Inventory>,
+    pub(crate) player: Player,
+    pub(crate) inventory: Inventory,
 }
 
 impl Event for InventoryCloseEvent {}
 
 impl PlayerEvent for InventoryCloseEvent {
-    fn get_player(&self) -> &Arc<Player> {
+    fn get_player(&self) -> &Player {
         &self.player
     }
 }
 
 impl InventoryEvent for InventoryCloseEvent {
-    fn get_inventory(&self) -> &Arc<Inventory> {
+    fn get_inventory(&self) -> &Inventory {
         &self.inventory
     }
 }

@@ -13,7 +13,10 @@ use uuid::Uuid;
 use crate::{
     Server,
     auth::GameProfile,
-    entity::{Entity, EntityType, GameMode, entity::EntityLike},
+    entity::{
+        EntityType, GameMode,
+        entity::{Entity, EntityLike},
+    },
     event::{Cancellable, inventory::InventoryOpenEvent},
     inventory::{Inventory, PlayerInventory},
     network::client::Connection,
@@ -21,17 +24,259 @@ use crate::{
         ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, EntityPositionRotationPacket,
         EntityRotationPacket, GameEventPacket, Packet, PlayerAbilities, PlayerAction, PlayerEntry,
         PlayerInfoFlags, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, ServerPacket,
-        SetCenterChunkPacket, SetHeadRotationPacket, SyncPlayerPositionPacket,
-        SystemChatMessagePacket, UnloadChunkPacket,
+        SetCenterChunkPacket, SetHeadRotationPacket, SetTablistHeaderFooterPacket,
+        SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
         server::{PlayerAbilitiesPacket, play::KeepAlivePacket},
     },
     text::Component,
     tickable::Tickable,
-    util::{EntityPose, Position, TeleportFlags, Viewable},
+    util::{EntityPose, Position, TeleportFlags, Viewable, Viewers},
     world::{Chunk, World},
 };
 
-type SyncChunk = Arc<Mutex<Chunk>>;
+#[derive(Clone, PartialEq)]
+pub struct Player(pub(crate) Arc<Inner>);
+
+impl Player {
+    pub(crate) fn new(connection: Arc<Connection>, server: Arc<Server>) -> Self {
+        Self(Arc::new(Inner::new(connection, server)))
+    }
+
+    pub fn addr(&self) -> SocketAddr {
+        self.0.addr()
+    }
+
+    pub fn name(&self) -> &String {
+        self.0.name()
+    }
+
+    pub fn game_mode(&self) -> GameMode {
+        self.0.game_mode()
+    }
+
+    pub fn set_game_mode(&self, game_mode: GameMode) {
+        self.0.set_game_mode(game_mode)
+    }
+
+    pub fn send_message(&self, message: impl Into<Component>) {
+        self.0.send_message(message)
+    }
+
+    pub fn kick(&self, reason: impl Into<Component>) {
+        self.0.kick(reason)
+    }
+
+    pub fn send_packet<P>(&self, packet: P)
+    where
+        P: Packet + ServerPacket + 'static,
+    {
+        self.0.send_packet(packet)
+    }
+
+    pub fn server(&self) -> &Arc<Server> {
+        &self.0.server()
+    }
+
+    pub fn despawn(&self) {
+        self.0.despawn()
+    }
+
+    // ===== Inventory ======
+
+    /// Returns the player's inventory.
+    ///
+    /// Note: this is not the open inventory. Use [`Player#get_open_inventory()`] instead.
+    pub fn inventory(&self) -> &Arc<PlayerInventory> {
+        self.0.inventory()
+    }
+
+    /// Opens an [`Inventory`] for a player.
+    pub fn open_inventory(&self, inventory: Inventory) {
+        Inner::open_inventory(self.clone(), inventory);
+    }
+
+    /// Closes the opened inventory if it is open.
+    pub fn close_inventory(&self) {
+        Inner::close_inventory(self.clone());
+    }
+
+    /// Returns the open inventory.
+    pub fn get_open_inventory(&self) -> Option<Inventory> {
+        self.0.get_open_inventory()
+    }
+
+    // ===== Position & Movement ======
+
+    pub fn refresh_position(&self, new_position: Position) {
+        self.0.refresh_position(new_position)
+    }
+
+    pub fn synchronize_position(
+        &self,
+        position: Position,
+        velocity: Position,
+        flags: TeleportFlags,
+    ) {
+        self.0.synchronize_position(position, velocity, flags)
+    }
+
+    pub fn head_roation(&self) -> f32 {
+        self.0.head_roation()
+    }
+
+    pub fn set_head_roation(&self, value: f32) {
+        self.0.set_head_roation(value)
+    }
+
+    pub fn is_on_ground(&self) -> bool {
+        self.0.is_on_ground()
+    }
+
+    pub fn refresh_on_ground(&self, value: bool) {
+        self.0.refresh_on_ground(value)
+    }
+
+    // ===== Abilities ======
+
+    /// Returns if the player is invurnable.
+    pub fn invurnable(&self) -> bool {
+        self.0.invurnable()
+    }
+
+    pub fn set_invurnable(&self, value: bool) {
+        self.0.set_invurnable(value)
+    }
+
+    /// Returns the flying speed of the player.
+    pub fn flying_speed(&self) -> f32 {
+        self.0.flying_speed()
+    }
+
+    pub fn set_flying_speed(&self, value: f32) {
+        self.0.set_flying_speed(value)
+    }
+
+    /// Returns the fov modifier of the player.
+    pub fn fov_modifier(&self) -> f32 {
+        self.0.fov_modifier()
+    }
+
+    pub fn set_fov_modifier(&self, value: f32) {
+        self.0.set_fov_modifier(value)
+    }
+
+    /// Returns if the player is allowed to fly.
+    pub fn allow_flying(&self) -> bool {
+        self.0.allow_flying()
+    }
+
+    pub fn set_allow_flying(&self, value: bool) {
+        self.0.set_allow_flying(value)
+    }
+
+    /// Returns if the player is currently flying.
+    pub fn flying(&self) -> bool {
+        self.0.flying()
+    }
+
+    pub fn set_flying(&self, value: bool) {
+        self.0.set_flying(value)
+    }
+
+    pub fn refresh_abilities(&self) {
+        self.0.refresh_abilities()
+    }
+
+    pub fn set_pose(&self, pose: EntityPose) {
+        self.0.set_pose(pose)
+    }
+
+    /// Returns if the player is sprinting.
+    pub fn is_sprinting(&self) -> bool {
+        self.0.is_sprinting()
+    }
+
+    pub fn set_sprinting(&self, value: bool) {
+        self.0.set_sprinting(value)
+    }
+
+    /// Returns if the player is sneaking.
+    pub fn is_sneaking(&self) -> bool {
+        self.0.is_sneaking()
+    }
+
+    pub fn set_sneaking(&self, value: bool) {
+        self.0.set_sneaking(value)
+    }
+
+    // ===== Scoreboard =====
+
+    /// Changes the tablist header for the player.
+    ///
+    /// Note: This will clear the footer.
+    pub fn set_header(&self, text: impl Into<Component>) {
+        self.set_header_and_footer(text, Component::empty())
+    }
+
+    /// Changes the tablist footer for the player.
+    ///
+    /// Note: This will clear the header.
+    pub fn set_footer(&self, text: impl Into<Component>) {
+        self.set_header_and_footer(Component::empty(), text);
+    }
+
+    pub fn set_header_and_footer(
+        &self,
+        header: impl Into<Component>,
+        footer: impl Into<Component>,
+    ) {
+        self.0.set_header_and_footer(header.into(), footer.into())
+    }
+}
+
+impl EntityLike for Player {
+    fn id(&self) -> i32 {
+        self.0.id()
+    }
+
+    fn uuid(&self) -> Uuid {
+        self.0.uuid()
+    }
+
+    fn r#type(&self) -> EntityType {
+        self.0.r#type()
+    }
+
+    fn world(&self) -> World {
+        self.0.world()
+    }
+
+    fn position(&self) -> Position {
+        self.0.position()
+    }
+}
+
+impl Tickable for Player {
+    fn tick(&self) {
+        self.0.tick()
+    }
+}
+
+impl Viewable for Player {
+    fn add_viewer(&self, player: Player) {
+        self.0.add_viewer(player)
+    }
+
+    fn remove_viewer(&self, player: Player) {
+        self.0.remove_viewer(player)
+    }
+
+    fn viewers(&self) -> &Viewers {
+        self.0.viewers()
+    }
+}
+
+type SyncChunk = Chunk;
 
 pub struct ChunkQueue {
     pub queue: VecDeque<SyncChunk>,
@@ -61,27 +306,32 @@ impl ChunkQueue {
     }
 }
 
-pub struct Player {
+pub(crate) struct Inner {
     connection: Arc<Connection>,
     game_profile: GameProfile,
-    entity: Arc<Entity>,
-    world: Mutex<Option<Arc<World>>>,
+    entity: Entity,
+    world: Mutex<Option<World>>,
     last_keep_alive: Mutex<Instant>,
-    inventory: Arc<PlayerInventory>,
     game_mode: Mutex<GameMode>,
     pub(crate) chunk_queue: Mutex<ChunkQueue>,
     teleport_id: AtomicI32,
+
+    // Player Abilities
     flying: AtomicBool,
     allow_flying: AtomicBool,
     invurnable: AtomicBool,
     flying_speed: Mutex<f32>,
     fov_modifier: Mutex<f32>,
-    open_inventory: Mutex<Option<Arc<Inventory>>>,
+
+    // Inventory
+    inventory: Arc<PlayerInventory>,
+    open_inventory: Mutex<Option<Inventory>>,
+
     server: Arc<Server>,
 }
 
-impl Player {
-    pub fn new(connection: Arc<Connection>, server: Arc<Server>) -> Self {
+impl Inner {
+    fn new(connection: Arc<Connection>, server: Arc<Server>) -> Self {
         let game_profile = connection.game_profile.lock().clone().unwrap();
         Self {
             connection,
@@ -89,7 +339,6 @@ impl Player {
             entity: Entity::new_with_uuid(EntityType::Player, game_profile.uuid),
             world: Mutex::new(None),
             last_keep_alive: Mutex::new(Instant::now()),
-            inventory: Arc::new(PlayerInventory::new()),
             game_mode: Mutex::new(GameMode::Survival),
             chunk_queue: Mutex::new(ChunkQueue::new()),
             teleport_id: AtomicI32::default(),
@@ -98,20 +347,21 @@ impl Player {
             invurnable: AtomicBool::default(),
             flying_speed: Mutex::new(0.05),
             fov_modifier: Mutex::new(0.1),
+            inventory: Arc::new(PlayerInventory::new()),
             open_inventory: Mutex::new(None),
             server,
         }
     }
 
-    pub fn addr(&self) -> SocketAddr {
+    fn addr(&self) -> SocketAddr {
         self.connection.addr()
     }
 
-    pub fn name(&self) -> &String {
+    fn name(&self) -> &String {
         &self.game_profile.name
     }
 
-    pub fn game_mode(&self) -> GameMode {
+    fn game_mode(&self) -> GameMode {
         *self.game_mode.lock()
     }
 
@@ -119,7 +369,7 @@ impl Player {
         self.entity.set_position(position);
     }
 
-    pub fn set_game_mode(&self, game_mode: GameMode) {
+    fn set_game_mode(&self, game_mode: GameMode) {
         {
             *self.game_mode.lock() = game_mode;
         }
@@ -137,18 +387,18 @@ impl Player {
         self.refresh_abilities();
     }
 
-    pub fn send_message(&self, message: impl Into<Component>) {
+    fn send_message(&self, message: impl Into<Component>) {
         self.send_packet(SystemChatMessagePacket {
             content: message.into(),
             overlay: false,
         });
     }
 
-    pub fn kick(&self, reason: impl Into<Component>) {
+    fn kick(&self, reason: impl Into<Component>) {
         self.connection.kick(reason.into());
     }
 
-    pub fn send_packet<P>(&self, packet: P)
+    fn send_packet<P>(&self, packet: P)
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -194,56 +444,50 @@ impl Player {
         }
     }
 
-    pub fn server(&self) -> &Arc<Server> {
+    fn server(&self) -> &Arc<Server> {
         &self.server
     }
 
     // ===== Inventory ======
 
-    /// Returns the player's inventory.
-    ///
-    /// Note: this is not the open inventory. Use [`Player#get_open_inventory()`] instead.
-    pub fn inventory(&self) -> &Arc<PlayerInventory> {
+    fn inventory(&self) -> &Arc<PlayerInventory> {
         &self.inventory
     }
 
-    /// Opens an [`Inventory`] for a player.
-    pub fn open_inventory(self: Arc<Self>, inventory: Arc<Inventory>) {
+    fn open_inventory(this: Player, inventory: Inventory) {
         let mut event = InventoryOpenEvent {
-            player: self.clone(),
+            player: this.clone(),
             inventory: inventory.clone(),
             cancelled: false,
         };
-        self.server.events().fire(&mut event);
+        this.server().events().fire(&mut event);
 
         if event.is_cancelled() {
             return;
         }
 
-        if let Some(inventory) = self.get_open_inventory() {
-            inventory.remove_viewer(self.clone());
+        if let Some(inventory) = this.get_open_inventory() {
+            inventory.remove_viewer(this.clone());
         }
 
-        inventory.add_viewer(self.clone());
-        *self.open_inventory.lock() = Some(inventory);
+        inventory.add_viewer(this.clone());
+        *this.0.open_inventory.lock() = Some(inventory);
     }
 
-    /// Closes the opened inventory if it is open.
-    pub fn close_inventory(self: Arc<Self>) {
-        let inventory = self.open_inventory.lock().clone();
+    fn close_inventory(this: Player) {
+        let inventory = this.0.open_inventory.lock().clone();
         if let Some(inventory) = inventory {
-            inventory.remove_viewer(self);
+            inventory.remove_viewer(this);
         }
     }
 
-    /// Returns the open inventory.
-    pub fn get_open_inventory(&self) -> Option<Arc<Inventory>> {
+    fn get_open_inventory(&self) -> Option<Inventory> {
         self.open_inventory.lock().clone()
     }
 
     // ===== World ======
 
-    pub(crate) fn update_chunks(&self, new_chunk: (i32, i32), old_chunk: (i32, i32)) {
+    fn update_chunks(&self, new_chunk: (i32, i32), old_chunk: (i32, i32)) {
         let view_distance = 8;
 
         Chunk::difference(new_chunk, old_chunk, view_distance, |cx, cz| {
@@ -296,11 +540,7 @@ impl Player {
         while queue.pending_chunks >= 1.
             && let Some(chunk) = queue.dequeue()
         {
-            let packet: ChunkDataAndUpdateLightPacket = {
-                let chunk = &*chunk.lock();
-                chunk.into()
-            };
-
+            let packet: ChunkDataAndUpdateLightPacket = (&chunk).into();
             self.send_packet(packet);
 
             queue.pending_chunks -= 1.;
@@ -313,13 +553,13 @@ impl Player {
         // queue.lead += 1;
     }
 
-    pub(crate) fn set_world(&self, world: Arc<World>) {
+    pub(crate) fn set_world(&self, world: World) {
         (*self.world.lock()) = Some(world)
     }
 
     // ===== Position & Movement ======
 
-    pub fn refresh_position(&self, new_position: Position) {
+    fn refresh_position(&self, new_position: Position) {
         let old_position = self.position();
 
         self.set_position(new_position);
@@ -384,12 +624,7 @@ impl Player {
         }
     }
 
-    pub fn synchronize_position(
-        &self,
-        position: Position,
-        velocity: Position,
-        flags: TeleportFlags,
-    ) {
+    fn synchronize_position(&self, position: Position, velocity: Position, flags: TeleportFlags) {
         let teleport_id = self.next_teleport_id();
         self.send_packet(SyncPlayerPositionPacket {
             teleport_id,
@@ -403,19 +638,19 @@ impl Player {
         });
     }
 
-    pub fn head_roation(&self) -> f32 {
-        self.entity.head_roation()
+    fn head_roation(&self) -> f32 {
+        self.entity.head_rotation()
     }
 
-    pub fn set_head_roation(&self, value: f32) {
-        self.entity.set_head_roation(value);
+    fn set_head_roation(&self, value: f32) {
+        self.entity.set_head_rotation(value);
     }
 
-    pub fn is_on_ground(&self) -> bool {
+    fn is_on_ground(&self) -> bool {
         self.entity.is_on_ground()
     }
 
-    pub fn refresh_on_ground(&self, value: bool) {
+    fn refresh_on_ground(&self, value: bool) {
         self.entity.refresh_on_ground(value);
     }
 
@@ -425,54 +660,49 @@ impl Player {
 
     // ===== Abilities ======
 
-    /// Returns if the player is invurnable.
-    pub fn invurnable(&self) -> bool {
+    fn invurnable(&self) -> bool {
         self.invurnable.load(Ordering::Acquire)
     }
 
-    pub fn set_invurnable(&self, value: bool) {
+    fn set_invurnable(&self, value: bool) {
         self.invurnable.store(value, Ordering::Release);
     }
 
-    /// Returns the flying speed of the player.
-    pub fn flying_speed(&self) -> f32 {
+    fn flying_speed(&self) -> f32 {
         *self.flying_speed.lock()
     }
 
-    pub fn set_flying_speed(&self, value: f32) {
+    fn set_flying_speed(&self, value: f32) {
         {
             *self.flying_speed.lock() = value;
         }
         self.refresh_abilities();
     }
 
-    /// Returns the fov modifier of the player.
-    pub fn fov_modifier(&self) -> f32 {
+    fn fov_modifier(&self) -> f32 {
         *self.fov_modifier.lock()
     }
 
-    pub fn set_fov_modifier(&self, value: f32) {
+    fn set_fov_modifier(&self, value: f32) {
         {
             *self.fov_modifier.lock() = value;
         }
         self.refresh_abilities();
     }
 
-    /// Returns if the player is allowed to fly.
-    pub fn allow_flying(&self) -> bool {
+    fn allow_flying(&self) -> bool {
         self.allow_flying.load(Ordering::Acquire)
     }
 
-    pub fn set_allow_flying(&self, value: bool) {
+    fn set_allow_flying(&self, value: bool) {
         self.allow_flying.store(value, Ordering::Release);
     }
 
-    /// Returns if the player is currently flying.
-    pub fn flying(&self) -> bool {
+    fn flying(&self) -> bool {
         self.flying.load(Ordering::Acquire)
     }
 
-    pub fn set_flying(&self, value: bool) {
+    fn set_flying(&self, value: bool) {
         if self.flying() != value {
             let pose = self.entity.pose();
             match () {
@@ -487,9 +717,10 @@ impl Player {
         }
 
         self.flying.store(value, Ordering::Release);
+        self.refresh_abilities();
     }
 
-    pub fn refresh_abilities(&self) {
+    fn refresh_abilities(&self) {
         let mut flags = PlayerAbilities::empty();
         if self.invurnable() {
             flags |= PlayerAbilities::INVURNABLE;
@@ -508,40 +739,44 @@ impl Player {
         });
     }
 
-    pub fn set_pose(&self, pose: EntityPose) {
+    fn set_pose(&self, pose: EntityPose) {
         self.entity.set_pose(pose);
-        self.send_packet(self.entity.metadata_packet());
+        self.send_packet(self.entity.0.metadata_packet());
     }
 
-    /// Returns if the player is sprinting.
-    pub fn is_sprinting(&self) -> bool {
+    fn is_sprinting(&self) -> bool {
         self.entity.is_sprinting()
     }
 
-    pub fn set_sprinting(&self, value: bool) {
+    fn set_sprinting(&self, value: bool) {
         self.entity.set_sprinting(value);
-        self.send_packet(self.entity.metadata_packet());
+        self.send_packet(self.entity.0.metadata_packet());
     }
 
-    /// Returns if the player is sneaking.
-    pub fn is_sneaking(&self) -> bool {
+    fn is_sneaking(&self) -> bool {
         self.entity.is_sneaking()
     }
 
-    pub fn set_sneaking(&self, value: bool) {
+    fn set_sneaking(&self, value: bool) {
         self.entity.set_sneaking(value);
-        self.send_packet(self.entity.metadata_packet());
+        self.send_packet(self.entity.0.metadata_packet());
     }
 
-    pub fn despawn(&self) {
+    fn despawn(&self) {
         for viewer in self.viewers() {
             self.remove_viewer(viewer);
         }
     }
+
+    // ===== Scoreboard =====
+
+    fn set_header_and_footer(&self, header: Component, footer: Component) {
+        self.send_packet(SetTablistHeaderFooterPacket { header, footer });
+    }
 }
 
-impl Tickable for Player {
-    fn tick(self: &Arc<Self>) {
+impl Tickable for Inner {
+    fn tick(&self) {
         let mut last_keep_alive = self.last_keep_alive.lock();
         if last_keep_alive.elapsed() > Duration::from_secs(20) {
             self.keep_alive();
@@ -552,32 +787,32 @@ impl Tickable for Player {
     }
 }
 
-impl Viewable for Player {
-    fn add_viewer(&self, player: Arc<Player>) {
+impl Viewable for Inner {
+    fn add_viewer(&self, player: Player) {
         player.send_packet(self.add_to_list_packet());
 
         self.entity.add_viewer(player);
     }
 
-    fn remove_viewer(&self, player: Arc<Player>) {
+    fn remove_viewer(&self, player: Player) {
         player.send_packet(PlayerInfoRemovePacket {
             uuids: vec![self.uuid()],
         });
         self.entity.remove_viewer(player);
     }
 
-    fn viewers(&self) -> Vec<Arc<Player>> {
+    fn viewers(&self) -> &Viewers {
         self.entity.viewers()
     }
 }
 
-impl PartialEq for Player {
+impl PartialEq for Inner {
     fn eq(&self, other: &Self) -> bool {
         self.uuid() == other.uuid()
     }
 }
 
-impl EntityLike for Player {
+impl EntityLike for Inner {
     fn id(&self) -> i32 {
         self.entity.id()
     }
@@ -590,7 +825,7 @@ impl EntityLike for Player {
         self.entity.r#type()
     }
 
-    fn world(&self) -> Arc<World> {
+    fn world(&self) -> World {
         self.world.lock().clone().unwrap()
     }
 

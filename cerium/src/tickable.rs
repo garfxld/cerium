@@ -4,7 +4,7 @@ use tokio::time::{Interval, interval};
 use crate::Server;
 
 pub trait Tickable {
-    fn tick(self: &Arc<Self>);
+    fn tick(&self);
 }
 
 pub struct Ticker {

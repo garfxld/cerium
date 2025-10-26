@@ -9,6 +9,7 @@ pub mod text;
 pub mod tickable;
 pub mod util;
 pub mod world;
+pub mod scoreboard;
 
 mod server;
 pub use server::Server;
