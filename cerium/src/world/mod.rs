@@ -21,11 +21,11 @@ use crate::registry::{DimensionType, REGISTRIES, RegistryKey};
 use crate::entity::Entity;
 
 #[derive(Clone)]
-pub struct World(Arc<InnerWorld>);
+pub struct World(Arc<Inner>);
 
 impl World {
     pub fn new(dimension: &RegistryKey<DimensionType>) -> Self {
-        Self(Arc::new(InnerWorld::new(dimension)))
+        Self(Arc::new(Inner::new(dimension)))
     }
 
     pub fn get_chunk(&self, chunk_x: i32, chunk_z: i32) -> Option<Chunk> {
@@ -64,13 +64,13 @@ impl World {
     }
 }
 
-struct InnerWorld {
+struct Inner {
     dimension_type: DimensionType,
     chunks: RwLock<HashMap<(i32, i32), Chunk>>,
     entities: RwLock<Vec<Entity>>,
 }
 
-impl InnerWorld {
+impl Inner {
     fn new(dimension: &RegistryKey<DimensionType>) -> Self {
         let dimension_type = REGISTRIES.dimension_type.get(dimension).unwrap().clone();
 
@@ -157,7 +157,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_block() {
-        let world = InnerWorld::new(&DimensionType::OVERWORLD);
+        let world = Inner::new(&DimensionType::OVERWORLD);
 
         world.load_chunk(0, 0);
         world.set_block(0, 0, 0, Block::MangrovePlanks);

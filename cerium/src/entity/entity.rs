@@ -13,7 +13,7 @@ use crate::{
 };
 
 #[derive(Clone)]
-pub struct Entity(pub(crate) Arc<EntityInner>);
+pub struct Entity(pub(crate) Arc<Inner>);
 
 impl Entity {
     pub fn new(entity_type: EntityType) -> Self {
@@ -21,7 +21,7 @@ impl Entity {
     }
 
     pub fn new_with_uuid(entity_type: EntityType, uuid: Uuid) -> Self {
-        Self(Arc::new(EntityInner::new(entity_type, uuid)))
+        Self(Arc::new(Inner::new(entity_type, uuid)))
     }
 
     pub fn head_rotation(&self) -> f32 {
@@ -116,7 +116,7 @@ impl EntityLike for Entity {
     }
 }
 
-pub struct EntityInner {
+pub(crate) struct Inner {
     id: i32,
     uuid: Uuid,
     entity_type: EntityType,
@@ -127,7 +127,7 @@ pub struct EntityInner {
     viewers: Viewers,
 }
 
-impl EntityInner {
+impl Inner {
     fn new(entity_type: EntityType, uuid: Uuid) -> Self {
         Self {
             id: Self::generate_id(),
@@ -255,7 +255,7 @@ impl EntityInner {
     }
 }
 
-impl Viewable for EntityInner {
+impl Viewable for Inner {
     fn add_viewer(&self, player: Player) {
         self.viewers.add_viewer(player.clone());
 
@@ -284,7 +284,7 @@ pub trait EntityLike {
     fn position(&self) -> Position;
 }
 
-impl EntityLike for EntityInner {
+impl EntityLike for Inner {
     fn id(&self) -> i32 {
         self.id
     }
