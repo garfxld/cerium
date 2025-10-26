@@ -127,14 +127,14 @@ impl Inner {
 
     fn add_item_stack(&self, stack: ItemStack) {
         let mut content = self.content.lock();
-        for (ix, stck) in content.clone().iter() {
+        for (ix, stck) in content.values().enumerate(){
             if stck.material() == Material::Air {
-                content.insert(*ix, stack.clone());
+                content.insert(ix as i32, stack.clone());
 
                 self.send_packet_to_viewers(SetContainerSlotPacket {
                     window_id: self.id(),
                     state_id: 0,
-                    slot: *ix as i16,
+                    slot: ix as i16,
                     slot_data: stack.into(),
                 });
                 break;
@@ -213,7 +213,7 @@ mod tests {
     #[test]
     #[rustfmt::skip]
     fn test_set_item_stack() {
-        let inventory = Inner::new(InventoryType::Generic9x6, "");
+        let inventory = Inventory::new(InventoryType::Generic9x6, "");
         inventory.set_item_stack(1, ItemStack::EMPTY);
         inventory.set_item_stack(22, ItemStack::new(Material::AcaciaBoat, 1));
 
