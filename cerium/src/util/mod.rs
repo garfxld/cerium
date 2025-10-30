@@ -72,6 +72,14 @@ impl Viewers {
     }
 }
 
+impl Clone for Viewers {
+    fn clone(&self) -> Self {
+        Self {
+            viewers: self.viewers.lock().clone().into(),
+        }
+    }
+}
+
 impl IntoIterator for Viewers {
     type Item = Player;
     type IntoIter = std::vec::IntoIter<Self::Item>;

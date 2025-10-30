@@ -19,23 +19,23 @@ use crate::{
 };
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
+pub fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?).await,
-        0x01 => handle_cookie_response(client).await,
-        0x02 => handle_plugin_message(client, PluginMessagePacket::decode(data)?).await,
-        0x03 => handle_acknowledge_finish_config(client, AcknowledgeFinishConfigPacket::decode(data)?).await,
-        0x04 => handle_keep_alive(client).await,
-        0x05 => handle_pong(client).await,
-        0x06 => handle_resource_pack_response(client).await,
-        0x07 => handle_client_known_packs(client, client::config::KnownPacksPacket::decode(data)?).await,
-        0x08 => handle_custom_click_action(client).await,
+        0x00 => handle_client_info(client, ClientInfoPacket::decode(data)?),
+        0x01 => handle_cookie_response(client),
+        0x02 => handle_plugin_message(client, PluginMessagePacket::decode(data)?),
+        0x03 => handle_acknowledge_finish_config(client, AcknowledgeFinishConfigPacket::decode(data)?),
+        0x04 => handle_keep_alive(client),
+        0x05 => handle_pong(client),
+        0x06 => handle_resource_pack_response(client),
+        0x07 => handle_client_known_packs(client, client::config::KnownPacksPacket::decode(data)?),
+        0x08 => handle_custom_click_action(client),
         _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
-async fn handle_client_info(client: Arc<Connection>, packet: ClientInfoPacket) {
+fn handle_client_info(client: Arc<Connection>, packet: ClientInfoPacket) {
     let _ = packet;
 
     client.send_packet(server::config::KnownPacksPacket {
@@ -61,16 +61,16 @@ async fn handle_client_info(client: Arc<Connection>, packet: ClientInfoPacket) {
     client.send_packet(FinishConfigPacket {});
 }
 
-async fn handle_cookie_response(client: Arc<Connection>) {
+fn handle_cookie_response(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_plugin_message(client: Arc<Connection>, packet: PluginMessagePacket) {
+fn handle_plugin_message(client: Arc<Connection>, packet: PluginMessagePacket) {
     let _ = client;
     let _ = packet;
 }
 
-async fn handle_acknowledge_finish_config(
+fn handle_acknowledge_finish_config(
     client: Arc<Connection>,
     packet: AcknowledgeFinishConfigPacket,
 ) {
@@ -167,19 +167,19 @@ async fn handle_acknowledge_finish_config(
     player.0.load_chunks();
 }
 
-async fn handle_keep_alive(client: Arc<Connection>) {
+fn handle_keep_alive(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_pong(client: Arc<Connection>) {
+fn handle_pong(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_resource_pack_response(client: Arc<Connection>) {
+fn handle_resource_pack_response(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_client_known_packs(
+fn handle_client_known_packs(
     client: Arc<Connection>,
     packet: client::config::KnownPacksPacket,
 ) {
@@ -187,6 +187,6 @@ async fn handle_client_known_packs(
     let _ = packet;
 }
 
-async fn handle_custom_click_action(client: Arc<Connection>) {
+fn handle_custom_click_action(client: Arc<Connection>) {
     let _ = client;
 }

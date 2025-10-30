@@ -168,7 +168,52 @@ bitflags! {
         const VELOCITY_X = 0x0020;
         const VELOCITY_Y = 0x0040;
         const VELOCITY_Z = 0x0080;
-        
+
         const ROTATE     = 0x0100;
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct BlockPosition {
+    x: i64,
+    y: i64,
+    z: i64,
+}
+
+impl BlockPosition {
+    pub const ZERO: BlockPosition = BlockPosition::new(0, 0, 0);
+
+    pub const fn new(x: i64, y: i64, z: i64) -> Self {
+        Self { x, y, z }
+    }
+
+    pub fn x(&self) -> i64 {
+        self.x
+    }
+
+    pub fn y(&self) -> i64 {
+        self.y
+    }
+
+    pub fn z(&self) -> i64 {
+        self.z
+    }
+
+    pub const fn add(&self, x: i64, y: i64, z: i64) -> Self {
+        Self {
+            x: self.x + x,
+            y: self.y + y,
+            z: self.z + z,
+        }
+    }
+}
+
+impl Into<BlockPosition> for Position {
+    fn into(self) -> BlockPosition {
+        BlockPosition::new(
+            (self.x() / 16.0) as i64,
+            (self.y() / 16.0) as i64,
+            (self.z() / 16.0) as i64,
+        )
     }
 }

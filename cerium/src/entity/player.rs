@@ -4,7 +4,7 @@ use std::{
     net::SocketAddr,
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicI32, Ordering},
+        atomic::{AtomicBool, AtomicI32, AtomicU8, Ordering},
     },
     time::{Duration, Instant},
 };
@@ -14,11 +14,12 @@ use crate::{
     Server,
     auth::GameProfile,
     entity::{
-        EntityType, GameMode,
+        EntityType, GameMode, Hand,
         entity::{Entity, EntityLike},
     },
     event::{Cancellable, inventory::InventoryOpenEvent},
     inventory::{Inventory, PlayerInventory},
+    item::ItemStack,
     network::client::Connection,
     protocol::packet::{
         ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, EntityPositionRotationPacket,
@@ -103,6 +104,14 @@ impl Player {
     /// Returns the open inventory.
     pub fn get_open_inventory(&self) -> Option<Inventory> {
         self.0.get_open_inventory()
+    }
+
+    pub fn get_item_in_hand(&self, hand: Hand) -> Option<ItemStack> {
+        self.0.get_item_in_hand(hand)
+    }
+
+    pub fn get_equipment(&self, slot: EquipmentSlot) -> Option<ItemStack> {
+        self.0.get_equipment(slot)
     }
 
     // ===== Position & Movement ======
@@ -225,6 +234,7 @@ impl Player {
         self.set_header_and_footer(Component::empty(), text);
     }
 
+    /// Changes both the tablist header and footer for the player.
     pub fn set_header_and_footer(
         &self,
         header: impl Into<Component>,
@@ -320,12 +330,14 @@ pub(crate) struct Inner {
     flying: AtomicBool,
     allow_flying: AtomicBool,
     invurnable: AtomicBool,
+    insta_break: AtomicBool,
     flying_speed: Mutex<f32>,
     fov_modifier: Mutex<f32>,
 
     // Inventory
     inventory: Arc<PlayerInventory>,
     open_inventory: Mutex<Option<Inventory>>,
+    pub held_slot: AtomicU8,
 
     server: Arc<Server>,
 }
@@ -345,10 +357,12 @@ impl Inner {
             flying: AtomicBool::default(),
             allow_flying: AtomicBool::default(),
             invurnable: AtomicBool::default(),
+            insta_break: AtomicBool::default(),
             flying_speed: Mutex::new(0.05),
             fov_modifier: Mutex::new(0.1),
             inventory: Arc::new(PlayerInventory::new()),
             open_inventory: Mutex::new(None),
+            held_slot: AtomicU8::default(),
             server,
         }
     }
@@ -372,17 +386,28 @@ impl Inner {
     fn set_game_mode(&self, game_mode: GameMode) {
         {
             *self.game_mode.lock() = game_mode;
-        }
-
+        };
         self.send_packet(GameEventPacket {
             event: 3,
             value: game_mode as i32 as f32,
         });
 
+        let p = PlayerInfoUpdatePacket {
+            players: vec![PlayerEntry {
+                uuid: self.uuid(),
+                player_actions: vec![PlayerAction::UpdateGameMode { game_mode }],
+            }],
+            actions: PlayerInfoFlags::UPDATE_GAME_MODE.bits(),
+        };
+        self.send_packet(p.clone());
+        self.send_packet_to_viewers(p);
+
         self.set_allow_flying(game_mode == GameMode::Creative || game_mode == GameMode::Spectator);
         if game_mode != GameMode::Creative && game_mode != GameMode::Spectator {
             self.set_flying(false);
         }
+
+        self.set_insta_break(game_mode == GameMode::Creative);
 
         self.refresh_abilities();
     }
@@ -483,6 +508,27 @@ impl Inner {
 
     fn get_open_inventory(&self) -> Option<Inventory> {
         self.open_inventory.lock().clone()
+    }
+
+    fn get_item_in_hand(&self, hand: Hand) -> Option<ItemStack> {
+        self.get_equipment(if hand == Hand::Left {
+            EquipmentSlot::MainHand
+        } else {
+            EquipmentSlot::OffHand
+        })
+    }
+
+    fn get_equipment(&self, slot: EquipmentSlot) -> Option<ItemStack> {
+        let slot_id = match slot {
+            EquipmentSlot::MainHand => self.held_slot.load(Ordering::Acquire) + 36,
+            EquipmentSlot::OffHand => 45,
+            EquipmentSlot::Boots => 44,
+            EquipmentSlot::Leggings => 43,
+            EquipmentSlot::Chestplate => 42,
+            EquipmentSlot::Helmet => 41,
+        };
+
+        self.inventory.get_item_stack(slot_id as i32)
     }
 
     // ===== World ======
@@ -660,6 +706,14 @@ impl Inner {
 
     // ===== Abilities ======
 
+    fn insta_break(&self) -> bool {
+        self.insta_break.load(Ordering::Acquire)
+    }
+
+    fn set_insta_break(&self, value: bool) {
+        self.insta_break.store(value, Ordering::Release);
+    }
+
     fn invurnable(&self) -> bool {
         self.invurnable.load(Ordering::Acquire)
     }
@@ -730,6 +784,9 @@ impl Inner {
         }
         if self.allow_flying() {
             flags |= PlayerAbilities::ALLOW_FLYING;
+        }
+        if self.insta_break() {
+            flags |= PlayerAbilities::CREATIVE_MODE;
         }
 
         self.send_packet(PlayerAbilitiesPacket {
@@ -831,5 +888,28 @@ impl EntityLike for Inner {
 
     fn position(&self) -> Position {
         self.entity.position()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum EquipmentSlot {
+    MainHand,
+    OffHand,
+    Boots,
+    Leggings,
+    Chestplate,
+    Helmet,
+}
+
+impl EquipmentSlot {
+    pub fn slot_id(&self) -> i32 {
+        match self {
+            Self::MainHand => 0,
+            Self::OffHand => 0,
+            Self::Boots => 0,
+            Self::Leggings => 0,
+            Self::Chestplate => 0,
+            Self::Helmet => 0,
+        }
     }
 }

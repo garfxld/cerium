@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use parking_lot::RwLock;
 
-use crate::util::Position;
+use crate::util::BlockPosition;
 
 use crate::world::{BlockEntity, BlockState, ChunkSection};
 
@@ -52,9 +52,10 @@ impl Chunk {
         self.0.write().set_biome(x, y, z, biome)
     }
 
-    pub fn to_chunk_pos(position: Position) -> (i32, i32) {
-        let chunk_x = (position.x() / 16.0).floor() as i32;
-        let chunk_z = (position.z() / 16.0).floor() as i32;
+    pub fn to_chunk_pos(position: impl Into<BlockPosition>) -> (i32, i32) {
+        let position = position.into();
+        let chunk_x = (position.x() / 16) as i32;
+        let chunk_z = (position.z() / 16) as i32;
         (chunk_x, chunk_z)
     }
 
@@ -116,7 +117,6 @@ impl Chunk {
     }
 }
 
-#[derive(Debug, Clone)]
 struct Inner {
     chunk_x: i32,
     chunk_z: i32,

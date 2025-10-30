@@ -30,7 +30,7 @@ pub use consumable::{Consumable, ConsumeEffect};
 pub use custom_model_data::CustomModelData;
 pub use equippable::Equippable;
 pub use food::Food;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxBuildHasher, FxHashMap};
 pub use tool::Tool;
 pub use tooltip_display::TooltipDisplay;
 pub use weapon::Weapon;
@@ -253,7 +253,7 @@ define_components! {
     const BASE_COLOR: DataComponent<DyeColor>                           = DataComponent::new(64, "minecraft:base_color");
     // const POT_DECORATIONS: DataComponent<PotDecorations>                = DataComponent::new(65, "minecraft:pot_decorations");
     const CONTAINER: DataComponent<Vec<ItemStack>>                      = DataComponent::new(66, "minecraft:container");
-    // const BLOCK_STATE: DataComponent<ItemBlockState>                    = DataComponent::new(67, "minecraft:block_state");
+    const BLOCK_STATE: DataComponent<ItemBlockState>                    = DataComponent::new(67, "minecraft:block_state");
     // const BEES: DataComponent<Bees>                                     = DataComponent::new(68, "minecraft:bees");
     const LOCK: DataComponent<Nbt>                                      = DataComponent::new(69, "minecraft:lock");
     const CONTAINER_LOOT: DataComponent<Nbt>                            = DataComponent::new(70, "minecraft:container_loot");
@@ -310,6 +310,34 @@ where
     }
     fn encode<W: PacketWrite>(w: &mut W, this: &D) -> Result<(), EncodeError> {
         <D as DataType>::encode(w, this)
+    }
+}
+
+pub struct ItemBlockState {
+    pub properties: FxHashMap<String, String>,
+}
+
+impl ItemBlockState {
+    pub const EMPTY: ItemBlockState = ItemBlockState {
+        properties: FxHashMap::with_hasher(FxBuildHasher),
+    };
+}
+
+impl DataType for ItemBlockState {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
+        let properties = r.read_array(|r| Ok((r.read_string()?, r.read_string()?)))?;
+        Ok(ItemBlockState {
+            properties: properties.into_iter().collect(),
+        })
+    }
+
+    fn encode<W: PacketWrite>(w: &mut W, this: &Self) -> Result<(), EncodeError> {
+        w.write_array(&this.properties.iter().collect(), |w, (k, v)| {
+            w.write_string(k)?;
+            w.write_string(v)?;
+            Ok(())
+        })?;
+        Ok(())
     }
 }
 

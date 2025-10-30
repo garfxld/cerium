@@ -49,22 +49,34 @@ impl ItemStack {
         }
     }
 
-    pub fn with<T: 'static + Sync + Send>(mut self, component: DataComponent<T>, value: T) -> Self {
+    pub fn with<T>(mut self, component: DataComponent<T>, value: T) -> Self
+    where
+        T: 'static + Sync + Send,
+    {
         self.components.insert(component.id(), Arc::new(value));
         self
     }
 
-    pub fn get<T: 'static>(&self, component: DataComponent<T>) -> Option<&T> {
+    pub fn get<T>(&self, component: DataComponent<T>) -> Option<&T>
+    where
+        T: 'static,
+    {
         self.components
             .get(&component.id())
             .and_then(|v| v.downcast_ref::<T>())
     }
 
-    pub fn set<T: Send + Sync>(mut self, component: DataComponent<T>, value: &'static T) {
+    pub fn set<T>(mut self, component: DataComponent<T>, value: T)
+    where
+        T: 'static + Send + Sync,
+    {
         self.components.insert(component.id(), Arc::new(value));
     }
 
-    pub fn has<T: 'static>(&self, component: DataComponent<T>) -> bool {
+    pub fn has<T>(&self, component: DataComponent<T>) -> bool
+    where
+        T: 'static,
+    {
         self.get(component).is_some()
     }
 

@@ -43,7 +43,30 @@ pub fn generate() {
         })
         .collect();
 
+    let block_arms: TokenStream = entries
+        .iter()
+        .map(|(key, json)| {
+            let ident = format_ident!(
+                "{}",
+                key.split_once(":")
+                    .map_or(key.clone(), |v| v.1.to_owned())
+                    .to_case(Case::UpperCamel)
+            );
+
+            let block = json["correspondingBlock"].as_str();
+            let block = block
+                .map(|b| quote! { Some(#b) })
+                .unwrap_or_else(|| quote! { None });
+
+            quote! {
+                Self::#ident => #block,
+            }
+        })
+        .collect();
+
     let out = quote! {
+        use crate::world::{BlockState};
+
         #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
         #[repr(i32)]
         pub enum Material {
@@ -56,6 +79,14 @@ pub fn generate() {
                     #from_id_arms
                     _ => None,
                 }
+            }
+
+            pub fn block(&self) -> Option<&'static BlockState> {
+                let block_id = match self {
+                    #block_arms
+                };
+
+                block_id.map(|block_id| BlockState::from_key(block_id.to_string())).flatten()
             }
         }
 

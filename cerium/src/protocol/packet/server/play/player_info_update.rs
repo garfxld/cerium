@@ -3,6 +3,7 @@ use uuid::Uuid;
 
 use crate::{
     auth::Property,
+    entity::GameMode,
     protocol::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
@@ -56,6 +57,7 @@ impl Encode for PlayerEntry {
                 Ok(())
             }
             PlayerAction::UpdateListed { listed } => buffer.write_bool(*listed),
+            PlayerAction::UpdateGameMode { game_mode } => buffer.write_varint(*game_mode as i32),
             _ => todo!(),
         })?;
         Ok(())
@@ -70,7 +72,7 @@ pub enum PlayerAction {
     },
     InitializeChat {}, // todo
     UpdateGameMode {
-        game_mode: i32,
+        game_mode: GameMode,
     },
     UpdateListed {
         listed: bool,

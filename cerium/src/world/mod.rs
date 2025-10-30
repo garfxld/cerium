@@ -10,15 +10,17 @@ mod chunk_section;
 pub use chunk_section::ChunkSection;
 
 mod block;
-pub use block::{Block, BlockState};
+pub use block::{Block, BlockFace, BlockState};
 
 mod block_entity;
 pub use block_entity::BlockEntity;
 use parking_lot::RwLock;
 
+use crate::protocol::packet::{BlockUpdatePacket, WorldEventPacket};
 use crate::registry::{DimensionType, REGISTRIES, RegistryKey};
 
-use crate::entity::Entity;
+use crate::entity::{Entity, Player};
+use crate::util::BlockPosition;
 
 #[derive(Clone)]
 pub struct World(Arc<Inner>);
@@ -61,6 +63,20 @@ impl World {
 
     pub fn entities(&self) -> Vec<Entity> {
         self.0.entities()
+    }
+
+    pub fn break_block(&self, player: Player, position: BlockPosition, face: BlockFace) {
+        self.0.break_block(player, position, face);
+    }
+
+    pub fn place_block(
+        &self,
+        player: Player,
+        position: BlockPosition,
+        face: BlockFace,
+        block: BlockState,
+    ) {
+        self.0.place_block(player, position, face, block);
     }
 }
 
@@ -142,12 +158,80 @@ impl Inner {
         chunk.set_biome(x, y, z, biome);
     }
 
-    pub fn spawn_entity(&self, entity: Entity) {
+    fn spawn_entity(&self, entity: Entity) {
         self.entities.write().push(entity);
     }
 
-    pub fn entities(&self) -> Vec<Entity> {
+    fn entities(&self) -> Vec<Entity> {
         self.entities.read().iter().cloned().collect()
+    }
+
+    fn break_block(&self, player: Player, position: BlockPosition, _face: BlockFace) {
+        // let (cx, cz) = Chunk::to_chunk_pos(position);
+        // let Some(chunk) = self.get_chunk(cx, cz) else {
+        //     return;
+        // };
+
+        let block = self.get_block(
+            position.x() as i32,
+            position.y() as i32,
+            position.z() as i32,
+        );
+        self.set_block(
+            position.x() as i32,
+            position.y() as i32,
+            position.z() as i32,
+            Block::Air,
+        );
+
+        // todo: should be only sent to players that are viewing the block/chunk
+        for ele in player.server().players.lock().clone() {
+            ele.send_packet(BlockUpdatePacket {
+                position,
+                block_id: Block::Air.state_id(),
+            });
+            if ele == player {
+                continue;
+            }
+            ele.send_packet(WorldEventPacket {
+                event: 2001,
+                position,
+                data: block.id(),
+                disable_relative_volume: false,
+            });
+        }
+    }
+
+    pub fn place_block(
+        &self,
+        player: Player,
+        position: BlockPosition,
+        face: BlockFace,
+        block: BlockState,
+    ) {
+        let new_position = match face {
+            BlockFace::Bottom => position.add(0, -1, 0),
+            BlockFace::East => position.add(1, 0, 0),
+            BlockFace::North => position.add(0, 0, -1),
+            BlockFace::South => position.add(0, 0, 1),
+            BlockFace::Top => position.add(0, 1, 0),
+            BlockFace::West => position.add(-1, 0, 0),
+        };
+
+        self.set_block(
+            new_position.x() as i32,
+            new_position.y() as i32,
+            new_position.z() as i32,
+            &block,
+        );
+
+        // todo: should be only sent to players that are viewing the block/chunk
+        for ele in player.server().players.lock().clone() {
+            ele.send_packet(BlockUpdatePacket {
+                position: new_position,
+                block_id: block.state_id(),
+            });
+        }
     }
 }
 

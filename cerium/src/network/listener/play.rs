@@ -1,4 +1,4 @@
-use std::io::Cursor;
+use std::{io::Cursor, sync::atomic::Ordering};
 
 use crate::{
     entity::{EntityAnimation, EntityLike as _, GameMode, Hand, Player},
@@ -6,13 +6,14 @@ use crate::{
     protocol::{
         decode::{Decode as _, DecodeError},
         packet::{
-            ChangeRecipeBookSettingsPacket, ChatCommandPacket, ChunkBatchReceivedPacket,
-            ClickContainerPacket, ClientInfoPacket, ClientTickEndPacket,
+            AcknowledgeBlockChangePacket, ChangeRecipeBookSettingsPacket, ChatCommandPacket,
+            ChunkBatchReceivedPacket, ClickContainerPacket, ClientInfoPacket, ClientTickEndPacket,
             ConfirmTeleportationPacket, EntityAnimationPacket, InteractPacket,
             PickItemFromBlockPacket, PlayerActionPacket, PlayerCommand, PlayerCommandPacket,
-            PlayerInputFlags, PlayerInputPacket, PlayerLoadedPacket, PlayerMovementFlagsPacket,
-            PlayerPositionAndRotationPacket, PlayerPositionPacket, PlayerRotationPacket,
-            PlayerSessionPacket, PluginMessagePacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
+            PlayerDiggingState, PlayerInputFlags, PlayerInputPacket, PlayerLoadedPacket,
+            PlayerMovementFlagsPacket, PlayerPositionAndRotationPacket, PlayerPositionPacket,
+            PlayerRotationPacket, PlayerSessionPacket, PluginMessagePacket,
+            SetBlockDestroyStagePacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
             SwingArmPacket, UseItemOnPacket,
             client::play::{
                 CloseContainerPacket, KeepAlivePacket, PingRequestPacket, PlayerAbilitiesPacket,
@@ -23,56 +24,53 @@ use crate::{
 };
 
 #[rustfmt::skip]
-pub async fn handle_packet(player: Player, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
+pub fn handle_packet(player: Player, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?).await,
-        0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?).await,
-        0x09 => handle_player_session(player, PlayerSessionPacket::decode(data)?).await,
-        0x0A => handle_chunk_batch_received(player, ChunkBatchReceivedPacket::decode(data)?).await,
-        0x0C => handle_client_tick_end(player, ClientTickEndPacket::decode(data)?).await,
-        0x0D => handle_client_info(player, ClientInfoPacket::decode(data)?).await,
-        0x11 => handle_click_container(player, ClickContainerPacket::decode(data)?).await,
-        0x12 => handle_close_container(player, CloseContainerPacket::decode(data)?).await,
-        0x15 => handle_plugin_message(player, PluginMessagePacket::decode(data)?).await,
-        0x1B => handle_keep_alive(player, KeepAlivePacket::decode(data)?).await,
-        0x1D => handle_player_position(player, PlayerPositionPacket::decode(data)?).await,
-        0x1E => handle_player_position_and_rotation(player, PlayerPositionAndRotationPacket::decode(data)?).await,
-        0x1F => handle_player_rotation(player, PlayerRotationPacket::decode(data)?).await,
-        0x19 => handle_interact(player, InteractPacket::decode(data)?).await,
-        0x20 => handle_player_movement_flags(player, PlayerMovementFlagsPacket::decode(data)?).await,
-        0x23 => handle_pick_item_from_block(player, PickItemFromBlockPacket::decode(data)?).await,
-        0x25 => handle_ping_request(player, PingRequestPacket::decode(data)?).await,
-        0x27 => handle_player_abilities(player, PlayerAbilitiesPacket::decode(data)?).await,
-        0x28 => handle_player_action(player, PlayerActionPacket::decode(data)?).await,
-        0x29 => handle_player_command(player, PlayerCommandPacket::decode(data)?).await,
-        0x2A => handle_player_input(player, PlayerInputPacket::decode(data)?).await,
-        0x2B => handle_player_loaded(player, PlayerLoadedPacket::decode(data)?).await,
-        0x2D => hande_change_recipe_book_settings(player, ChangeRecipeBookSettingsPacket::decode(data)?).await,
-        0x34 => handle_set_held_item(player, SetHeldItemPacket::decode(data)?).await,
-        0x37 => handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?).await,
-        0x3C => handle_swing_arm(player, SwingArmPacket::decode(data)?).await,
-        0x3F => handle_use_item_on(player, UseItemOnPacket::decode(data)?).await,
+        0x00 => handle_confirm_teleportation(player, ConfirmTeleportationPacket::decode(data)?),
+        0x06 => handle_chat_command(player, ChatCommandPacket::decode(data)?),
+        0x09 => handle_player_session(player, PlayerSessionPacket::decode(data)?),
+        0x0A => handle_chunk_batch_received(player, ChunkBatchReceivedPacket::decode(data)?),
+        0x0C => handle_client_tick_end(player, ClientTickEndPacket::decode(data)?),
+        0x0D => handle_client_info(player, ClientInfoPacket::decode(data)?),
+        0x11 => handle_click_container(player, ClickContainerPacket::decode(data)?),
+        0x12 => handle_close_container(player, CloseContainerPacket::decode(data)?),
+        0x15 => handle_plugin_message(player, PluginMessagePacket::decode(data)?),
+        0x1B => handle_keep_alive(player, KeepAlivePacket::decode(data)?),
+        0x1D => handle_player_position(player, PlayerPositionPacket::decode(data)?),
+        0x1E => handle_player_position_and_rotation(player, PlayerPositionAndRotationPacket::decode(data)?),
+        0x1F => handle_player_rotation(player, PlayerRotationPacket::decode(data)?),
+        0x19 => handle_interact(player, InteractPacket::decode(data)?),
+        0x20 => handle_player_movement_flags(player, PlayerMovementFlagsPacket::decode(data)?),
+        0x23 => handle_pick_item_from_block(player, PickItemFromBlockPacket::decode(data)?),
+        0x25 => handle_ping_request(player, PingRequestPacket::decode(data)?),
+        0x27 => handle_player_abilities(player, PlayerAbilitiesPacket::decode(data)?),
+        0x28 => handle_player_action(player, PlayerActionPacket::decode(data)?),
+        0x29 => handle_player_command(player, PlayerCommandPacket::decode(data)?),
+        0x2A => handle_player_input(player, PlayerInputPacket::decode(data)?),
+        0x2B => handle_player_loaded(player, PlayerLoadedPacket::decode(data)?),
+        0x2D => hande_change_recipe_book_settings(player, ChangeRecipeBookSettingsPacket::decode(data)?),
+        0x34 => handle_set_held_item(player, SetHeldItemPacket::decode(data)?),
+        0x37 => handle_set_creative_mode_slot(player, SetCreativeModeSlotPacket::decode(data)?),
+        0x3C => handle_swing_arm(player, SwingArmPacket::decode(data)?),
+        0x3F => handle_use_item_on(player, UseItemOnPacket::decode(data)?),
         _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
-async fn handle_confirm_teleportation(player: Player, packet: ConfirmTeleportationPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_confirm_teleportation(_player: Player, _packet: ConfirmTeleportationPacket) {
+    log::warn!("todo: handle_confirm_teleportation");
 }
 
-async fn handle_chat_command(player: Player, packet: ChatCommandPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_chat_command(_player: Player, _packet: ChatCommandPacket) {
+    log::warn!("todo: handle_chat_command");
 }
 
-async fn handle_player_session(player: Player, packet: PlayerSessionPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_player_session(_player: Player, _packet: PlayerSessionPacket) {
+    log::warn!("todo: handle_player_session");
 }
 
-async fn handle_chunk_batch_received(player: Player, packet: ChunkBatchReceivedPacket) {
+fn handle_chunk_batch_received(player: Player, packet: ChunkBatchReceivedPacket) {
     let mut queue = player.0.chunk_queue.lock();
     queue.lead -= 1;
     queue.target_cpt = if packet.chunks_per_tick.is_nan() {
@@ -86,17 +84,16 @@ async fn handle_chunk_batch_received(player: Player, packet: ChunkBatchReceivedP
     }
 }
 
-async fn handle_client_tick_end(player: Player, packet: ClientTickEndPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_client_tick_end(_player: Player, _packet: ClientTickEndPacket) {
+    log::warn!("todo: handle_client_tick_end");
 }
 
-async fn handle_client_info(player: Player, packet: ClientInfoPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_client_info(_player: Player, _packet: ClientInfoPacket) {
+    log::warn!("todo: handle_client_info");
 }
 
-async fn handle_click_container(player: Player, packet: ClickContainerPacket) {
+fn handle_click_container(player: Player, packet: ClickContainerPacket) {
+    log::warn!("todo: handle_click_container");
     if packet.slot == -1 {
         return;
     }
@@ -114,24 +111,22 @@ async fn handle_click_container(player: Player, packet: ClickContainerPacket) {
     // todo
 }
 
-async fn handle_close_container(player: Player, packet: CloseContainerPacket) {
+fn handle_close_container(player: Player, packet: CloseContainerPacket) {
     let _ = packet;
     player.close_inventory();
 }
 
-async fn handle_plugin_message(player: Player, packet: PluginMessagePacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_plugin_message(_player: Player, _packet: PluginMessagePacket) {
+    log::warn!("todo: handle_plugin_message");
 }
 
-async fn handle_keep_alive(player: Player, packet: KeepAlivePacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_keep_alive(_player: Player, _packet: KeepAlivePacket) {
+    log::warn!("todo: handle_keep_alive");
 }
 
 // ===== Position & Movement ======
 
-async fn handle_player_position(player: Player, packet: PlayerPositionPacket) {
+fn handle_player_position(player: Player, packet: PlayerPositionPacket) {
     let new_position = Position::new(
         packet.x,
         packet.feet_y,
@@ -139,18 +134,15 @@ async fn handle_player_position(player: Player, packet: PlayerPositionPacket) {
         player.position().yaw(),
         player.position().pitch(),
     );
-    handle_movement(player, new_position, packet.flags & 1 != 0).await;
+    handle_movement(player, new_position, packet.flags & 1 != 0);
 }
 
-async fn handle_player_position_and_rotation(
-    player: Player,
-    packet: PlayerPositionAndRotationPacket,
-) {
+fn handle_player_position_and_rotation(player: Player, packet: PlayerPositionAndRotationPacket) {
     let new_position = Position::new(packet.x, packet.feet_y, packet.z, packet.yaw, packet.pitch);
-    handle_movement(player, new_position, packet.flags & 1 != 0).await;
+    handle_movement(player, new_position, packet.flags & 1 != 0);
 }
 
-async fn handle_player_rotation(player: Player, packet: PlayerRotationPacket) {
+fn handle_player_rotation(player: Player, packet: PlayerRotationPacket) {
     let new_position = Position::new(
         player.position().x(),
         player.position().y(),
@@ -158,10 +150,10 @@ async fn handle_player_rotation(player: Player, packet: PlayerRotationPacket) {
         packet.yaw,
         packet.pitch,
     );
-    handle_movement(player, new_position, packet.flags & 1 != 0).await;
+    handle_movement(player, new_position, packet.flags & 1 != 0);
 }
 
-async fn handle_movement(player: Player, new_position: Position, on_ground: bool) {
+fn handle_movement(player: Player, new_position: Position, on_ground: bool) {
     let old_position = player.position();
 
     if new_position == old_position {
@@ -172,27 +164,23 @@ async fn handle_movement(player: Player, new_position: Position, on_ground: bool
     player.refresh_on_ground(on_ground);
 }
 
-async fn handle_interact(player: Player, packet: InteractPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_interact(_player: Player, _packet: InteractPacket) {
+    log::warn!("todo: handle_interact");
 }
 
-async fn handle_player_movement_flags(player: Player, packet: PlayerMovementFlagsPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_player_movement_flags(_player: Player, _packet: PlayerMovementFlagsPacket) {
+    log::warn!("todo: handle_player_movement_flags");
 }
 
-async fn handle_pick_item_from_block(player: Player, packet: PickItemFromBlockPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_pick_item_from_block(_player: Player, _packet: PickItemFromBlockPacket) {
+    log::warn!("todo: handle_pick_item_from_block");
 }
 
-async fn handle_ping_request(player: Player, packet: PingRequestPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_ping_request(_player: Player, _packet: PingRequestPacket) {
+    log::warn!("todo: handle_ping_request");
 }
 
-async fn handle_player_abilities(player: Player, packet: PlayerAbilitiesPacket) {
+fn handle_player_abilities(player: Player, packet: PlayerAbilitiesPacket) {
     let can_fly = player.allow_flying() || player.game_mode() == GameMode::Creative;
 
     if can_fly {
@@ -201,12 +189,39 @@ async fn handle_player_abilities(player: Player, packet: PlayerAbilitiesPacket) 
     }
 }
 
-async fn handle_player_action(player: Player, packet: PlayerActionPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_player_action(player: Player, packet: PlayerActionPacket) {
+    let world = player.world();
+    let status = packet.status;
+    let position = packet.position;
+    let face = packet.face;
+
+    match status {
+        PlayerDiggingState::StartDigging => {
+            if player.game_mode() == GameMode::Creative {
+                // intant break the block
+                world.break_block(player.clone(), position, face);
+            }
+        }
+        PlayerDiggingState::CancelledDigging => {}
+        PlayerDiggingState::FinishedDigging => {
+            world.break_block(player.clone(), position, face);
+        }
+        PlayerDiggingState::DropItemStack => {}
+        PlayerDiggingState::DropItem => {}
+        PlayerDiggingState::ItemUpdated => {}
+        PlayerDiggingState::SwapItemInHand => {}
+    }
+
+    let packet = SetBlockDestroyStagePacket {
+        entitiy_id: player.id(),
+        location: position,
+        destroy_stage: status as u8,
+    };
+    player.send_packet(packet.clone());
+    player.send_packet_to_viewers(packet);
 }
 
-async fn handle_player_command(player: Player, packet: PlayerCommandPacket) {
+fn handle_player_command(player: Player, packet: PlayerCommandPacket) {
     match packet.action_id {
         PlayerCommand::StartSprinting => player.set_sprinting(true),
         PlayerCommand::StopSprinting => player.set_sprinting(false),
@@ -214,26 +229,26 @@ async fn handle_player_command(player: Player, packet: PlayerCommandPacket) {
     }
 }
 
-async fn handle_player_input(player: Player, packet: PlayerInputPacket) {
+fn handle_player_input(player: Player, packet: PlayerInputPacket) {
     player.set_sneaking(packet.flags.contains(PlayerInputFlags::SNEAK));
 }
 
-async fn handle_player_loaded(player: Player, packet: PlayerLoadedPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_player_loaded(_player: Player, _packet: PlayerLoadedPacket) {
+    log::warn!("todo: handle_player_loaded");
 }
 
-async fn hande_change_recipe_book_settings(player: Player, packet: ChangeRecipeBookSettingsPacket) {
-    let _ = player;
-    let _ = packet;
+fn hande_change_recipe_book_settings(_player: Player, _packet: ChangeRecipeBookSettingsPacket) {
+    log::warn!("todo: hande_change_recipe_book_settings");
 }
 
-async fn handle_set_held_item(player: Player, packet: SetHeldItemPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_set_held_item(player: Player, packet: SetHeldItemPacket) {
+    player
+        .0
+        .held_slot
+        .store(packet.slot as u8, Ordering::Release);
 }
 
-async fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSlotPacket) {
+fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSlotPacket) {
     let inventory = player.inventory();
 
     let item_stack = ItemStack::from(packet.clicked_item);
@@ -241,7 +256,7 @@ async fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSl
     inventory.set_item_stack(packet.slot as i32, item_stack);
 }
 
-async fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
+fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
     player.send_packet_to_viewers(EntityAnimationPacket {
         entity_id: player.id(),
         animation: if packet.hand == Hand::Left {
@@ -252,7 +267,20 @@ async fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
     });
 }
 
-async fn handle_use_item_on(player: Player, packet: UseItemOnPacket) {
-    let _ = player;
-    let _ = packet;
+fn handle_use_item_on(player: Player, packet: UseItemOnPacket) {
+    let world = player.world();
+    let position = packet.position;
+
+    let Some(placed_block) = player.get_item_in_hand(packet.hand) else {
+        return;
+    };
+
+    let Some(block) = placed_block.material().block() else {
+        return;
+    };
+
+    world.place_block(player.clone(), position, packet.face, block.clone());
+    player.send_packet(AcknowledgeBlockChangePacket {
+        sequence_id: packet.sequence,
+    });
 }

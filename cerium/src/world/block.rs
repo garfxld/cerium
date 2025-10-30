@@ -9,19 +9,20 @@ impl Deref for Block {
 
     fn deref(&self) -> &<Block as Deref>::Target {
         // None of these get calls should panic due to registry and auto-generate code accessing the same json file.
-        let state_id = *REGISTRY.1.get(*self as usize).unwrap();
-        REGISTRY.0.get(&state_id).unwrap()
+        let state_id = *REGISTRY.2.get(*self as usize).unwrap();
+        REGISTRY.1.get(&state_id).unwrap()
     }
 }
 
-pub static REGISTRY: LazyLock<(HashMap<i32, BlockState>, Vec<i32>)> = LazyLock::new(|| {
+pub static REGISTRY: LazyLock<(HashMap<String, i32>, HashMap<i32, BlockState>, Vec<i32>)> = LazyLock::new(|| {
     let entries: IndexMap<String, serde_json::Value> =
         serde_json::from_str(include_str!("../../data/block.json")).unwrap();
 
+    let mut by_key= HashMap::new();
     let mut states = HashMap::new();
     let mut to_state = vec![];
 
-    for (_key, block) in entries {
+    for (key, block) in entries {
         let id = block["id"].as_i64().unwrap() as i32;
         let block_entity: Option<BlockEntityInfo> =
             serde_json::from_value(block["blockEntity"].clone()).ok();
@@ -37,9 +38,10 @@ pub static REGISTRY: LazyLock<(HashMap<i32, BlockState>, Vec<i32>)> = LazyLock::
             };
             states.insert(state_id as i32, state);
         }
+        by_key.insert(key, (states.len() - 1) as i32);
     }
 
-    (states, to_state)
+    (by_key, states, to_state)
 });
 
 impl AsRef<BlockState> for BlockState {
@@ -75,7 +77,12 @@ impl BlockState {
     }
 
     pub fn from_id(id: i32) -> Option<&'static BlockState> {
-        REGISTRY.0.get(&id)
+        REGISTRY.1.get(&id)
+    }
+
+    pub fn from_key(key: String) -> Option<&'static BlockState> {
+        let i = REGISTRY.0.get(&key);
+        i.map(|i| REGISTRY.1.get(i)).flatten()
     }
 }
 
@@ -83,4 +90,30 @@ impl BlockState {
 pub struct BlockEntityInfo {
     pub namespace: String,
     pub id: i32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum BlockFace {
+    Bottom,
+    Top,
+    North,
+    South,
+    West,
+    East,
+}
+
+impl TryFrom<i32> for BlockFace {
+    type Error = ();
+
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        Ok(match value {
+            0 => Self::Bottom,
+            1 => Self::Top,
+            2 => Self::North,
+            3 => Self::South,
+            4 => Self::West,
+            5 => Self::East,
+            _ => return Err(()),
+        })
+    }
 }

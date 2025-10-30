@@ -7,25 +7,13 @@ use crate::{
     protocol::{
         ProtocolState,
         packet::{
-            ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket,
-            DisconnectPacket, DisplayObjectivePacket, EncryptionRequestPacket,
-            EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket,
-            EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket,
-            LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet,
-            PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket,
-            PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket,
-            SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket,
-            SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket,
-            SetTablistHeaderFooterPacket, SpawnEntityPacket, StatusResponsePacket,
-            SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
-            UpdateObjectivesPacket, UpdateScorePacket,
-            server::{
+            AcknowledgeBlockChangePacket, BlockUpdatePacket, ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket, DisplayObjectivePacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket, SetBlockDestroyStagePacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket, SetTablistHeaderFooterPacket, SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket, UpdateObjectivesPacket, UpdateScorePacket, WorldEventPacket, server::{
                 CloseContainerPacket, KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket,
-            },
+            }
         },
     },
     text::Component,
-    util::Identifier,
+    util::{BlockPosition, Identifier},
 };
 use cerium_nbt::{Nbt, NbtTag};
 
@@ -86,6 +74,8 @@ pub trait PacketWrite {
     fn write_nbt_tag(&mut self, value: &NbtTag) -> Result<()>;
 
     fn write_component(&mut self, value: &Component) -> Result<()>;
+
+    fn write_position(&mut self, value: &BlockPosition) -> Result<()>;
 
     fn write_option<T, F>(&mut self, value: &Option<T>, f: F) -> Result<()>
     where
@@ -187,6 +177,14 @@ impl<B: BufMut> PacketWrite for B {
         let mut data: Vec<u8> = Vec::new();
         cerium_nbt::to_bytes_unnamed(&value, &mut data).unwrap();
         self.put(&*data);
+        Ok(())
+    }
+
+    fn write_position(&mut self, value: &BlockPosition) -> Result<()> {
+        let encoded =
+            ((value.x() & 0x3FFFFFF) << 38) | ((value.z() & 0x3FFFFFF) << 12) | (value.y() & 0xFFF);
+
+        self.write_i64(encoded)?;
         Ok(())
     }
 
@@ -308,11 +306,11 @@ where
         _ if type_id == TypeId::of::<SpawnEntityPacket>() => 0x01,
         _ if type_id == TypeId::of::<EntityAnimationPacket>() => 0x02,
         // _ if type_id == TypeId::of::<AwardStatsPacket>() => 0x03,
-        // _ if type_id == TypeId::of::<BlockChangedAckPacket>() => 0x04,
-        // _ if type_id == TypeId::of::<BlockDestructionPacket>() => 0x05,
+        _ if type_id == TypeId::of::<AcknowledgeBlockChangePacket>() => 0x04,
+        _ if type_id == TypeId::of::<SetBlockDestroyStagePacket>() => 0x05,
         // _ if type_id == TypeId::of::<BlockEntityDataPacket>() => 0x06,
         // _ if type_id == TypeId::of::<BlockEventPacket>() => 0x07,
-        // _ if type_id == TypeId::of::<BlockUpdatePacket>() => 0x08,
+        _ if type_id == TypeId::of::<BlockUpdatePacket>() => 0x08,
         // _ if type_id == TypeId::of::<BossEventPacket>() => 0x09,
         // _ if type_id == TypeId::of::<ChangeDifficultyPacket>() => 0x0A,
         _ if type_id == TypeId::of::<ChunkBatchFinishedPacket>() => 0x0B,
@@ -349,7 +347,7 @@ where
         // _ if type_id == TypeId::of::<InitializeBorderPacket>() => 0x2A,
         _ if type_id == TypeId::of::<KeepAlivePacket>() => 0x2B,
         _ if type_id == TypeId::of::<ChunkDataAndUpdateLightPacket>() => 0x2C,
-        // _ if type_id == TypeId::of::<LevelEventPacket>() => 0x2D,
+        _ if type_id == TypeId::of::<WorldEventPacket>() => 0x2D,
         // _ if type_id == TypeId::of::<LevelParticlesPacket>() => 0x2E,
         // _ if type_id == TypeId::of::<LightUpdatePacket>() => 0x2F,
         _ if type_id == TypeId::of::<LoginPacket>() => 0x30,

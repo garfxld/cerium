@@ -2,7 +2,10 @@ use bytes::Buf;
 use thiserror::Error;
 use uuid::Uuid;
 
-use crate::{text::Component, util::Identifier};
+use crate::{
+    text::Component,
+    util::{BlockPosition, Identifier},
+};
 use cerium_nbt::Nbt;
 
 pub trait Decode
@@ -62,6 +65,8 @@ pub trait PacketRead {
     fn read_identifier(&mut self) -> Result<Identifier>;
 
     fn read_nbt(&mut self) -> Result<Nbt>;
+
+    fn read_position(&mut self) -> Result<BlockPosition>;
 
     fn read_option<T, F>(&mut self, f: F) -> Result<Option<T>>
     where
@@ -148,6 +153,16 @@ impl<R: Buf> PacketRead for R {
 
     fn read_nbt(&mut self) -> Result<Nbt> {
         todo!()
+    }
+
+    fn read_position(&mut self) -> Result<BlockPosition> {
+        let val = self.read_i64()?;
+
+        let x = val >> 38;
+        let y = (val << 52) >> 52;
+        let z = (val << 26) >> 38;
+
+        Ok(BlockPosition::new(x, y, z))
     }
 
     fn read_option<T, F>(&mut self, f: F) -> Result<Option<T>>

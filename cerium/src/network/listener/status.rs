@@ -10,16 +10,16 @@ use crate::{event::ServerListPingEvent, network::client::Connection};
 use std::{io::Cursor, sync::Arc};
 
 #[rustfmt::skip]
-pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
+pub fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&[u8]>) -> Result<(), DecodeError> {
     match id {
-        0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?).await,
-        0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?).await,
+        0x00 => handle_status_request(client, StatusRequestPacket::decode(data)?),
+        0x01 => handle_ping_request(client, PingRequestPacket::decode(data)?),
         _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
 }
 
-async fn handle_status_request(client: Arc<Connection>, packet: StatusRequestPacket) {
+fn handle_status_request(client: Arc<Connection>, packet: StatusRequestPacket) {
     let _ = packet;
 
     let mut event = ServerListPingEvent::new(SERVER_LIST_PING.to_owned());
@@ -32,7 +32,7 @@ async fn handle_status_request(client: Arc<Connection>, packet: StatusRequestPac
     client.send_packet(response);
 }
 
-async fn handle_ping_request(client: Arc<Connection>, packet: PingRequestPacket) {
+fn handle_ping_request(client: Arc<Connection>, packet: PingRequestPacket) {
     let packet = PongResponsePacket {
         timestamp: packet.timestamp,
     };

@@ -18,9 +18,9 @@ pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&
     match id {
         0x00 => handle_login_start(client, LoginStartPacket::decode(data)?).await,
         0x01 => handle_encryption_response(client, EncryptionResponsePacket::decode(data)?).await,
-        0x02 => handle_plugin_response(client).await,
-        0x03 => handle_login_acknowledged(client, LoginAcknowledgePacket::decode(data)?).await,
-        0x04 => handle_cookie_response(client).await,
+        0x02 => handle_plugin_response(client),
+        0x03 => handle_login_acknowledged(client, LoginAcknowledgePacket::decode(data)?),
+        0x04 => handle_cookie_response(client),
         _ => return Err(DecodeError::UnkownPacket(id)),
     };
     Ok(())
@@ -80,15 +80,15 @@ async fn handle_encryption_response(client: Arc<Connection>, packet: EncryptionR
     client.send_packet(LoginSuccessPacket::from(game_profile.clone()));
 }
 
-async fn handle_plugin_response(client: Arc<Connection>) {
+fn handle_plugin_response(client: Arc<Connection>) {
     let _ = client;
 }
 
-async fn handle_login_acknowledged(client: Arc<Connection>, packet: LoginAcknowledgePacket) {
+fn handle_login_acknowledged(client: Arc<Connection>, packet: LoginAcknowledgePacket) {
     let _ = packet;
     client.set_state(ProtocolState::Config);
 }
 
-async fn handle_cookie_response(client: Arc<Connection>) {
+fn handle_cookie_response(client: Arc<Connection>) {
     let _ = client;
 }

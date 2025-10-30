@@ -16,17 +16,17 @@ impl Connection {
         data: &mut Cursor<&[u8]>,
     ) -> Result<(), DecodeError> {
         match self.state() {
-            ProtocolState::Handshake => handshake::handle_packet(self, id, data).await,
-            ProtocolState::Status => status::handle_packet(self, id, data).await,
+            ProtocolState::Handshake => handshake::handle_packet(self, id, data),
+            ProtocolState::Status => status::handle_packet(self, id, data),
             ProtocolState::Login => login::handle_packet(self, id, data).await,
-            ProtocolState::Config => config::handle_packet(self, id, data).await,
+            ProtocolState::Config => config::handle_packet(self, id, data),
             ProtocolState::Play => {
                 let player = {
                     let player = self.player.lock();
                     player.clone().unwrap()
                 };
 
-                play::handle_packet(player, id, data).await
+                play::handle_packet(player, id, data)
             }
         }
     }

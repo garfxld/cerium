@@ -74,7 +74,7 @@ pub mod client {
         pub use close_container::CloseContainerPacket;
         pub use click_container::ClickContainerPacket;
         pub use player_rotation::PlayerRotationPacket;
-        pub use player_action::PlayerActionPacket;
+        pub use player_action::*;
         pub use swing_arm::SwingArmPacket;
         pub use use_item_on::UseItemOnPacket;
         pub use player_abilities::PlayerAbilitiesPacket;
@@ -169,6 +169,10 @@ pub mod server {
         mod update_score;
         mod update_teams;
         mod set_tablist_header_footer;
+        mod set_block_destroy_stage;
+        mod block_update;
+        mod world_event;
+        mod acknowledge_block_change;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -201,6 +205,10 @@ pub mod server {
         pub use update_score::UpdateScorePacket;
         pub use update_teams::*;
         pub use set_tablist_header_footer::SetTablistHeaderFooterPacket;
+        pub use set_block_destroy_stage::SetBlockDestroyStagePacket;
+        pub use block_update::BlockUpdatePacket;
+        pub use world_event::WorldEventPacket;
+        pub use acknowledge_block_change::AcknowledgeBlockChangePacket;
     }
 
     pub use status::*;
