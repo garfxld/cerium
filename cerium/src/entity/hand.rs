@@ -5,8 +5,8 @@ use crate::protocol::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Hand {
-    Left,  // Main-hand
-    Right, // Off-hand
+    MainHand,
+    OffHand,
 }
 
 impl TryFrom<i32> for Hand {
@@ -14,8 +14,8 @@ impl TryFrom<i32> for Hand {
 
     fn try_from(value: i32) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(Self::Left),
-            1 => Ok(Self::Right),
+            0 => Ok(Self::MainHand),
+            1 => Ok(Self::OffHand),
             _ => Err(()),
         }
     }
@@ -23,8 +23,7 @@ impl TryFrom<i32> for Hand {
 
 impl Decode for Hand {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
-        Hand::try_from(r.read_varint()?)
-            .map_err(|_| DecodeError::Decode("Invalid Hand".to_string()))
+        Hand::try_from(r.read_varint()?).map_err(|_| DecodeError::Decode("Invalid Hand"))
     }
 }
 

@@ -64,6 +64,22 @@ pub fn generate() {
         })
         .collect();
 
+    let to_key_arms: TokenStream = entries
+        .iter()
+        .map(|(key, _)| {
+            let ident = format_ident!(
+                "{}",
+                key.split_once(":")
+                    .map_or(key.clone(), |v| v.1.to_owned())
+                    .to_case(Case::UpperCamel)
+            );
+
+            quote! {
+                Self::#ident => #key,
+            }
+        })
+        .collect();
+
     let out = quote! {
         use crate::world::{BlockState};
 
@@ -78,6 +94,12 @@ pub fn generate() {
                 match id {
                     #from_id_arms
                     _ => None,
+                }
+            }
+
+            pub fn key(&self) -> &'static str {
+                match self {
+                    #to_key_arms
                 }
             }
 

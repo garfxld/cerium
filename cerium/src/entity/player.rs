@@ -27,9 +27,9 @@ use crate::{
         PlayerInfoFlags, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, ServerPacket,
         SetCenterChunkPacket, SetHeadRotationPacket, SetTablistHeaderFooterPacket,
         SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket,
-        server::{PlayerAbilitiesPacket, play::KeepAlivePacket},
+        server::{PlayerAbilitiesPacket, SetHeldItemPacket, play::KeepAlivePacket},
     },
-    text::Component,
+    text::TextComponent,
     tickable::Tickable,
     util::{EntityPose, Position, TeleportFlags, Viewable, Viewers},
     world::{Chunk, World},
@@ -59,15 +59,15 @@ impl Player {
         self.0.set_game_mode(game_mode)
     }
 
-    pub fn send_message(&self, message: impl Into<Component>) {
+    pub fn send_message(&self, message: impl Into<TextComponent>) {
         self.0.send_message(message)
     }
 
-    pub fn kick(&self, reason: impl Into<Component>) {
+    pub fn kick(&self, reason: impl Into<TextComponent>) {
         self.0.kick(reason)
     }
 
-    pub fn send_packet<P>(&self, packet: P)
+    pub fn send_packet<P>(&self, packet: &P)
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -114,10 +114,14 @@ impl Player {
         self.0.get_equipment(slot)
     }
 
+    pub fn set_held_slot(&self, slot: u8) {
+        self.0.set_held_slot(slot)
+    }
+
     // ===== Position & Movement ======
 
     pub fn refresh_position(&self, new_position: Position) {
-        self.0.refresh_position(new_position)
+        self.0.update_position(new_position)
     }
 
     pub fn synchronize_position(
@@ -153,7 +157,8 @@ impl Player {
     }
 
     pub fn set_invurnable(&self, value: bool) {
-        self.0.set_invurnable(value)
+        self.0.update_invurnable(value);
+        self.0.refresh_abilities();
     }
 
     /// Returns the flying speed of the player.
@@ -162,7 +167,8 @@ impl Player {
     }
 
     pub fn set_flying_speed(&self, value: f32) {
-        self.0.set_flying_speed(value)
+        self.0.update_flying_speed(value);
+        self.0.refresh_abilities();
     }
 
     /// Returns the fov modifier of the player.
@@ -171,7 +177,8 @@ impl Player {
     }
 
     pub fn set_fov_modifier(&self, value: f32) {
-        self.0.set_fov_modifier(value)
+        self.0.update_fov_modifier(value);
+        self.0.refresh_abilities();
     }
 
     /// Returns if the player is allowed to fly.
@@ -180,7 +187,8 @@ impl Player {
     }
 
     pub fn set_allow_flying(&self, value: bool) {
-        self.0.set_allow_flying(value)
+        self.0.update_allow_flying(value);
+        self.0.refresh_abilities();
     }
 
     /// Returns if the player is currently flying.
@@ -205,17 +213,9 @@ impl Player {
         self.0.is_sprinting()
     }
 
-    pub fn set_sprinting(&self, value: bool) {
-        self.0.set_sprinting(value)
-    }
-
     /// Returns if the player is sneaking.
     pub fn is_sneaking(&self) -> bool {
         self.0.is_sneaking()
-    }
-
-    pub fn set_sneaking(&self, value: bool) {
-        self.0.set_sneaking(value)
     }
 
     // ===== Scoreboard =====
@@ -223,22 +223,22 @@ impl Player {
     /// Changes the tablist header for the player.
     ///
     /// Note: This will clear the footer.
-    pub fn set_header(&self, text: impl Into<Component>) {
-        self.set_header_and_footer(text, Component::empty())
+    pub fn set_header(&self, text: impl Into<TextComponent>) {
+        self.set_header_and_footer(text, TextComponent::EMPTY)
     }
 
     /// Changes the tablist footer for the player.
     ///
     /// Note: This will clear the header.
-    pub fn set_footer(&self, text: impl Into<Component>) {
-        self.set_header_and_footer(Component::empty(), text);
+    pub fn set_footer(&self, text: impl Into<TextComponent>) {
+        self.set_header_and_footer(TextComponent::EMPTY, text);
     }
 
     /// Changes both the tablist header and footer for the player.
     pub fn set_header_and_footer(
         &self,
-        header: impl Into<Component>,
-        footer: impl Into<Component>,
+        header: impl Into<TextComponent>,
+        footer: impl Into<TextComponent>,
     ) {
         self.0.set_header_and_footer(header.into(), footer.into())
     }
@@ -316,6 +316,28 @@ impl ChunkQueue {
     }
 }
 
+struct Abilities {
+    flying: AtomicBool,
+    allow_flying: AtomicBool,
+    invurnable: AtomicBool,
+    insta_break: AtomicBool,
+    flying_speed: Mutex<f32>,
+    fov_modifier: Mutex<f32>,
+}
+
+impl Abilities {
+    pub fn new() -> Self {
+        Self {
+            flying: AtomicBool::default(),
+            allow_flying: AtomicBool::default(),
+            invurnable: AtomicBool::default(),
+            insta_break: AtomicBool::default(),
+            flying_speed: Mutex::new(0.05),
+            fov_modifier: Mutex::new(0.1),
+        }
+    }
+}
+
 pub(crate) struct Inner {
     connection: Arc<Connection>,
     game_profile: GameProfile,
@@ -327,17 +349,12 @@ pub(crate) struct Inner {
     teleport_id: AtomicI32,
 
     // Player Abilities
-    flying: AtomicBool,
-    allow_flying: AtomicBool,
-    invurnable: AtomicBool,
-    insta_break: AtomicBool,
-    flying_speed: Mutex<f32>,
-    fov_modifier: Mutex<f32>,
+    abilities: Abilities,
 
     // Inventory
     inventory: Arc<PlayerInventory>,
     open_inventory: Mutex<Option<Inventory>>,
-    pub held_slot: AtomicU8,
+    held_slot: AtomicU8,
 
     server: Arc<Server>,
 }
@@ -354,12 +371,7 @@ impl Inner {
             game_mode: Mutex::new(GameMode::Survival),
             chunk_queue: Mutex::new(ChunkQueue::new()),
             teleport_id: AtomicI32::default(),
-            flying: AtomicBool::default(),
-            allow_flying: AtomicBool::default(),
-            invurnable: AtomicBool::default(),
-            insta_break: AtomicBool::default(),
-            flying_speed: Mutex::new(0.05),
-            fov_modifier: Mutex::new(0.1),
+            abilities: Abilities::new(),
             inventory: Arc::new(PlayerInventory::new()),
             open_inventory: Mutex::new(None),
             held_slot: AtomicU8::default(),
@@ -384,10 +396,9 @@ impl Inner {
     }
 
     fn set_game_mode(&self, game_mode: GameMode) {
-        {
-            *self.game_mode.lock() = game_mode;
-        };
-        self.send_packet(GameEventPacket {
+        self.update_game_mode(game_mode);
+
+        self.send_packet(&GameEventPacket {
             event: 3,
             value: game_mode as i32 as f32,
         });
@@ -399,31 +410,37 @@ impl Inner {
             }],
             actions: PlayerInfoFlags::UPDATE_GAME_MODE.bits(),
         };
-        self.send_packet(p.clone());
-        self.send_packet_to_viewers(p);
+        self.send_packet(&p);
+        self.send_packet_to_viewers(&p);
 
-        self.set_allow_flying(game_mode == GameMode::Creative || game_mode == GameMode::Spectator);
+        self.update_allow_flying(
+            game_mode == GameMode::Creative || game_mode == GameMode::Spectator,
+        );
         if game_mode != GameMode::Creative && game_mode != GameMode::Spectator {
             self.set_flying(false);
         }
 
-        self.set_insta_break(game_mode == GameMode::Creative);
+        self.update_insta_break(game_mode == GameMode::Creative);
 
         self.refresh_abilities();
     }
 
-    fn send_message(&self, message: impl Into<Component>) {
-        self.send_packet(SystemChatMessagePacket {
+    fn update_game_mode(&self, game_mode: GameMode) {
+        *self.game_mode.lock() = game_mode;
+    }
+
+    fn send_message(&self, message: impl Into<TextComponent>) {
+        self.send_packet(&SystemChatMessagePacket {
             content: message.into(),
             overlay: false,
         });
     }
 
-    fn kick(&self, reason: impl Into<Component>) {
+    fn kick(&self, reason: impl Into<TextComponent>) {
         self.connection.kick(reason.into());
     }
 
-    fn send_packet<P>(&self, packet: P)
+    fn send_packet<P>(&self, packet: &P)
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -450,7 +467,7 @@ impl Inner {
     }
 
     fn keep_alive(&self) {
-        self.send_packet(KeepAlivePacket { keep_alive_id: 0 });
+        self.send_packet(&KeepAlivePacket { keep_alive_id: 0 });
     }
 
     pub(crate) fn add_to_list_packet(&self) -> PlayerInfoUpdatePacket {
@@ -511,7 +528,7 @@ impl Inner {
     }
 
     fn get_item_in_hand(&self, hand: Hand) -> Option<ItemStack> {
-        self.get_equipment(if hand == Hand::Left {
+        self.get_equipment(if hand == Hand::MainHand {
             EquipmentSlot::MainHand
         } else {
             EquipmentSlot::OffHand
@@ -529,6 +546,15 @@ impl Inner {
         };
 
         self.inventory.get_item_stack(slot_id as i32)
+    }
+
+    fn set_held_slot(&self, slot: u8) {
+        self.update_held_slot(slot);
+        self.send_packet(&SetHeldItemPacket { slot: slot.into() });
+    }
+
+    pub fn update_held_slot(&self, slot: u8) {
+        self.held_slot.store(slot, Ordering::Release);
     }
 
     // ===== World ======
@@ -557,7 +583,7 @@ impl Inner {
     }
 
     fn unload_chunk(&self, cx: i32, cz: i32) {
-        self.send_packet(UnloadChunkPacket {
+        self.send_packet(&UnloadChunkPacket {
             chunk_x: cx,
             chunk_z: cz,
         });
@@ -580,14 +606,14 @@ impl Inner {
             return;
         }
 
-        self.connection.send_packet(ChunkBatchStartPacket {});
+        self.connection.send_packet(&ChunkBatchStartPacket {});
 
         // let mut batch_size = 0;
         while queue.pending_chunks >= 1.
             && let Some(chunk) = queue.dequeue()
         {
             let packet: ChunkDataAndUpdateLightPacket = (&chunk).into();
-            self.send_packet(packet);
+            self.send_packet(&packet);
 
             queue.pending_chunks -= 1.;
             // batch_size += 1;
@@ -605,7 +631,7 @@ impl Inner {
 
     // ===== Position & Movement ======
 
-    fn refresh_position(&self, new_position: Position) {
+    fn update_position(&self, new_position: Position) {
         let old_position = self.position();
 
         self.set_position(new_position);
@@ -615,7 +641,7 @@ impl Inner {
         let new_chunk = Chunk::to_chunk_pos(new_position);
 
         if old_chunk != new_chunk {
-            self.send_packet(SetCenterChunkPacket {
+            self.send_packet(&SetCenterChunkPacket {
                 chunk_x: new_chunk.0,
                 chunk_z: new_chunk.1,
             });
@@ -638,16 +664,16 @@ impl Inner {
                 log::warn!("todo: teleport player because he moved more than 8 blocks.")
             }
             _ if position_changed && rotation_changed => {
-                self.send_packet_to_viewers(EntityPositionRotationPacket::new(
+                self.send_packet_to_viewers(&EntityPositionRotationPacket::new(
                     self.id(),
                     new_position,
                     old_position,
                     on_ground,
                 ));
-                self.send_packet_to_viewers(SetHeadRotationPacket::new(self.id(), head_rotation));
+                self.send_packet_to_viewers(&SetHeadRotationPacket::new(self.id(), head_rotation));
             }
             _ if position_changed => {
-                self.send_packet_to_viewers(EntityPositionRotationPacket::new(
+                self.send_packet_to_viewers(&EntityPositionRotationPacket::new(
                     self.id(),
                     new_position,
                     old_position,
@@ -655,13 +681,13 @@ impl Inner {
                 ));
             }
             _ if rotation_changed => {
-                self.send_packet_to_viewers(EntityRotationPacket::new(
+                self.send_packet_to_viewers(&EntityRotationPacket::new(
                     self.id(),
                     new_position,
                     old_position,
                     on_ground,
                 ));
-                self.send_packet_to_viewers(SetHeadRotationPacket::new(self.id(), head_rotation));
+                self.send_packet_to_viewers(&SetHeadRotationPacket::new(self.id(), head_rotation));
             }
             _ => {
                 log::error!("Entered unreachable code.");
@@ -672,7 +698,7 @@ impl Inner {
 
     fn synchronize_position(&self, position: Position, velocity: Position, flags: TeleportFlags) {
         let teleport_id = self.next_teleport_id();
-        self.send_packet(SyncPlayerPositionPacket {
+        self.send_packet(&SyncPlayerPositionPacket {
             teleport_id,
             position,
             velocity_x: velocity.x(),
@@ -707,70 +733,69 @@ impl Inner {
     // ===== Abilities ======
 
     fn insta_break(&self) -> bool {
-        self.insta_break.load(Ordering::Acquire)
+        self.abilities.insta_break.load(Ordering::Acquire)
     }
 
-    fn set_insta_break(&self, value: bool) {
-        self.insta_break.store(value, Ordering::Release);
+    fn update_insta_break(&self, value: bool) {
+        self.abilities.insta_break.store(value, Ordering::Release);
     }
 
     fn invurnable(&self) -> bool {
-        self.invurnable.load(Ordering::Acquire)
+        self.abilities.invurnable.load(Ordering::Acquire)
     }
 
-    fn set_invurnable(&self, value: bool) {
-        self.invurnable.store(value, Ordering::Release);
+    fn update_invurnable(&self, value: bool) {
+        self.abilities.invurnable.store(value, Ordering::Release);
     }
 
     fn flying_speed(&self) -> f32 {
-        *self.flying_speed.lock()
+        *self.abilities.flying_speed.lock()
     }
 
-    fn set_flying_speed(&self, value: f32) {
-        {
-            *self.flying_speed.lock() = value;
-        }
-        self.refresh_abilities();
+    fn update_flying_speed(&self, value: f32) {
+        *self.abilities.flying_speed.lock() = value;
     }
 
     fn fov_modifier(&self) -> f32 {
-        *self.fov_modifier.lock()
+        *self.abilities.fov_modifier.lock()
     }
 
-    fn set_fov_modifier(&self, value: f32) {
-        {
-            *self.fov_modifier.lock() = value;
-        }
-        self.refresh_abilities();
+    fn update_fov_modifier(&self, value: f32) {
+        *self.abilities.fov_modifier.lock() = value;
     }
 
     fn allow_flying(&self) -> bool {
-        self.allow_flying.load(Ordering::Acquire)
+        self.abilities.allow_flying.load(Ordering::Acquire)
     }
 
-    fn set_allow_flying(&self, value: bool) {
-        self.allow_flying.store(value, Ordering::Release);
+    fn update_allow_flying(&self, value: bool) {
+        self.abilities.allow_flying.store(value, Ordering::Release);
     }
 
     fn flying(&self) -> bool {
-        self.flying.load(Ordering::Acquire)
+        self.abilities.flying.load(Ordering::Acquire)
     }
 
-    fn set_flying(&self, value: bool) {
+    fn update_flying(&self, value: bool) {
+        self.abilities.flying.store(value, Ordering::Release);
+
         if self.flying() != value {
             let pose = self.entity.pose();
             match () {
                 _ if self.is_sneaking() && pose == EntityPose::Standing => {
-                    self.set_pose(EntityPose::Sneaking);
+                    self.update_pose(EntityPose::Sneaking);
                 }
                 _ if pose == EntityPose::Sneaking => {
-                    self.set_pose(EntityPose::Standing);
+                    self.update_pose(EntityPose::Standing);
                 }
                 _ => {}
             }
         }
+    }
 
-        self.flying.store(value, Ordering::Release);
+    fn set_flying(&self, value: bool) {
+        self.update_flying(value);
+        self.send_packet(&self.entity.0.metadata_packet());
         self.refresh_abilities();
     }
 
@@ -789,34 +814,38 @@ impl Inner {
             flags |= PlayerAbilities::CREATIVE_MODE;
         }
 
-        self.send_packet(PlayerAbilitiesPacket {
+        self.send_packet(&PlayerAbilitiesPacket {
             flags,
-            flying_speed: *self.flying_speed.lock(),
-            fov_modifier: *self.fov_modifier.lock(),
+            flying_speed: *self.abilities.flying_speed.lock(),
+            fov_modifier: *self.abilities.fov_modifier.lock(),
         });
     }
 
-    fn set_pose(&self, pose: EntityPose) {
+    fn update_pose(&self, pose: EntityPose) {
         self.entity.set_pose(pose);
-        self.send_packet(self.entity.0.metadata_packet());
+    }
+
+    fn set_pose(&self, pose: EntityPose) {
+        self.update_pose(pose);
+        self.send_packet(&self.entity.0.metadata_packet());
     }
 
     fn is_sprinting(&self) -> bool {
         self.entity.is_sprinting()
     }
 
-    fn set_sprinting(&self, value: bool) {
+    pub fn set_sprinting(&self, value: bool) {
         self.entity.set_sprinting(value);
-        self.send_packet(self.entity.0.metadata_packet());
+        self.send_packet(&self.entity.0.metadata_packet());
     }
 
     fn is_sneaking(&self) -> bool {
         self.entity.is_sneaking()
     }
 
-    fn set_sneaking(&self, value: bool) {
+    pub fn set_sneaking(&self, value: bool) {
         self.entity.set_sneaking(value);
-        self.send_packet(self.entity.0.metadata_packet());
+        self.send_packet(&self.entity.0.metadata_packet());
     }
 
     fn despawn(&self) {
@@ -827,32 +856,36 @@ impl Inner {
 
     // ===== Scoreboard =====
 
-    fn set_header_and_footer(&self, header: Component, footer: Component) {
-        self.send_packet(SetTablistHeaderFooterPacket { header, footer });
+    fn set_header_and_footer(&self, header: TextComponent, footer: TextComponent) {
+        self.send_packet(&SetTablistHeaderFooterPacket { header, footer });
     }
 }
 
 impl Tickable for Inner {
     fn tick(&self) {
-        let mut last_keep_alive = self.last_keep_alive.lock();
-        if last_keep_alive.elapsed() > Duration::from_secs(20) {
-            self.keep_alive();
-            *last_keep_alive = Instant::now();
+        // Keep Alive
+        {
+            let mut last_keep_alive = self.last_keep_alive.lock();
+            if last_keep_alive.elapsed() > Duration::from_secs(20) {
+                self.keep_alive();
+                *last_keep_alive = Instant::now();
+            }
         }
 
+        // Chunks
         self.send_pending_chunks();
     }
 }
 
 impl Viewable for Inner {
     fn add_viewer(&self, player: Player) {
-        player.send_packet(self.add_to_list_packet());
+        player.send_packet(&self.add_to_list_packet());
 
         self.entity.add_viewer(player);
     }
 
     fn remove_viewer(&self, player: Player) {
-        player.send_packet(PlayerInfoRemovePacket {
+        player.send_packet(&PlayerInfoRemovePacket {
             uuids: vec![self.uuid()],
         });
         self.entity.remove_viewer(player);

@@ -13,7 +13,7 @@ use crate::{
         OpenScreenPacket, SetContainerContentPacket, SetContainerSlotPacket,
         server::CloseContainerPacket,
     },
-    text::Component,
+    text::TextComponent,
     util::{Viewable, Viewers},
 };
 
@@ -21,7 +21,7 @@ use crate::{
 pub struct Inventory(Arc<Inner>);
 
 impl Inventory {
-    pub fn new(ty: InventoryType, title: impl Into<Component>) -> Self {
+    pub fn new(ty: InventoryType, title: impl Into<TextComponent>) -> Self {
         Self(Arc::new(Inner::new(ty, title)))
     }
 
@@ -36,13 +36,13 @@ impl Inventory {
     }
 
     /// Returns the title of the inventory.
-    pub fn title(&self) -> &Component {
+    pub fn title(&self) -> &TextComponent {
         self.0.title()
     }
 
     /// Returns the size of the inventory.
     pub fn size(&self) -> i32 {
-        self.0.size()
+        self.r#type().size()
     }
 
     /// Adds an [`ItemStack`] to the first available slot in the inventory.
@@ -78,13 +78,13 @@ impl Viewable for Inventory {
 struct Inner {
     id: i32,
     ty: InventoryType,
-    title: Component,
+    title: TextComponent,
     content: Mutex<FxHashMap<i32, ItemStack>>,
     viewers: Viewers,
 }
 
 impl Inner {
-    fn new(ty: InventoryType, title: impl Into<Component>) -> Self {
+    fn new(ty: InventoryType, title: impl Into<TextComponent>) -> Self {
         let size = ty.size();
         let mut content = FxHashMap::with_capacity_and_hasher(size as usize, Default::default());
         for ix in 0..size {
@@ -117,21 +117,17 @@ impl Inner {
         self.ty
     }
 
-    fn title(&self) -> &Component {
+    fn title(&self) -> &TextComponent {
         &self.title
-    }
-
-    fn size(&self) -> i32 {
-        self.ty.size()
     }
 
     fn add_item_stack(&self, stack: ItemStack) {
         let mut content = self.content.lock();
-        for (ix, stck) in content.values().enumerate(){
+        for (ix, stck) in content.values().enumerate() {
             if stck.material() == Material::Air {
                 content.insert(ix as i32, stack.clone());
 
-                self.send_packet_to_viewers(SetContainerSlotPacket {
+                self.send_packet_to_viewers(&SetContainerSlotPacket {
                     window_id: self.id(),
                     state_id: 0,
                     slot: ix as i16,
@@ -145,7 +141,7 @@ impl Inner {
     fn set_item_stack(&self, slot: i32, stack: ItemStack) {
         self.content.lock().insert(slot, stack.clone());
 
-        self.send_packet_to_viewers(SetContainerSlotPacket {
+        self.send_packet_to_viewers(&SetContainerSlotPacket {
             window_id: self.id(),
             state_id: 0,
             slot: slot as i16,
@@ -172,7 +168,7 @@ impl Inner {
                 .map(|(_, s)| s.into())
                 .collect::<Vec<Slot>>()
         );
-        player.send_packet(SetContainerContentPacket {
+        player.send_packet(&SetContainerContentPacket {
             window_id: self.id(),
             state_id: 0,
             slot_data: content.into_iter().map(|(_, s)| s.into()).collect(),
@@ -185,7 +181,7 @@ impl Viewable for Inner {
     fn add_viewer(&self, player: Player) {
         self.viewers.add_viewer(player.clone());
 
-        player.send_packet(OpenScreenPacket {
+        player.send_packet(&OpenScreenPacket {
             window_id: self.id(),
             window_type: self.r#type().id(),
             window_title: self.title().clone(),
@@ -196,7 +192,7 @@ impl Viewable for Inner {
     fn remove_viewer(&self, player: Player) {
         self.viewers.remove_viewer(player.clone());
 
-        player.send_packet(CloseContainerPacket {
+        player.send_packet(&CloseContainerPacket {
             window_id: self.id(),
         });
     }

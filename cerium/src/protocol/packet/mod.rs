@@ -173,6 +173,7 @@ pub mod server {
         mod block_update;
         mod world_event;
         mod acknowledge_block_change;
+        mod set_held_item;
 
         pub use login::LoginPacket;
         pub use sync_player_position::SyncPlayerPositionPacket;
@@ -209,6 +210,7 @@ pub mod server {
         pub use block_update::BlockUpdatePacket;
         pub use world_event::WorldEventPacket;
         pub use acknowledge_block_change::AcknowledgeBlockChangePacket;
+        pub use set_held_item::SetHeldItemPacket;
     }
 
     pub use status::*;
@@ -237,8 +239,6 @@ pub trait ClientPacket where Self: Packet + Decode {
 /// Marks a [`Packet`] as one coming from the server.
 pub trait ServerPacket where Self: Packet + Encode {
 }
-
-
 
 
 #[derive(Debug, Clone)]

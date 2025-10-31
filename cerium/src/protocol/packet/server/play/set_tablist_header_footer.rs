@@ -3,13 +3,13 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
 pub struct SetTablistHeaderFooterPacket {
-    pub header: Component,
-    pub footer: Component,
+    pub header: TextComponent,
+    pub footer: TextComponent,
 }
 
 impl Packet for SetTablistHeaderFooterPacket {}

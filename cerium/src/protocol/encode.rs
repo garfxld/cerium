@@ -7,12 +7,26 @@ use crate::{
     protocol::{
         ProtocolState,
         packet::{
-            AcknowledgeBlockChangePacket, BlockUpdatePacket, ChunkBatchFinishedPacket, ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket, DisplayObjectivePacket, EncryptionRequestPacket, EntityAnimationPacket, EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket, FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket, LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket, PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket, RemoveEntitiesPacket, ServerPacket, SetBlockDestroyStagePacket, SetCenterChunkPacket, SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket, SetEntityMetadataPacket, SetHeadRotationPacket, SetTablistHeaderFooterPacket, SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket, SystemChatMessagePacket, UnloadChunkPacket, UpdateObjectivesPacket, UpdateScorePacket, WorldEventPacket, server::{
+            AcknowledgeBlockChangePacket, BlockUpdatePacket, ChunkBatchFinishedPacket,
+            ChunkBatchStartPacket, ChunkDataAndUpdateLightPacket, DisconnectPacket,
+            DisplayObjectivePacket, EncryptionRequestPacket, EntityAnimationPacket,
+            EntityPositionPacket, EntityPositionRotationPacket, EntityRotationPacket,
+            FeatureFlagsPacket, FinishConfigPacket, GameEventPacket, LoginDisconnectPacket,
+            LoginPacket, LoginSuccessPacket, OpenScreenPacket, Packet, PlayerInfoRemovePacket,
+            PlayerInfoUpdatePacket, PluginMessagePacket, PongResponsePacket, RegistryDataPacket,
+            RemoveEntitiesPacket, ServerPacket, SetBlockDestroyStagePacket, SetCenterChunkPacket,
+            SetCompressionPacket, SetContainerContentPacket, SetContainerSlotPacket,
+            SetEntityMetadataPacket, SetHeadRotationPacket, SetTablistHeaderFooterPacket,
+            SpawnEntityPacket, StatusResponsePacket, SyncPlayerPositionPacket,
+            SystemChatMessagePacket, UnloadChunkPacket, UpdateObjectivesPacket, UpdateScorePacket,
+            WorldEventPacket,
+            server::{
                 CloseContainerPacket, KeepAlivePacket, KnownPacksPacket, PlayerAbilitiesPacket,
-            }
+                SetHeldItemPacket,
+            },
         },
     },
-    text::Component,
+    text::TextComponent,
     util::{BlockPosition, Identifier},
 };
 use cerium_nbt::{Nbt, NbtTag};
@@ -73,7 +87,7 @@ pub trait PacketWrite {
 
     fn write_nbt_tag(&mut self, value: &NbtTag) -> Result<()>;
 
-    fn write_component(&mut self, value: &Component) -> Result<()>;
+    fn write_component(&mut self, value: &TextComponent) -> Result<()>;
 
     fn write_position(&mut self, value: &BlockPosition) -> Result<()>;
 
@@ -173,7 +187,7 @@ impl<B: BufMut> PacketWrite for B {
         Ok(())
     }
 
-    fn write_component(&mut self, value: &Component) -> Result<()> {
+    fn write_component(&mut self, value: &TextComponent) -> Result<()> {
         let mut data: Vec<u8> = Vec::new();
         cerium_nbt::to_bytes_unnamed(&value, &mut data).unwrap();
         self.put(&*data);
@@ -245,7 +259,7 @@ where
 
 fn status<P>(type_id: TypeId) -> Option<i32>
 where
-    P: Packet + ServerPacket + 'static,
+    P: Packet + ServerPacket,
 {
     Some(match () {
         _ if type_id == TypeId::of::<StatusResponsePacket>() => 0x00,
@@ -256,7 +270,7 @@ where
 
 fn login<P>(type_id: TypeId) -> Option<i32>
 where
-    P: Packet + ServerPacket + 'static,
+    P: Packet + ServerPacket,
 {
     Some(match () {
         _ if type_id == TypeId::of::<LoginDisconnectPacket>() => 0x00,
@@ -271,7 +285,7 @@ where
 
 fn config<P>(type_id: TypeId) -> Option<i32>
 where
-    P: Packet + ServerPacket + 'static,
+    P: Packet + ServerPacket,
 {
     Some(match () {
         // _ if type_id == TypeId::of::<CookieRequestPacket>() => 0x00,
@@ -299,7 +313,7 @@ where
 
 fn play<P>(type_id: TypeId) -> Option<i32>
 where
-    P: Packet + ServerPacket + 'static,
+    P: Packet + ServerPacket,
 {
     Some(match () {
         // _ if type_id == TypeId::of::<BundleDelimiterPacket>() => 0x00,
@@ -405,7 +419,7 @@ where
         // _ if type_id == TypeId::of::<SetEquipmentPacket>() => 0x64,
         // _ if type_id == TypeId::of::<SetExperiencePacket>() => 0x65,
         // _ if type_id == TypeId::of::<SetHealthPacket>() => 0x66,
-        // _ if type_id == TypeId::of::<SetHeldSlotPacket>() => 0x67,
+        _ if type_id == TypeId::of::<SetHeldItemPacket>() => 0x67,
         _ if type_id == TypeId::of::<UpdateObjectivesPacket>() => 0x68,
         // _ if type_id == TypeId::of::<SetPassengersPacket>() => 0x69,
         // _ if type_id == TypeId::of::<SetPlayerInventoryPacket>() => 0x6A,

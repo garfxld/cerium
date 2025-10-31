@@ -197,7 +197,7 @@ impl Inner {
     }
 
     fn refresh_meta(&self) {
-        self.send_packet_to_viewers(self.metadata_packet());
+        self.send_packet_to_viewers(&self.metadata_packet());
     }
 
     pub fn is_sprinting(&self) -> bool {
@@ -259,14 +259,14 @@ impl Viewable for Inner {
     fn add_viewer(&self, player: Player) {
         self.viewers.add_viewer(player.clone());
 
-        player.send_packet(self.spawn_packet());
-        player.send_packet(self.metadata_packet());
+        player.send_packet(&self.spawn_packet());
+        player.send_packet(&self.metadata_packet());
     }
 
     fn remove_viewer(&self, player: Player) {
         self.viewers.remove_viewer(player.clone());
 
-        player.send_packet(RemoveEntitiesPacket {
+        player.send_packet(&RemoveEntitiesPacket {
             entity_ids: vec![self.id()],
         });
     }

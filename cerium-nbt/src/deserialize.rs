@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use bytes::Buf;
 use serde::{
     Deserialize,
@@ -39,17 +37,6 @@ impl<R: Buf> Deserializer<R> {
             in_list: false,
         }
     }
-}
-
-macro_rules! read_number_be {
-    ($name:ident, $type:ty) => {
-        fn $name(&mut self) -> Result<$type> {
-            let mut buf = [0u8; std::mem::size_of::<$type>()];
-            self.read_exact(&mut buf).map_err(Error::Incomplete)?;
-
-            Ok(<$type>::from_be_bytes(buf))
-        }
-    };
 }
 
 #[allow(unused)]

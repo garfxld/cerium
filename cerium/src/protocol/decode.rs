@@ -1,9 +1,10 @@
 use bytes::Buf;
+use std::string::FromUtf8Error;
 use thiserror::Error;
 use uuid::Uuid;
 
 use crate::{
-    text::Component,
+    text::TextComponent,
     util::{BlockPosition, Identifier},
 };
 use cerium_nbt::Nbt;
@@ -18,7 +19,9 @@ where
 #[derive(Error, Debug, Clone)]
 pub enum DecodeError {
     #[error("{0}")]
-    Decode(String),
+    Decode(&'static str),
+    #[error("{0}")]
+    Utf8Error(FromUtf8Error),
     #[error("Not enough bytes to read. (Requested: {1}, Available: {0})")]
     NotEnoughBytes(usize, usize),
     #[error("Unknown Packet: {0}")]
@@ -80,7 +83,7 @@ pub trait PacketRead {
 
     fn read_boxed_slice(&mut self) -> Result<Box<[u8]>>;
 
-    fn read_component(&mut self) -> Result<Component>;
+    fn read_component(&mut self) -> Result<TextComponent>;
 }
 
 macro_rules! read_impl {
@@ -123,7 +126,7 @@ impl<R: Buf> PacketRead for R {
         let mut buf = vec![0u8; length];
         self.copy_to_slice(&mut buf);
 
-        String::from_utf8(buf).map_err(|e| DecodeError::Decode(e.to_string()))
+        String::from_utf8(buf).map_err(DecodeError::Utf8Error)
     }
 
     fn read_varint(&mut self) -> Result<i32> {
@@ -135,7 +138,7 @@ impl<R: Buf> PacketRead for R {
                 return Ok(value);
             }
         }
-        return Err(DecodeError::Decode("VarInt too large".to_string()));
+        return Err(DecodeError::Decode("VarInt too large"));
     }
 
     fn read_uuid(&mut self) -> Result<Uuid> {
@@ -147,7 +150,7 @@ impl<R: Buf> PacketRead for R {
 
         match identifier.split_once(":") {
             Some((namespace, path)) => Ok(Identifier::new(namespace, path)),
-            None => Err(DecodeError::Decode("Identifier read".to_string())),
+            None => Err(DecodeError::Decode("Identifier read")),
         }
     }
 
@@ -208,7 +211,8 @@ impl<R: Buf> PacketRead for R {
         Ok(buf.into())
     }
 
-    fn read_component(&mut self) -> Result<Component> {
-        cerium_nbt::from_bytes_unnamed(self).map_err(|_| DecodeError::Decode("f".to_string()))
+    fn read_component(&mut self) -> Result<TextComponent> {
+        cerium_nbt::from_bytes_unnamed(self)
+            .map_err(|_| DecodeError::Decode("Failed to decode component"))
     }
 }

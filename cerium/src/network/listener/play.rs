@@ -1,4 +1,4 @@
-use std::{io::Cursor, sync::atomic::Ordering};
+use std::io::Cursor;
 
 use crate::{
     entity::{EntityAnimation, EntityLike as _, GameMode, Hand, Player},
@@ -13,10 +13,10 @@ use crate::{
             PlayerDiggingState, PlayerInputFlags, PlayerInputPacket, PlayerLoadedPacket,
             PlayerMovementFlagsPacket, PlayerPositionAndRotationPacket, PlayerPositionPacket,
             PlayerRotationPacket, PlayerSessionPacket, PluginMessagePacket,
-            SetBlockDestroyStagePacket, SetCreativeModeSlotPacket, SetHeldItemPacket,
-            SwingArmPacket, UseItemOnPacket,
+            SetBlockDestroyStagePacket, SetCreativeModeSlotPacket, SwingArmPacket, UseItemOnPacket,
             client::play::{
                 CloseContainerPacket, KeepAlivePacket, PingRequestPacket, PlayerAbilitiesPacket,
+                SetHeldItemPacket,
             },
         },
     },
@@ -85,7 +85,7 @@ fn handle_chunk_batch_received(player: Player, packet: ChunkBatchReceivedPacket)
 }
 
 fn handle_client_tick_end(_player: Player, _packet: ClientTickEndPacket) {
-    log::warn!("todo: handle_client_tick_end");
+    // todo: handle_client_tick_end
 }
 
 fn handle_client_info(_player: Player, _packet: ClientInfoPacket) {
@@ -217,20 +217,22 @@ fn handle_player_action(player: Player, packet: PlayerActionPacket) {
         location: position,
         destroy_stage: status as u8,
     };
-    player.send_packet(packet.clone());
-    player.send_packet_to_viewers(packet);
+    player.send_packet(&packet);
+    player.send_packet_to_viewers(&packet);
 }
 
 fn handle_player_command(player: Player, packet: PlayerCommandPacket) {
     match packet.action_id {
-        PlayerCommand::StartSprinting => player.set_sprinting(true),
-        PlayerCommand::StopSprinting => player.set_sprinting(false),
+        PlayerCommand::StartSprinting => player.0.set_sprinting(true),
+        PlayerCommand::StopSprinting => player.0.set_sprinting(false),
         _ => todo!(),
     }
 }
 
 fn handle_player_input(player: Player, packet: PlayerInputPacket) {
-    player.set_sneaking(packet.flags.contains(PlayerInputFlags::SNEAK));
+    player
+        .0
+        .set_sneaking(packet.flags.contains(PlayerInputFlags::SNEAK));
 }
 
 fn handle_player_loaded(_player: Player, _packet: PlayerLoadedPacket) {
@@ -242,10 +244,7 @@ fn hande_change_recipe_book_settings(_player: Player, _packet: ChangeRecipeBookS
 }
 
 fn handle_set_held_item(player: Player, packet: SetHeldItemPacket) {
-    player
-        .0
-        .held_slot
-        .store(packet.slot as u8, Ordering::Release);
+    player.0.update_held_slot(packet.slot as u8);
 }
 
 fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSlotPacket) {
@@ -257,9 +256,9 @@ fn handle_set_creative_mode_slot(player: Player, packet: SetCreativeModeSlotPack
 }
 
 fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
-    player.send_packet_to_viewers(EntityAnimationPacket {
+    player.send_packet_to_viewers(&EntityAnimationPacket {
         entity_id: player.id(),
-        animation: if packet.hand == Hand::Left {
+        animation: if packet.hand == Hand::MainHand {
             EntityAnimation::SwingMainArm
         } else {
             EntityAnimation::SwingOffhand
@@ -280,7 +279,7 @@ fn handle_use_item_on(player: Player, packet: UseItemOnPacket) {
     };
 
     world.place_block(player.clone(), position, packet.face, block.clone());
-    player.send_packet(AcknowledgeBlockChangePacket {
+    player.send_packet(&AcknowledgeBlockChangePacket {
         sequence_id: packet.sequence,
     });
 }

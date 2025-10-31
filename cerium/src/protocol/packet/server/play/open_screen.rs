@@ -3,14 +3,14 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
 pub struct OpenScreenPacket {
     pub window_id: i32,
     pub window_type: i32,
-    pub window_title: Component,
+    pub window_title: TextComponent,
 }
 
 impl Packet for OpenScreenPacket {}

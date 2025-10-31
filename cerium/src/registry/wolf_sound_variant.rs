@@ -10,16 +10,3 @@ pub struct WolfSoundVariant {
     pub death_sound: String,
     pub growl_sound: String,
 }
-
-impl ToNbt for WolfSoundVariant {
-    fn to_nbt(self) -> Nbt {
-        let mut compound = NbtCompound::new();
-        compound.insert("hurt_sound", self.hurt_sound);
-        compound.insert("pant_sound", self.pant_sound);
-        compound.insert("whine_sound", self.whine_sound);
-        compound.insert("ambient_sound", self.ambient_sound);
-        compound.insert("death_sound", self.death_sound);
-        compound.insert("growl_sound", self.growl_sound);
-        compound.into()
-    }
-}

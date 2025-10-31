@@ -34,7 +34,7 @@ fn main() {
             let player = event.get_player();
             player.set_game_mode(GameMode::Creative);
 
-            player.send_packet(PlayerInfoUpdatePacket {
+            player.send_packet(&PlayerInfoUpdatePacket {
                 actions: (PlayerInfoFlags::ADD_PLAYER | PlayerInfoFlags::UPDATE_LISTED).bits(),
                 players: vec![PlayerEntry {
                     uuid: entity.uuid(),

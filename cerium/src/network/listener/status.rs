@@ -25,18 +25,15 @@ fn handle_status_request(client: Arc<Connection>, packet: StatusRequestPacket) {
     let mut event = ServerListPingEvent::new(SERVER_LIST_PING.to_owned());
     client.server().events().fire(&mut event);
 
-    let response = StatusResponsePacket {
+    client.send_packet(&StatusResponsePacket {
         json_response: event.response,
-    };
-
-    client.send_packet(response);
+    });
 }
 
 fn handle_ping_request(client: Arc<Connection>, packet: PingRequestPacket) {
-    let packet = PongResponsePacket {
+    client.send_packet(&PongResponsePacket {
         timestamp: packet.timestamp,
-    };
-    client.send_packet(packet);
+    });
 }
 
 const SERVER_LIST_PING: &'static str = r#"

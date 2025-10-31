@@ -10,6 +10,7 @@ pub mod tickable;
 pub mod util;
 pub mod world;
 pub mod scoreboard;
+pub mod advancement;
 
 mod server;
 pub use server::Server;

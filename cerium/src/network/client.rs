@@ -27,7 +27,7 @@ use crate::{
         encode::{EncodeError, packet_id},
         packet::{DisconnectPacket, Packet},
     },
-    text::Component,
+    text::TextComponent,
 };
 use crate::{
     auth::GameProfile,
@@ -155,7 +155,7 @@ impl Connection {
         self.addr
     }
 
-    pub fn send_packet<P>(&self, packet: P)
+    pub fn send_packet<P>(&self, packet: &P)
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -173,7 +173,7 @@ impl Connection {
         }
     }
 
-    pub async fn send_packet_now<P>(&self, packet: P)
+    pub async fn send_packet_now<P>(&self, packet: &P)
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -188,7 +188,7 @@ impl Connection {
         self.write_packet(data).await;
     }
 
-    fn encode_packet<P>(&self, packet: P) -> Result<BytesMut, EncodeError>
+    fn encode_packet<P>(&self, packet: &P) -> Result<BytesMut, EncodeError>
     where
         P: Packet + ServerPacket + 'static,
     {
@@ -205,7 +205,7 @@ impl Connection {
 
         let mut data = BytesMut::new();
         data.write_varint(packet_id)?;
-        P::encode(&mut data, &packet)?;
+        P::encode(&mut data, packet)?;
         Ok(data)
     }
 
@@ -219,10 +219,12 @@ impl Connection {
         }
     }
 
-    pub fn kick(&self, reason: Component) {
+    pub fn kick(&self, reason: impl Into<TextComponent>) {
         match *self.state.try_read().unwrap() {
             ProtocolState::Login => {} // LoginDisconnectPacket { reason: todo!() },
-            _ => self.send_packet(DisconnectPacket { reason }),
+            _ => self.send_packet(&DisconnectPacket {
+                reason: reason.into(),
+            }),
         }
         self.close();
     }

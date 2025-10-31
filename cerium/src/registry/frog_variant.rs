@@ -5,11 +5,3 @@ use serde::{Deserialize, Serialize};
 pub struct FrogVariant {
     pub asset_id: String,
 }
-
-impl ToNbt for FrogVariant {
-    fn to_nbt(self) -> cerium_nbt::Nbt {
-        let mut compound = NbtCompound::new();
-        compound.insert("asset_id", NbtTag::String(self.asset_id));
-        compound.into()
-    }
-}

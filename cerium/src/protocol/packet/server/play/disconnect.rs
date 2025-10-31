@@ -3,12 +3,12 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
 pub struct DisconnectPacket {
-    pub reason: Component,
+    pub reason: TextComponent,
 }
 
 impl Packet for DisconnectPacket {}

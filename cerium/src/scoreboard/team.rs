@@ -1,14 +1,14 @@
-use crate::text::Component;
+use crate::text::TextComponent;
 
 #[derive(Debug, Clone)]
 pub struct Team {
-    name: Component,
+    name: TextComponent,
     friendly_flags: u8,
     nametag_visibility: NametagVisibility,
     collision_rule: CollisionRule,
     color: i32,
-    prefix: Component,
-    suffix: Component,
+    prefix: TextComponent,
+    suffix: TextComponent,
 }
 
 impl Team {
@@ -16,7 +16,7 @@ impl Team {
         TeamBuilder::default()
     }
 
-    pub fn name(&self) -> &Component {
+    pub fn name(&self) -> &TextComponent {
         &self.name
     }
 
@@ -36,22 +36,22 @@ impl Team {
         self.color
     }
 
-    pub fn prefix(&self) -> &Component {
+    pub fn prefix(&self) -> &TextComponent {
         &self.prefix
     }
 
-    pub fn suffix(&self) -> &Component {
+    pub fn suffix(&self) -> &TextComponent {
         &self.suffix
     }
 }
 
 pub struct TeamBuilder {
-    name: Component,
+    name: TextComponent,
     friendly_flags: u8,
     nametag_visibility: NametagVisibility,
     collision_rule: CollisionRule,
-    prefix: Component,
-    suffix: Component,
+    prefix: TextComponent,
+    suffix: TextComponent,
 }
 
 impl TeamBuilder {
@@ -75,12 +75,12 @@ impl TeamBuilder {
         self
     }
 
-    pub fn with_prefix(mut self, prefix: Component) -> Self {
+    pub fn with_prefix(mut self, prefix: TextComponent) -> Self {
         self.prefix = prefix;
         self
     }
 
-    pub fn with_suffix(mut self, suffix: Component) -> Self {
+    pub fn with_suffix(mut self, suffix: TextComponent) -> Self {
         self.suffix = suffix;
         self
     }
@@ -101,12 +101,12 @@ impl TeamBuilder {
 impl Default for TeamBuilder {
     fn default() -> Self {
         Self {
-            name: Component::empty().into(),
+            name: TextComponent::EMPTY,
             friendly_flags: 0,
             nametag_visibility: NametagVisibility::Always,
             collision_rule: CollisionRule::Always,
-            prefix: Component::empty().into(),
-            suffix: Component::empty().into(),
+            prefix: TextComponent::EMPTY,
+            suffix: TextComponent::EMPTY,
         }
     }
 }

@@ -14,10 +14,8 @@ use crate::{
 
 #[derive(thiserror::Error, Debug)]
 pub enum ServerError {
-    #[error("io error")]
+    #[error("std::io::Error: {0}")]
     IoError(std::io::Error),
-    #[error("unknown error")]
-    Unknown,
 }
 
 pub struct Server {
@@ -48,16 +46,26 @@ impl Server {
         }
     }
 
+    /// Binds the server to the specified address.
+    ///
+    /// The address type can be any implementor of the [ToSocketAddrs] trait.
+    ///
+    /// # Example
+    /// ```
+    /// fn main() {
+    ///     let server = Server::new();
+    ///     server.bind("127.0.0.1:25565").unwrap();
+    /// }
+    /// ```
     pub fn bind<A>(self, addr: A) -> Result<(), ServerError>
     where
         A: ToSocketAddrs,
     {
         let handle = self.handle.clone();
-        handle.block_on(self._bind(addr))?;
-        Ok(())
+        handle.block_on(self.bind0(addr))
     }
 
-    async fn _bind<A>(self, addr: A) -> Result<(), ServerError>
+    async fn bind0<A>(self, addr: A) -> Result<(), ServerError>
     where
         A: ToSocketAddrs,
     {
@@ -88,7 +96,7 @@ impl Server {
         });
 
         while !this.closed() {
-            let (stream, addr) = listener.accept().await.unwrap();
+            let (stream, addr) = listener.accept().await.map_err(ServerError::IoError)?;
 
             this.handle.spawn({
                 let this = this.clone();

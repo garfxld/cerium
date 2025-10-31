@@ -1,23 +1,8 @@
-pub mod color;
+mod color;
+pub use color::{NamedColor, Rgb, Rgba};
+
 mod component;
 pub use component::*;
 
-pub mod style;
-
-mod components {
-    mod keybind;
-    mod object;
-    mod score;
-    mod selector;
-    mod text;
-    mod translatable;
-
-    pub use keybind::KeybindComponent;
-    pub use object::ObjectComponent;
-    pub use score::ScoreComponent;
-    pub use selector::SelectorComponent;
-    pub use text::TextComponent;
-    pub use translatable::TranslatableComponent;
-}
-
-pub use components::*;
+mod style;
+pub use style::{ClickEvent, HoverEvent, TextStyle};

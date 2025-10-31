@@ -3,9 +3,7 @@ use cerium::entity::Player;
 use cerium::event::player::{PlayerConfigEvent, PlayerEvent, PlayerSpawnEvent};
 use cerium::registry::DimensionType;
 use cerium::scoreboard::Objective;
-use cerium::text::{
-    Component, ParentComponent, StyledComponent, color::NamedColor, style::HoverEvent,
-};
+use cerium::text::{HoverEvent, NamedColor, TextComponent};
 use cerium::util::Viewable;
 use cerium::world::{Block, World};
 
@@ -40,9 +38,9 @@ fn main() {
 }
 
 fn handle_player_config(player: &Player) {
-    let component = Component::empty()
-        .child(Component::text("HOWDY!").bold().color(NamedColor::Red))
-        .child(Component::new_line())
+    let component = TextComponent::new()
+        .child(TextComponent::text("HOWDY!").bold().color(NamedColor::Red))
+        .child(TextComponent::NEW_LINE)
         .child("Second Line!")
         .on_hover(HoverEvent::show_text("Hello! I'm a HoverEvent."));
 
@@ -51,11 +49,11 @@ fn handle_player_config(player: &Player) {
     player.send_message(component);
 
     let header = "This is a Header.";
-    let footer = Component::empty()
+    let footer = TextComponent::new()
         .child("This is a footer.")
-        .child(Component::new_line())
+        .child(TextComponent::NEW_LINE)
         .child("This is the second line of the footer. ")
-        .child(Component::text("YAY!").bold().color(NamedColor::Gold));
+        .child(TextComponent::text("YAY!").bold().color(NamedColor::Gold));
 
     player.set_header_and_footer(header, footer);
 }

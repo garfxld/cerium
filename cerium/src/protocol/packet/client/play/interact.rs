@@ -75,7 +75,7 @@ impl TryFrom<i32> for InteractType {
 impl Decode for InteractType {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         InteractType::try_from(r.read_varint()?)
-            .map_err(|_| DecodeError::Decode("Invalid InteractType".to_string()))
+            .map_err(|_| DecodeError::Decode("Invalid InteractType"))
     }
 }
 

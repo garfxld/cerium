@@ -186,14 +186,14 @@ impl Inner {
 
         // todo: should be only sent to players that are viewing the block/chunk
         for ele in player.server().players.lock().clone() {
-            ele.send_packet(BlockUpdatePacket {
+            ele.send_packet(&BlockUpdatePacket {
                 position,
                 block_id: Block::Air.state_id(),
             });
             if ele == player {
                 continue;
             }
-            ele.send_packet(WorldEventPacket {
+            ele.send_packet(&WorldEventPacket {
                 event: 2001,
                 position,
                 data: block.id(),
@@ -227,7 +227,7 @@ impl Inner {
 
         // todo: should be only sent to players that are viewing the block/chunk
         for ele in player.server().players.lock().clone() {
-            ele.send_packet(BlockUpdatePacket {
+            ele.send_packet(&BlockUpdatePacket {
                 position: new_position,
                 block_id: block.state_id(),
             });

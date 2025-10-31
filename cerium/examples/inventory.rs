@@ -28,7 +28,7 @@ fn main() {
             let stack = ItemStack::new(Material::EnderPearl, 16);
             inventory.add_item_stack(stack);
 
-            event.get_player().clone().open_inventory(inventory);
+            event.get_player().open_inventory(inventory);
         });
 
     server.bind("127.0.0.1:25565").unwrap();

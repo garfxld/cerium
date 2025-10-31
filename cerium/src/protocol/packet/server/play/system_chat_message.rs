@@ -3,12 +3,12 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
 pub struct SystemChatMessagePacket {
-    pub content: Component,
+    pub content: TextComponent,
     pub overlay: bool,
 }
 

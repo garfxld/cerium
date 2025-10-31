@@ -3,7 +3,7 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
@@ -11,7 +11,7 @@ pub struct UpdateScorePacket {
     pub entity_name: String,
     pub objective_name: String,
     pub value: i32,
-    pub display_name: Option<Component>,
+    pub display_name: Option<TextComponent>,
     pub number_format: Option<i32>,
 }
 

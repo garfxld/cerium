@@ -2,6 +2,7 @@ use std::{io::Cursor, sync::Arc};
 
 use crate::{
     auth::{self, GameProfile},
+    entity::EntityLike,
     network::client::Connection,
     protocol::{
         ProtocolState,
@@ -27,6 +28,13 @@ pub async fn handle_packet(client: Arc<Connection>, id: i32, data: &mut Cursor<&
 }
 
 async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
+    for player in client.server().players.lock().clone() {
+        if player.uuid() == packet.uuid {
+            client.kick("Already connected.");
+            return;
+        }
+    }
+
     *client.game_profile.lock() = Some(GameProfile {
         uuid: packet.uuid,
         name: packet.name,
@@ -37,7 +45,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
 
     if true {
         client
-            .send_packet_now(SetCompressionPacket { threshold })
+            .send_packet_now(&SetCompressionPacket { threshold })
             .await;
         client.set_compression(threshold).await;
     }
@@ -48,7 +56,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
         let verify_token: [u8; 4] = rand::random();
         *client.verify_token.lock() = verify_token;
 
-        client.send_packet(EncryptionRequestPacket {
+        client.send_packet(&EncryptionRequestPacket {
             server_id: "".to_owned(),
             public_key: client.key_store.public_key_der.clone(),
             verify_token: Box::new(verify_token),
@@ -56,7 +64,7 @@ async fn handle_login_start(client: Arc<Connection>, packet: LoginStartPacket) {
         });
     } else {
         // offline mode
-        client.send_packet(LoginSuccessPacket::from(
+        client.send_packet(&LoginSuccessPacket::from(
             client.game_profile.lock().clone().unwrap(),
         ));
     }
@@ -77,18 +85,13 @@ async fn handle_encryption_response(client: Arc<Connection>, packet: EncryptionR
 
     *client_game_profile = Some(game_profile.clone());
 
-    client.send_packet(LoginSuccessPacket::from(game_profile.clone()));
+    client.send_packet(&LoginSuccessPacket::from(game_profile));
 }
 
-fn handle_plugin_response(client: Arc<Connection>) {
-    let _ = client;
-}
+fn handle_plugin_response(_client: Arc<Connection>) {}
 
-fn handle_login_acknowledged(client: Arc<Connection>, packet: LoginAcknowledgePacket) {
-    let _ = packet;
+fn handle_login_acknowledged(client: Arc<Connection>, _packet: LoginAcknowledgePacket) {
     client.set_state(ProtocolState::Config);
 }
 
-fn handle_cookie_response(client: Arc<Connection>) {
-    let _ = client;
-}
+fn handle_cookie_response(_client: Arc<Connection>) {}

@@ -3,14 +3,14 @@ use crate::{
         encode::{Encode, EncodeError, PacketWrite},
         packet::{Packet, ServerPacket},
     },
-    text::Component,
+    text::TextComponent,
 };
 
 #[derive(Debug, Clone)]
 pub struct UpdateObjectivesPacket {
     pub objective_name: String,
     pub mode: i8,
-    pub objective_value: Option<Component>,
+    pub objective_value: Option<TextComponent>,
     pub ty: Option<i32>,
     pub has_number_format: Option<bool>,
     pub number_format: Option<i32>,

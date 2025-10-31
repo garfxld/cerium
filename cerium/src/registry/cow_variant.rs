@@ -5,11 +5,3 @@ use serde::{Deserialize, Serialize};
 pub struct CowVariant {
     pub asset_id: String,
 }
-
-impl ToNbt for CowVariant {
-    fn to_nbt(self) -> cerium_nbt::Nbt {
-        let mut compound = NbtCompound::new();
-        compound.insert("asset_id", NbtTag::String(self.asset_id));
-        compound.into()
-    }
-}

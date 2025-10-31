@@ -11,7 +11,7 @@ use crate::protocol::decode::DecodeError;
 use crate::protocol::decode::PacketRead;
 use crate::protocol::encode::EncodeError;
 use crate::protocol::encode::PacketWrite;
-use crate::text::Component;
+use crate::text::TextComponent;
 use crate::util::EntityPose;
 
 pub struct MetadataHolder {
@@ -156,7 +156,7 @@ impl MetadataRef<()> {
     pub const FLYING_WITH_ELYTRA: MetadataRef<bool>         = MetadataRef::bitmask(0, 0x80, false);
 
     pub const AIR_TICKS: MetadataRef<i32>                   = MetadataRef::new(1, ValueType::VAR_INT, 300);
-    pub const CUSTOM_NAME: MetadataRef<Option<Component>>   = MetadataRef::new(2, ValueType::OPTIONAL_TEXT_COMPONENT, None);
+    pub const CUSTOM_NAME: MetadataRef<Option<TextComponent>> = MetadataRef::new(2, ValueType::OPTIONAL_TEXT_COMPONENT, None);
     pub const CUSTOM_NAME_VISIBLE: MetadataRef<bool>        = MetadataRef::new(3, ValueType::BOOL, false);
     pub const SILENT: MetadataRef<bool>                     = MetadataRef::new(4, ValueType::BOOL, false);
     pub const NO_GRAVITY: MetadataRef<bool>                 = MetadataRef::new(5, ValueType::BOOL, false);
@@ -259,7 +259,7 @@ define_types! {
     const BYTE: ValueType<u8> = ValueType::new(0);
     const VAR_INT: ValueType<i32, VarInt> = ValueType::new(1);
 
-    const OPTIONAL_TEXT_COMPONENT: ValueType<Option<Component>> = ValueType::new(6);
+    const OPTIONAL_TEXT_COMPONENT: ValueType<Option<TextComponent>> = ValueType::new(6);
     const POSE: ValueType<EntityPose> = ValueType::new(20);
 
     const COPPER_GOLEM_STATE: ValueType<CopperGolemState> = ValueType::new(32);

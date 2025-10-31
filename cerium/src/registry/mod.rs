@@ -161,7 +161,7 @@ impl Registries {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct RegistryKey<T> {
     key: Identifier,
     _phantom: PhantomData<T>,

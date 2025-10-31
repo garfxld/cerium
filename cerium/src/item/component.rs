@@ -11,7 +11,7 @@ use crate::{
         CatVariant, ChickenVariant, CowVariant, FrogVariant, PaintingVariant, PigVariant,
         WolfSoundVariant, WolfVariant,
     },
-    text::Component,
+    text::TextComponent,
     util::{DyeColor, Identifier},
 };
 use cerium_nbt::Nbt;
@@ -191,10 +191,10 @@ define_components! {
     const MAX_DAMAGE: DataComponent<i32, VarInt>                        = DataComponent::new(2, "minecraft:max_damage");
     const DAMAGE: DataComponent<i32, VarInt>                            = DataComponent::new(3, "minecraft:damage");
     const UNBREAKABLE: DataComponent<()>                                = DataComponent::new(4, "minecraft:unbreakable");
-    const CUSTOM_NAME: DataComponent<Component>                         = DataComponent::new(5, "minecraft:custom_name");
-    const ITEM_NAME: DataComponent<Component>                           = DataComponent::new(6, "minecraft:item_name");
-    const ITEM_MODEL: DataComponent<Component>                          = DataComponent::new(7, "minecraft:item_model");
-    const LORE: DataComponent<Vec<Component>>                           = DataComponent::new(8, "minecraft:lore");
+    const CUSTOM_NAME: DataComponent<TextComponent>                     = DataComponent::new(5, "minecraft:custom_name");
+    const ITEM_NAME: DataComponent<TextComponent>                       = DataComponent::new(6, "minecraft:item_name");
+    const ITEM_MODEL: DataComponent<TextComponent>                      = DataComponent::new(7, "minecraft:item_model");
+    const LORE: DataComponent<Vec<TextComponent>>                       = DataComponent::new(8, "minecraft:lore");
     const RARITY: DataComponent<i32, VarInt>                            = DataComponent::new(9, "minecraft:rarity");
     // const ENCHANTMENTS: DataComponent<Vec<Enchantment>>                = DataComponent::new(10, "minecraft:enchantments");
     // const CAN_PLACE_ON: DataComponent<Vec<BlockPredicate>>             = DataComponent::new(11, "minecraft:can_place_on");
@@ -217,7 +217,7 @@ define_components! {
     const EQUIPPABLE: DataComponent<Equippable>                         = DataComponent::new(28, "minecraft:equippable");
     // const REPAIRABLE: DataComponent<IdSet>                           = DataComponent::new(29, "minecraft:repairable");
     const GLIDER: DataComponent<()>                                     = DataComponent::new(30, "minecraft:glider");
-    const TOOLTIP_STYLE: DataComponent<Component>                       = DataComponent::new(31, "minecraft:tooltip_style");
+    const TOOLTIP_STYLE: DataComponent<TextComponent>                   = DataComponent::new(31, "minecraft:tooltip_style");
     const DEATH_PROTECTION: DataComponent<Vec<ConsumeEffect>>           = DataComponent::new(32, "minecraft:death_protection");
     // const BLOCKS_ATTACKS: DataComponent<BlocksAttacks>                 = DataComponent::new(33, "minecraft:blocks_attacks");
     // const STORED_ENCHANTMENTS: DataComponent<Enchantment>              = DataComponent::new(34, "minecraft:stored_enchantments");
@@ -374,7 +374,7 @@ impl DataType for Identifier {
     }
 }
 
-impl DataType for Component {
+impl DataType for TextComponent {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {
         r.read_component()
     }
