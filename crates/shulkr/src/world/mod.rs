@@ -372,18 +372,14 @@ mod imp {
             // };
 
             let block = self.get_block(position.x(), position.y(), position.z());
-            self.set_block(
-                position.x(),
-                position.y(),
-                position.z(),
-                Block::AIR.default_state(),
-            );
+            let air = Block::AIR.default_state();
+            self.set_block(position.x(), position.y(), position.z(), air);
 
             // todo: should be only sent to players that are viewing the block/chunk
             for p in player.server().players().lock().clone() {
                 p.send_packet(&BlockUpdatePacket {
                     position,
-                    block_id: block.state_id(),
+                    block_id: air.state_id(),
                 });
                 if p == player {
                     continue;

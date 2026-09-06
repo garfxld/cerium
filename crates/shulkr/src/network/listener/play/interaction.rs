@@ -53,6 +53,7 @@ pub(crate) fn handle_player_action(player: Player, packet: PlayerActionPacket) {
     let status = packet.status;
     let position = packet.position;
     let face = packet.face;
+    let sequence = packet.sequence;
 
     match status {
         PlayerDiggingState::StartDigging => {
@@ -78,6 +79,10 @@ pub(crate) fn handle_player_action(player: Player, packet: PlayerActionPacket) {
     };
     player.send_packet(&packet);
     player.broadcast_packet(&packet);
+
+    player.send_packet(&AcknowledgeBlockChangePacket {
+        sequence_id: sequence,
+    });
 }
 
 pub(crate) fn handle_swing_arm(player: Player, packet: SwingArmPacket) {
