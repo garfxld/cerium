@@ -1,3 +1,10 @@
+use crate::{
+    entity::meta::{
+        MetaAccessor, MetadataHolder,
+        refs::cow::{SOUND_VARIANT, VARIANT},
+    },
+    registry::RegistryKey,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -14,4 +21,32 @@ pub struct CowSoundVariant {
     hurt_sound: String,
     death_sound: String,
     step_sound: String,
+}
+
+pub struct CowMeta {
+    holder: MetadataHolder,
+}
+
+impl CowMeta {
+    pub fn get_variant(&self) -> RegistryKey<CowVariant> {
+        self.holder.get(VARIANT)
+    }
+
+    pub fn set_variant(&self, value: RegistryKey<CowVariant>) {
+        self.holder.set(VARIANT, value);
+    }
+
+    pub fn get_sound_variant(&self) -> RegistryKey<CowSoundVariant> {
+        self.holder.get(SOUND_VARIANT)
+    }
+
+    pub fn set_sound_variant(&self, value: RegistryKey<CowSoundVariant>) {
+        self.holder.set(SOUND_VARIANT, value);
+    }
+}
+
+impl MetaAccessor for CowMeta {
+    fn new(holder: MetadataHolder) -> Self {
+        Self { holder }
+    }
 }

@@ -3,10 +3,35 @@ use crate::{
     inventory::Slot,
     item::{AnyDataComponent, ComponentMap, DataComponent},
     protocol::{
+        DataType,
         decode::{Decode, DecodeError, PacketRead},
         encode::{Encode, EncodeError, PacketWrite},
     },
 };
+
+pub struct VarInt;
+
+impl DataType<i32> for VarInt {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<i32, DecodeError> {
+        r.read_varint()
+    }
+
+    fn encode<W: PacketWrite>(w: &mut W, this: &i32) -> Result<(), EncodeError> {
+        w.write_varint(*this)
+    }
+}
+
+pub struct VarLong;
+
+impl DataType<i64> for VarLong {
+    fn decode<R: PacketRead>(r: &mut R) -> Result<i64, DecodeError> {
+        r.read_varlong()
+    }
+
+    fn encode<W: PacketWrite>(w: &mut W, this: &i64) -> Result<(), EncodeError> {
+        w.write_varlong(*this)
+    }
+}
 
 impl Decode for Property {
     fn decode<R: PacketRead>(r: &mut R) -> Result<Self, DecodeError> {

@@ -64,6 +64,8 @@ pub trait PacketRead {
 
     fn read_varint(&mut self) -> Result<i32>;
 
+    fn read_varlong(&mut self) -> Result<i64>;
+
     fn read_uuid(&mut self) -> Result<Uuid>;
 
     fn read_key(&mut self) -> Result<Key>;
@@ -140,6 +142,18 @@ impl<R: Buf> PacketRead for R {
             }
         }
         Err(DecodeError::Decode("VarInt too large"))
+    }
+
+    fn read_varlong(&mut self) -> Result<i64> {
+        let mut value = 0;
+        for i in 0..10 {
+            let byte = self.read_u8()?;
+            value |= (i64::from(byte) & 0b01111111) << (i * 7);
+            if byte & 0b10000000 == 0 {
+                return Ok(value);
+            }
+        }
+        Err(DecodeError::Decode("VarLong too large"))
     }
 
     fn read_uuid(&mut self) -> Result<Uuid> {

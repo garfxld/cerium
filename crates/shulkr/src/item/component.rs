@@ -8,6 +8,7 @@ use crate::{
     protocol::{
         decode::{DecodeError, PacketRead},
         encode::{EncodeError, PacketWrite},
+        types::VarInt,
     },
     text::TextComponent,
     util::{DyeColor, HashMap, Key},
@@ -294,18 +295,6 @@ define_components! {
     const CAT_COLLAR: DataComponent<DyeColor>                           = DataComponent::new(93, "minecraft:cat/collar");
     const SHEEP_COLOR: DataComponent<DyeColor>                          = DataComponent::new(94, "minecraft:sheep/color");
     const SHULKER_COLOR: DataComponent<DyeColor>                        = DataComponent::new(95, "minecraft:shulker/color");
-}
-
-pub struct VarInt;
-
-impl DataType<i32> for VarInt {
-    fn decode<R: PacketRead>(r: &mut R) -> Result<i32, DecodeError> {
-        r.read_varint()
-    }
-
-    fn encode<W: PacketWrite>(w: &mut W, this: &i32) -> Result<(), EncodeError> {
-        w.write_varint(*this)
-    }
 }
 
 pub struct ItemBlockState {

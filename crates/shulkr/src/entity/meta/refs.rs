@@ -303,3 +303,55 @@ pub mod pig {
     pub const VARIANT: MetadataRef<RegistryKey<PigVariant>>             = MetadataRef::new(19, ValueType::PIG_VARIANT, PigVariant::TEMPERATE);
     pub const SOUND_VARIANT: MetadataRef<RegistryKey<PigSoundVariant>>  = MetadataRef::new(20, ValueType::PIG_SOUND_VARIANT, PigSoundVariant::CLASSIC);
 }
+
+#[rustfmt::skip]
+pub mod tamable_animal {
+    use super::*;
+    use uuid::Uuid;
+
+    pub const TAMABLE_FLAGS: MetadataRef<u8> = MetadataRef::new(18, ValueType::BYTE, 0);
+
+    pub const IS_SITTING: MetadataRef<bool> = MetadataRef::bitmask(18, 0x01, false);
+    pub const IS_TAMED: MetadataRef<bool>   = MetadataRef::bitmask(18, 0x04, false);
+
+    pub const OWNER: MetadataRef<Option<Uuid>> = MetadataRef::new(19, ValueType::OPTIONAL_LIVING_ENTITY, None);
+}
+
+#[rustfmt::skip]
+pub mod chicken {
+    use super::*;
+    use crate::{entity::meta::{ChickenSoundVariant, ChickenVariant}, registry::RegistryKey};
+
+    pub const VARIANT: MetadataRef<RegistryKey<ChickenVariant>>              = MetadataRef::new(18, ValueType::CHICKEN_VARIANT, ChickenVariant::TEMPERATE);
+    pub const SOUND_VARIANT: MetadataRef<RegistryKey<ChickenSoundVariant>>   = MetadataRef::new(19, ValueType::CHICKEN_SOUND_VARIANT, ChickenSoundVariant::CLASSIC);
+}
+
+#[rustfmt::skip]
+pub mod cow {
+    use super::*;
+    use crate::{entity::meta::{CowSoundVariant, CowVariant}, registry::RegistryKey};
+
+    pub const VARIANT: MetadataRef<RegistryKey<CowVariant>>              = MetadataRef::new(18, ValueType::COW_VARIANT, CowVariant::TEMPERATE);
+    pub const SOUND_VARIANT: MetadataRef<RegistryKey<CowSoundVariant>>   = MetadataRef::new(19, ValueType::COW_SOUND_VARIANT, CowSoundVariant::CLASSIC);
+}
+
+#[rustfmt::skip]
+pub mod frog {
+    use super::*;
+    use crate::{entity::meta::FrogVariant, registry::RegistryKey};
+
+    pub const VARIANT: MetadataRef<RegistryKey<FrogVariant>> = MetadataRef::new(18, ValueType::FROG_VARIANT, FrogVariant::TEMPERATE);
+    pub const TONGUE_TARGET: MetadataRef<Option<i32>>        = MetadataRef::new(19, ValueType::OPTIONAL_VAR_INT, None);
+}
+
+#[rustfmt::skip]
+pub mod wolf {
+    use super::*;
+    use crate::{entity::meta::{WolfSoundVariant, WolfVariant}, registry::RegistryKey};
+
+    pub const IS_BEGGING: MetadataRef<bool>                             = MetadataRef::new(20, ValueType::BOOL, false);
+    pub const COLLAR_COLOR: MetadataRef<i32>                            = MetadataRef::new(21, ValueType::VAR_INT, 14);
+    pub const ANGER_TIME: MetadataRef<i64>                              = MetadataRef::new(22, ValueType::VAR_LONG, 0);
+    pub const VARIANT: MetadataRef<RegistryKey<WolfVariant>>            = MetadataRef::new(23, ValueType::WOLF_VARIANT, WolfVariant::PALE);
+    pub const SOUND_VARIANT: MetadataRef<RegistryKey<WolfSoundVariant>> = MetadataRef::new(24, ValueType::WOLF_SOUND_VARIANT, WolfSoundVariant::CLASSIC);
+}

@@ -91,11 +91,11 @@ pub use spellcaster_illager::*;
 use crate::{
     auth::{GameProfile, PartialProfile, PlayerModel, ProfileKind, Property, ResolvableProfile},
     entity::MainHand,
-    item::VarInt,
     protocol::{
         DataType,
         decode::{Decode as _, DecodeError, PacketRead},
         encode::{Encode as _, EncodeError, PacketWrite},
+        types::{VarInt, VarLong},
     },
     registry::RegistryKey,
     text::TextComponent,
@@ -339,6 +339,7 @@ define_types! {
 
     const BYTE: ValueType<u8> = ValueType::new(0);
     const VAR_INT: ValueType<i32, VarInt> = ValueType::new(1);
+    const VAR_LONG: ValueType<i64, VarLong> = ValueType::new(2);
 
     const OPTIONAL_TEXT_COMPONENT: ValueType<Option<TextComponent>> = ValueType::new(6);
     const OPTIONAL_POSITION: ValueType<Option<BlockPosition>> = ValueType::new(7);
@@ -347,8 +348,15 @@ define_types! {
     const OPTIONAL_VAR_INT: ValueType<Option<i32>, Option<VarInt>> = ValueType::new(19);
     const POSE: ValueType<EntityPose> = ValueType::new(20);
 
+    const COW_VARIANT: ValueType<RegistryKey<CowVariant>> = ValueType::new(23);
+    const COW_SOUND_VARIANT: ValueType<RegistryKey<CowSoundVariant>> = ValueType::new(24);
+    const WOLF_VARIANT: ValueType<RegistryKey<WolfVariant>> = ValueType::new(25);
+    const WOLF_SOUND_VARIANT: ValueType<RegistryKey<WolfSoundVariant>> = ValueType::new(26);
+    const FROG_VARIANT: ValueType<RegistryKey<FrogVariant>> = ValueType::new(27);
     const PIG_VARIANT: ValueType<RegistryKey<PigVariant>> = ValueType::new(28);
     const PIG_SOUND_VARIANT: ValueType<RegistryKey<PigSoundVariant>> = ValueType::new(29);
+    const CHICKEN_VARIANT: ValueType<RegistryKey<ChickenVariant>> = ValueType::new(30);
+    const CHICKEN_SOUND_VARIANT: ValueType<RegistryKey<ChickenSoundVariant>> = ValueType::new(31);
 
     const COPPER_GOLEM_STATE: ValueType<CopperGolemState> = ValueType::new(32);
     const WEATHERING_COPPER_STATE: ValueType<WeatheringCopperState> = ValueType::new(33);

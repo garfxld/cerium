@@ -1,3 +1,10 @@
+use crate::{
+    entity::meta::{
+        MetaAccessor, MetadataHolder,
+        refs::chicken::{SOUND_VARIANT, VARIANT},
+    },
+    registry::RegistryKey,
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,4 +27,32 @@ pub struct ChickenSoundSet {
     hurt_sound: String,
     death_sound: String,
     step_sound: String,
+}
+
+pub struct ChickenMeta {
+    holder: MetadataHolder,
+}
+
+impl ChickenMeta {
+    pub fn get_variant(&self) -> RegistryKey<ChickenVariant> {
+        self.holder.get(VARIANT)
+    }
+
+    pub fn set_variant(&self, value: RegistryKey<ChickenVariant>) {
+        self.holder.set(VARIANT, value);
+    }
+
+    pub fn get_sound_variant(&self) -> RegistryKey<ChickenSoundVariant> {
+        self.holder.get(SOUND_VARIANT)
+    }
+
+    pub fn set_sound_variant(&self, value: RegistryKey<ChickenSoundVariant>) {
+        self.holder.set(SOUND_VARIANT, value);
+    }
+}
+
+impl MetaAccessor for ChickenMeta {
+    fn new(holder: MetadataHolder) -> Self {
+        Self { holder }
+    }
 }

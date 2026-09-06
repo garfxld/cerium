@@ -78,6 +78,8 @@ pub trait PacketWrite {
 
     fn write_varint(&mut self, value: i32) -> Result<()>;
 
+    fn write_varlong(&mut self, value: i64) -> Result<()>;
+
     fn write_string(&mut self, value: &str) -> Result<()>;
 
     fn write_key(&mut self, value: &Key) -> Result<()>;
@@ -158,6 +160,19 @@ impl<B: BufMut> PacketWrite for B {
 
         self.put(unsafe { bytes.get_unchecked(..bytes_needed as usize) });
         Ok(())
+    }
+
+    fn write_varlong(&mut self, value: i64) -> Result<()> {
+        let mut x = value as u64;
+        loop {
+            let byte = (x & 0b01111111) as u8;
+            x >>= 7;
+            if x == 0 {
+                self.write_u8(byte)?;
+                return Ok(());
+            }
+            self.write_u8(byte | 0b10000000)?;
+        }
     }
 
     fn write_string(&mut self, value: &str) -> Result<()> {
